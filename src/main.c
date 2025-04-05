@@ -405,26 +405,37 @@ void init_vulkan_system(ecs_iter_t *it) {
   printf("Vulkan setup completed\n");
 }
 
-
-void RenderSystem(ecs_iter_t *it) {
+// BeginRender System
+void BeginRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  // printf("BeginRenderSystem\n");
 
+  // Wait for previous frame and reset fence
   vkWaitForFences(ctx->device, 1, &ctx->inFlightFence, VK_TRUE, UINT64_MAX);
   vkResetFences(ctx->device, 1, &ctx->inFlightFence);
 
-  uint32_t imageIndex;
-  vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX, 
-                       ctx->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+  // Acquire next image
+  VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX, 
+                                         ctx->imageAvailableSemaphore, VK_NULL_HANDLE, 
+                                         &ctx->currentImageIndex);
+  if (result != VK_SUCCESS) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to acquire next image");
+      return;
+  }
 
+  // Reset and begin command buffer
   vkResetCommandBuffer(ctx->commandBuffer, 0);
-  
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  vkBeginCommandBuffer(ctx->commandBuffer, &beginInfo);
+  if (vkBeginCommandBuffer(ctx->commandBuffer, &beginInfo) != VK_SUCCESS) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to begin command buffer");
+      return;
+  }
 
+  // Begin render pass
   VkRenderPassBeginInfo renderPassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
   renderPassInfo.renderPass = ctx->renderPass;
-  renderPassInfo.framebuffer = ctx->swapchainFramebuffers[imageIndex];
+  renderPassInfo.framebuffer = ctx->swapchainFramebuffers[ctx->currentImageIndex];
   renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
   renderPassInfo.renderArea.extent = (VkExtent2D){WIDTH, HEIGHT};
   VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -432,17 +443,34 @@ void RenderSystem(ecs_iter_t *it) {
   renderPassInfo.pClearValues = &clearColor;
 
   vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-  
+}
+
+// Render System
+void RenderSystem(ecs_iter_t *it) {
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  // printf("RenderSystem\n");
+
   // Draw triangle
   vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
   VkBuffer vertexBuffers[] = {ctx->vertexBuffer};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, vertexBuffers, offsets);
   vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
+}
 
+// EndRender System
+void EndRenderSystem(ecs_iter_t *it) {
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  // printf("EndRenderSystem\n");
+
+  // End render pass and command buffer
   vkCmdEndRenderPass(ctx->commandBuffer);
-  vkEndCommandBuffer(ctx->commandBuffer);
+  if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to end command buffer");
+      return;
+  }
 
+  // Submit queue
   VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
   VkSemaphore waitSemaphores[] = {ctx->imageAvailableSemaphore};
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -455,18 +483,21 @@ void RenderSystem(ecs_iter_t *it) {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->inFlightFence);
+  if (vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->inFlightFence) != VK_SUCCESS) {
+      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to submit queue");
+      return;
+  }
 
+  // Present
   VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &ctx->swapchain;
-  presentInfo.pImageIndices = &imageIndex;
+  presentInfo.pImageIndices = &ctx->currentImageIndex;
 
   vkQueuePresentKHR(ctx->graphicsQueue, &presentInfo);
 }
-
 
 
 void cleanup_vulkan(WorldContext* ctx) {
@@ -523,18 +554,19 @@ int main(int argc, char* argv[]) {
   ecs_entity_t EndRenderPhase = ecs_new_w_id(world, EcsPhase);
 
 
-  ecs_add_pair(world, LogicUpdatePhase, EcsDependsOn, EcsPreUpdate);
-  ecs_add_pair(world, BeginRenderPhase, EcsDependsOn, LogicUpdatePhase);
+  //ecs_add_pair(world, LogicUpdatePhase, EcsDependsOn, EcsPreUpdate);
+  ecs_add_pair(world, BeginRenderPhase, EcsDependsOn, EcsPreUpdate);
   ecs_add_pair(world, BeginGUIPhase, EcsDependsOn, BeginRenderPhase);
   ecs_add_pair(world, UpdateGUIPhase, EcsDependsOn, BeginGUIPhase);
   ecs_add_pair(world, EndGUIPhase, EcsDependsOn, UpdateGUIPhase);
   ecs_add_pair(world, RenderPhase, EcsDependsOn, EndGUIPhase);
   ecs_add_pair(world, EndRenderPhase, EcsDependsOn, RenderPhase);
 
-
+  //init setup vulkan and others
   WorldContext world_ctx = { 
     .window = window,
     .imageCount = 0,
+    .currentImageIndex = 0,
     .physicalDevice = VK_NULL_HANDLE,
     .device = VK_NULL_HANDLE,
     .instance = VK_NULL_HANDLE,
@@ -555,13 +587,28 @@ int main(int argc, char* argv[]) {
       .callback = init_vulkan_system
   });
 
-  // Render system
   ecs_system_init(world, &(ecs_system_desc_t){
     .entity = ecs_entity(world, {
-        .name = "RenderSystem",
-        .add = ecs_ids(ecs_dependson(EcsPreUpdate))
+        .name = "BeginRenderSystem",
+        .add = ecs_ids(ecs_dependson(BeginRenderPhase))
     }),
-    .callback = RenderSystem
+      .callback = BeginRenderSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, {
+          .name = "RenderSystem",
+          .add = ecs_ids(ecs_dependson(RenderPhase))
+      }),
+      .callback = RenderSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, {
+          .name = "EndRenderSystem",
+          .add = ecs_ids(ecs_dependson(EndRenderPhase))
+      }),
+      .callback = EndRenderSystem
   });
 
   bool running = true;
