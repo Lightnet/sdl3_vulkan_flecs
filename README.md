@@ -1,10 +1,19 @@
-# sdl3_vulkan_module_c_cpp
+# sdl3_vulkan_flecs
 
 # Licenses: MIT
 
 # Required:
  * CMake
  * VS2022 c/c++
+
+# Features:
+  To keep some part module in some degree. For later add on but some area not easy to break down. Work on the flecs logging which still need work.
+
+ * Flecs logging.
+ * Module design
+ * Simple triangle
+
+  Need to add some features.
 
 # Information:
   
@@ -13,7 +22,7 @@
   Using the c as base and c++ wrapper for c to handle and help c build api with minimal.
 
 # Goal:
-  To create module design for 3D world build test. To build the module for SDL3 and Vulkan module as well some libraries.
+  To create module design for 3D world build test. With SDL3 and Vulkan and other libraries to create some modules which required testing.
 
 # Image:
 
@@ -36,11 +45,6 @@ src
 CMakeLists.txt
 ```
 
-# Features:
- * module design
-
-  Need to add some features.
-
 # Module design:
  To keep thing simple for add or remove module to debug or config correctly to develop application.
 
@@ -54,7 +58,6 @@ CMakeLists.txt
   Using the VulkanMemoryAllocator. https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 
   Reason a lot of boilerplate code.
-
 
 # Libraries:
  * SDL (added)

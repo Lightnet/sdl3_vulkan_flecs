@@ -65,15 +65,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   VkDebugUtilsMessageTypeFlagsEXT type,
   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
   void* pUserData) {
-  printf("Vulkan validation layer: %s\n", pCallbackData->pMessage);
+  // ecs_log(1, "Instance setup completed");
+  ecs_print(1,"Vulkan validation layer: %s\n", pCallbackData->pMessage);
+  //printf("Vulkan validation layer: %s\n", pCallbackData->pMessage);
   return VK_FALSE;
 }
 
+
 void InstanceSetupSystem(ecs_iter_t *it) {
-  printf("InstanceSetupSystem started\n");
+  // printf("InstanceSetupSystem started\n");
+  ecs_print(1,"InstanceSetupSystem started");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) {
-    printf("Error: ctx is NULL or has error\n");
+    // printf("Error: ctx is NULL or has error\n");
     return;
   }
 
@@ -88,49 +92,51 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   uint32_t sdlExtensionCount = 0;
   const char *const *sdlExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlExtensionCount);
   if (!sdlExtensions || sdlExtensionCount == 0) {
-    printf("Error: Failed to get Vulkan instance extensions from SDL\n");
+    ecs_print(1,"Error: Failed to get Vulkan instance extensions from SDL");
     ctx->hasError = true;
     ctx->errorMessage = "Failed to get Vulkan instance extensions from SDL";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  // Add VK_EXT_debug_utils manually
+  // Add VK_EXT_debug_utils
   uint32_t totalExtensionCount = sdlExtensionCount + 1;
   const char **extensions = malloc(sizeof(const char *) * totalExtensionCount);
   if (!extensions) {
-    printf("Error: Failed to allocate memory for extensions\n");
+    // printf("Error: Failed to allocate memory for extensions\n");
     ctx->hasError = true;
     ctx->errorMessage = "Memory allocation failed";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-
-  // Copy SDL extensions
   for (uint32_t i = 0; i < sdlExtensionCount; i++) {
     extensions[i] = sdlExtensions[i];
   }
-  // Add debug utils extension
   extensions[sdlExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 
-  printf("Found %u Vulkan instance extensions:\n", totalExtensionCount);
+  ecs_print(1,"Found %u Vulkan instance extensions:", totalExtensionCount);
   for (uint32_t i = 0; i < totalExtensionCount; i++) {
-    printf("  %u: %s\n", i + 1, extensions[i]);
+    ecs_print(1,"  %u: %s", i + 1, extensions[i]);
   }
+
+  // Enable validation layer
+  const char *validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
+  uint32_t layerCount = 1;
 
   VkInstanceCreateInfo createInfo = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
   createInfo.pApplicationInfo = &appInfo;
   createInfo.enabledExtensionCount = totalExtensionCount;
   createInfo.ppEnabledExtensionNames = extensions;
-  createInfo.enabledLayerCount = 0;
+  createInfo.enabledLayerCount = layerCount;
+  createInfo.ppEnabledLayerNames = validationLayers;
 
   VkResult result = vkCreateInstance(&createInfo, NULL, &ctx->instance);
-  free(extensions);  // Free after use
+  free(extensions);
   if (result != VK_SUCCESS) {
-    printf("Error: Failed to create Vulkan instance (VkResult: %d)\n", result);
+    ecs_print(1,"Error: Failed to create Vulkan instance (VkResult: %d)", result);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to create Vulkan instance";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  printf("Vulkan instance created\n");
+  // printf("Vulkan instance created\n");
 
   // Setup debug messenger
   PFN_vkCreateDebugUtilsMessengerEXT createDebugUtilsMessenger =
@@ -147,60 +153,61 @@ void InstanceSetupSystem(ecs_iter_t *it) {
 
     result = createDebugUtilsMessenger(ctx->instance, &debugCreateInfo, NULL, &ctx->debugMessenger);
     if (result != VK_SUCCESS) {
-      printf("Warning: Failed to create debug messenger (VkResult: %d)\n", result);
-      ctx->debugMessenger = VK_NULL_HANDLE;  // Ensure it’s null if failed
+      ecs_print(1,"Warning: Failed to create debug messenger (VkResult: %d)", result);
+      ctx->debugMessenger = VK_NULL_HANDLE;
     } else {
-      printf("Debug messenger created\n");
+      ecs_print(1,"Debug messenger created");
     }
   } else {
-    printf("Warning: vkCreateDebugUtilsMessengerEXT not found - debug utils extension may not be supported\n");
+    ecs_print(1,"Warning: vkCreateDebugUtilsMessengerEXT not found");
     ctx->debugMessenger = VK_NULL_HANDLE;
   }
 
-  printf("Instance setup completed\n");
+  //printf("Instance setup completed\n");
   ecs_log(1, "Instance setup completed");
 }
 
+
 void SurfaceSetupSystem(ecs_iter_t *it) {
-  printf("SurfaceSetupSystem started\n");
+  ecs_print(1,"SurfaceSetupSystem started");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) {
-    printf("Error: ctx is NULL or has error\n");
+    ecs_print(1,"Error: ctx is NULL or has error");
     return;
   }
 
   if (!ctx->window) {
-    printf("Error: window is NULL\n");
+    ecs_print(1,"Error: window is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "SDL window not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   if (!ctx->instance) {
-    printf("Error: instance is NULL\n");
+    ecs_print(1,"Error: instance is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "Vulkan instance not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
   if (!SDL_Vulkan_CreateSurface(ctx->window, ctx->instance, NULL, &ctx->surface)) {
-    printf("Error: Failed to create Vulkan surface - %s\n", SDL_GetError());
+    ecs_print(1,"Error: Failed to create Vulkan surface - %s", SDL_GetError());
     ctx->hasError = true;
     ctx->errorMessage = "Failed to create Vulkan surface";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  printf("Surface created successfully\n");
+  // printf("Surface created successfully\n");
 
   uint32_t deviceCount = 0;
   VkResult result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, NULL);
   if (result != VK_SUCCESS) {
-    printf("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)\n", result);
+    ecs_print(1,"Error: vkEnumeratePhysicalDevices failed (VkResult: %d)", result);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to enumerate physical devices (first call)";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  printf("Physical device count: %u\n", deviceCount);
+  // printf("Physical device count: %u\n", deviceCount);
   if (deviceCount == 0) {
-    printf("Error: No physical devices found\n");
+    ecs_print(1,"Error: No physical devices found");
     ctx->hasError = true;
     ctx->errorMessage = "No Vulkan physical devices found";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -208,14 +215,14 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
 
   VkPhysicalDevice* devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
   if (!devices) {
-    printf("Error: Failed to allocate memory for devices\n");
+    // printf("Error: Failed to allocate memory for devices\n");
     ctx->hasError = true;
     ctx->errorMessage = "Memory allocation failed";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, devices);
   if (result != VK_SUCCESS) {
-    printf("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)\n", result);
+    // printf("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)\n", result);
     free(devices);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to enumerate physical devices (second call)";
@@ -224,33 +231,33 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
 
   ctx->physicalDevice = devices[0];  // Pick first device for now
   free(devices);
-  printf("Physical device selected\n");
+  // printf("Physical device selected\n");
 
-  printf("Surface setup completed\n");
+  // printf("Surface setup completed\n");
   ecs_log(1, "Surface setup completed");
 }
 
 
 void DeviceSetupSystem(ecs_iter_t *it) {
-  printf("DeviceSetupSystem started\n");
+  ecs_print(1,"DeviceSetupSystem started");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx) {
-    printf("Error: ctx is NULL\n");
+    ecs_print(1,"Error: ctx is NULL");
     return;
   }
   if (ctx->hasError) {
-    printf("Error: ctx has error state\n");
+    ecs_print(1,"Error: ctx has error state");
     return;
   }
 
   if (ctx->physicalDevice == VK_NULL_HANDLE) {
-    printf("Error: physicalDevice is NULL\n");
+    ecs_print(1,"Error: physicalDevice is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "Physical device not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   if (ctx->surface == VK_NULL_HANDLE) {
-    printf("Error: surface is NULL\n");
+    ecs_print(1,"Error: surface is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "Surface not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -258,9 +265,9 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(ctx->physicalDevice, &queueFamilyCount, NULL);
-  printf("Queue family count: %u\n", queueFamilyCount);
+  ecs_print(1,"Queue family count: %u", queueFamilyCount);
   if (queueFamilyCount == 0) {
-    printf("Error: No queue families found\n");
+    ecs_print(1,"Error: No queue families found");
     ctx->hasError = true;
     ctx->errorMessage = "No queue families available";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -268,7 +275,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   VkQueueFamilyProperties* queueFamilies = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
   if (!queueFamilies) {
-    printf("Error: Failed to allocate queueFamilies\n");
+    ecs_print(1,"Error: Failed to allocate queueFamilies");
     ctx->hasError = true;
     ctx->errorMessage = "Memory allocation failed";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -284,11 +291,11 @@ void DeviceSetupSystem(ecs_iter_t *it) {
       if (presentSupport) ctx->presentFamily = i;
       if (ctx->graphicsFamily != UINT32_MAX && ctx->presentFamily != UINT32_MAX) break;
   }
-  printf("Graphics family: %u, Present family: %u\n", ctx->graphicsFamily, ctx->presentFamily);
+  ecs_print(1,"Graphics family: %u, Present family: %u", ctx->graphicsFamily, ctx->presentFamily);
   free(queueFamilies);
 
   if (ctx->graphicsFamily == UINT32_MAX || ctx->presentFamily == UINT32_MAX) {
-    printf("Error: Failed to find required queue families\n");
+    ecs_print(1,"Error: Failed to find required queue families");
     ctx->hasError = true;
     ctx->errorMessage = "No graphics or present queue family found";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -316,7 +323,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
 
   if (vkCreateDevice(ctx->physicalDevice, &deviceCreateInfo, NULL, &ctx->device) != VK_SUCCESS) {
-      printf("Error: vkCreateDevice failed\n");
+      ecs_print(1,"Error: vkCreateDevice failed");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create logical device";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -324,13 +331,12 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   vkGetDeviceQueue(ctx->device, ctx->graphicsFamily, 0, &ctx->graphicsQueue);
   vkGetDeviceQueue(ctx->device, ctx->presentFamily, 0, &ctx->presentQueue);
-  printf("Logical device and queues created successfully\n");
   ecs_log(1, "Logical device and queues created successfully");
 }
 
 
 void SwapchainSetupSystem(ecs_iter_t *it) {
-  printf("SwapchainSetupSystem \n");
+  ecs_print(1,"SwapchainSetupSystem ");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
@@ -401,7 +407,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   VkResult result = vkCreateSwapchainKHR(ctx->device, &swapchainCreateInfo, NULL, &ctx->swapchain);
   if (result != VK_SUCCESS) {
       char errorMsg[64];
-      sprintf(errorMsg, "Failed to create swapchain (VkResult: %d)", result);
+      ecs_print(1,errorMsg, "Failed to create swapchain (VkResult: %d)", result);
       ctx->hasError = true;
       ctx->errorMessage = errorMsg;
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -434,7 +440,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
 
 
 void TriangleBufferSetupSystem(ecs_iter_t *it) {
-  printf("TriangleBufferSetupSystem \n");
+  ecs_print(1,"TriangleBufferSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
@@ -498,8 +504,7 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
 
 
 void RenderPassSetupSystem(ecs_iter_t *it) {
-  printf("RenderPassSetupSystem \n");
-  ecs_log(1, "Starting RenderPassSetupSystem");
+  ecs_print(1,"RenderPassSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   if (!ctx->device) {
@@ -544,7 +549,7 @@ void RenderPassSetupSystem(ecs_iter_t *it) {
 
 
 void FramebufferSetupSystem(ecs_iter_t *it) {
-  printf("FramebufferSetupSystem \n");
+  ecs_print(1,"FramebufferSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
@@ -570,7 +575,7 @@ void FramebufferSetupSystem(ecs_iter_t *it) {
 
 
 void CommandPoolSetupSystem(ecs_iter_t *it) {
-  printf("CommandPoolSetupSystem \n");
+  ecs_print(1,"CommandPoolSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
@@ -589,8 +594,7 @@ void CommandPoolSetupSystem(ecs_iter_t *it) {
 
 
 void CommandBufferSetupSystem(ecs_iter_t *it) {
-  printf("CommandBufferSetupSystem \n");
-  ecs_log(1, "Starting CommandBufferSetupSystem");
+  ecs_print(1,"CommandBufferSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   if (!ctx->device || !ctx->commandPool) {
@@ -614,7 +618,7 @@ void CommandBufferSetupSystem(ecs_iter_t *it) {
 
 
 void PipelineSetupSystem(ecs_iter_t *it) {
-  printf("PipelineSetupSystem \n");
+  ecs_print(1,"PipelineSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   if (!ctx->device || !ctx->renderPass) {
@@ -733,9 +737,8 @@ void PipelineSetupSystem(ecs_iter_t *it) {
 }
 
 
-
 void SyncSetupSystem(ecs_iter_t *it) {
-  printf("SyncSetupSystem \n");
+  ecs_print(1,"SyncSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
@@ -904,9 +907,9 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
           (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
       if (destroyDebugUtilsMessenger) {
         destroyDebugUtilsMessenger(ctx->instance, ctx->debugMessenger, NULL);
-        printf("Debug messenger destroyed\n");
+        ecs_print(1,"Debug messenger destroyed");
       } else {
-        printf("Warning: Failed to get vkDestroyDebugUtilsMessengerEXT function pointer\n");
+        ecs_print(1,"Warning: Failed to get vkDestroyDebugUtilsMessengerEXT function pointer");
       }
     }
 
@@ -914,9 +917,8 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
   }
 }
 
-
-
 void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
+  ecs_print(1,"init vulkan module");
   ecs_set_ctx(world, ctx, NULL);
 
   FlecsPhases phases;
