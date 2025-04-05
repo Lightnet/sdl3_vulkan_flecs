@@ -7,30 +7,38 @@
 #include "flecs.h"
 
 typedef struct {
-    SDL_Window* window;
-    VkInstance instance;
-    VkPhysicalDevice physicalDevice;
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkSurfaceKHR surface;
-    VkSwapchainKHR swapchain;
-    VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
-    VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexMemory;
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
-    uint32_t imageCount;
-    uint32_t currentImageIndex;
-    uint32_t graphicsFamily;  // Added for cross-phase access
-    VkImage* swapchainImages;
-    VkImageView* swapchainImageViews;
-    VkFramebuffer* swapchainFramebuffers;
+  SDL_Window *window;
+  VkInstance instance;
+  VkDebugUtilsMessengerEXT debugMessenger;
+  VkSurfaceKHR surface;
+  VkPhysicalDevice physicalDevice;
+  VkDevice device;
+  VkQueue graphicsQueue;
+  VkQueue presentQueue;
+  uint32_t graphicsFamily;            // Added: Graphics queue family index
+  uint32_t presentFamily;             // Added: Present queue family index
+  VkSwapchainKHR swapchain;
+  VkImage *swapchainImages;
+  VkImageView *swapchainImageViews;
+  uint32_t imageCount;
+  VkExtent2D swapchainExtent;
+  VkBuffer vertexBuffer;
+  VkDeviceMemory vertexBufferMemory;
+  VkRenderPass renderPass;
+  VkPipelineLayout pipelineLayout;
+  VkPipeline graphicsPipeline;
+  VkFramebuffer *framebuffers;
+  VkCommandPool commandPool;
+  VkCommandBuffer commandBuffer;
+  VkSemaphore imageAvailableSemaphore;
+  VkSemaphore renderFinishedSemaphore;
+  VkFence renderFinishedFence;
+  uint32_t imageIndex;
+  bool shouldQuit;
+  bool hasError;
+  const char *errorMessage;
 } WorldContext;
+
 
 typedef struct {
     float pos[2];
@@ -38,19 +46,24 @@ typedef struct {
 } Vertex;
 
 typedef struct {
-    ecs_entity_t LogicUpdatePhase;
-    ecs_entity_t BeginRenderPhase;
-    ecs_entity_t BeginGUIPhase;
-    ecs_entity_t UpdateGUIPhase;
-    ecs_entity_t EndGUIPhase;
-    ecs_entity_t RenderPhase;
-    ecs_entity_t EndRenderPhase;
-    ecs_entity_t InstanceSetupPhase;
-    ecs_entity_t SurfaceSetupPhase;
-    ecs_entity_t DeviceSetupPhase;
-    ecs_entity_t SwapchainSetupPhase;
-    ecs_entity_t RenderSetupPhase;
-    ecs_entity_t SyncSetupPhase;
+  ecs_entity_t LogicUpdatePhase;
+  ecs_entity_t BeginRenderPhase;
+  ecs_entity_t BeginGUIPhase;
+  ecs_entity_t UpdateGUIPhase;
+  ecs_entity_t EndGUIPhase;
+  ecs_entity_t RenderPhase;
+  ecs_entity_t EndRenderPhase;
+  ecs_entity_t InstanceSetupPhase;
+  ecs_entity_t SurfaceSetupPhase;
+  ecs_entity_t DeviceSetupPhase;
+  ecs_entity_t SwapchainSetupPhase;
+  ecs_entity_t TriangleBufferSetupPhase;
+  ecs_entity_t RenderPassSetupPhase;    // New phase
+  ecs_entity_t FramebufferSetupPhase;   // New phase
+  ecs_entity_t CommandPoolSetupPhase;   // New phase
+  ecs_entity_t CommandBufferSetupPhase; // New phase
+  ecs_entity_t PipelineSetupPhase;      // New phase
+  ecs_entity_t SyncSetupPhase;
 } FlecsPhases;
 
 void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases);

@@ -1,159 +1,489 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "flecs_vulkan.h"
 #include "flecs.h"
+
+#include "vert.spv.h"
+#include "frag.spv.h"
 
 #define WIDTH 800
 #define HEIGHT 600
 
 static const Vertex vertices[] = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},  // Top - Red
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},   // Bottom Right - Green
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}   // Bottom Left - Blue
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
 
-const char* vertexShaderCode = 
-    "#version 450\n"
-    "layout(location = 0) in vec2 inPosition;\n"
-    "layout(location = 1) in vec3 inColor;\n"
-    "layout(location = 0) out vec3 fragColor;\n"
-    "void main() {\n"
-    "    gl_Position = vec4(inPosition, 0.0, 1.0);\n"
-    "    fragColor = inColor;\n"
-    "}\0";
+// const char* vertexShaderCode = 
+//     "#version 450\n"
+//     "layout(location = 0) in vec2 inPosition;\n"
+//     "layout(location = 1) in vec3 inColor;\n"
+//     "layout(location = 0) out vec3 fragColor;\n"
+//     "void main() {\n"
+//     "    gl_Position = vec4(inPosition, 0.0, 1.0);\n"
+//     "    fragColor = inColor;\n"
+//     "}\0";
 
-const char* fragmentShaderCode = 
-    "#version 450\n"
-    "layout(location = 0) in vec3 fragColor;\n"
-    "layout(location = 0) out vec4 outColor;\n"
-    "void main() {\n"
-    "    outColor = vec4(fragColor, 1.0);\n"
-    "}\0";
+// const char* fragmentShaderCode = 
+//     "#version 450\n"
+//     "layout(location = 0) in vec3 fragColor;\n"
+//     "layout(location = 0) out vec4 outColor;\n"
+//     "void main() {\n"
+//     "    outColor = vec4(fragColor, 1.0);\n"
+//     "}\0";
 
-VkShaderModule createShaderModule(VkDevice device, const char* code) {
-    VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    createInfo.codeSize = strlen(code) + 1;
-    createInfo.pCode = (const uint32_t*)code;
-    
-    VkShaderModule module;
-    vkCreateShaderModule(device, &createInfo, NULL, &module);
-    return module;
+// VkShaderModule createShaderModule(VkDevice device, const char* code) {
+//     VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+//     createInfo.codeSize = strlen(code) + 1;
+//     createInfo.pCode = (const uint32_t*)code;
+//     VkShaderModule module;
+//     if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+//         ecs_err("Failed to create shader module");
+//         return VK_NULL_HANDLE;  // Non-critical, so just log
+//     }
+//     return module;
+// }
+
+
+VkShaderModule createShaderModule(VkDevice device, const uint32_t* code, size_t codeSize) {
+  VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+  createInfo.codeSize = codeSize * sizeof(uint32_t);  // Size in bytes (uint32_t is 4 bytes)
+  createInfo.pCode = code;
+  VkShaderModule module;
+  if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+      ecs_err("Failed to create shader module");
+      return VK_NULL_HANDLE;
+  }
+  return module;
+}
+
+
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+  VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+  VkDebugUtilsMessageTypeFlagsEXT type,
+  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+  void* pUserData) {
+  printf("Vulkan validation layer: %s\n", pCallbackData->pMessage);
+  return VK_FALSE;
 }
 
 void InstanceSetupSystem(ecs_iter_t *it) {
+  printf("InstanceSetupSystem started\n");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  Uint32 extensionCount = 0;
-  const char *const *extensionNames = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+  if (!ctx || ctx->hasError) {
+    printf("Error: ctx is NULL or has error\n");
+    return;
+  }
+
   VkApplicationInfo appInfo = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
-  appInfo.pApplicationName = "Vulkan SDL3";
+  appInfo.pApplicationName = "Vulkan Triangle";
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_3;
+  appInfo.apiVersion = VK_API_VERSION_1_0;
 
-  VkInstanceCreateInfo instanceCreateInfo = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
-  instanceCreateInfo.pApplicationInfo = &appInfo;
-  instanceCreateInfo.enabledExtensionCount = extensionCount;
-  instanceCreateInfo.ppEnabledExtensionNames = extensionNames;
-
-  if (vkCreateInstance(&instanceCreateInfo, NULL, &ctx->instance) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create Vulkan instance");
+  const char *extensions[] = {
+      VK_KHR_SURFACE_EXTENSION_NAME,
+      VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+      VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+  };
+  uint32_t extensionCount = sizeof(extensions) / sizeof(extensions[0]);
+  printf("Found %u Vulkan instance extensions:\n", extensionCount);
+  for (uint32_t i = 0; i < extensionCount; i++) {
+      printf("  %u: %s\n", i + 1, extensions[i]);
   }
+
+  VkInstanceCreateInfo createInfo = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+  createInfo.pApplicationInfo = &appInfo;
+  createInfo.enabledExtensionCount = extensionCount;
+  createInfo.ppEnabledExtensionNames = extensions;
+  createInfo.enabledLayerCount = 0;
+
+  VkResult result = vkCreateInstance(&createInfo, NULL, &ctx->instance);
+  if (result != VK_SUCCESS) {
+    printf("Error: Failed to create Vulkan instance (VkResult: %d)\n", result);
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to create Vulkan instance";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  printf("Vulkan instance created\n");
+
+  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+  debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  debugCreateInfo.pfnUserCallback = debugCallback;
+
+  PFN_vkCreateDebugUtilsMessengerEXT createDebugUtilsMessenger =
+      (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkCreateDebugUtilsMessengerEXT");
+  if (createDebugUtilsMessenger) {
+    result = createDebugUtilsMessenger(ctx->instance, &debugCreateInfo, NULL, &ctx->debugMessenger);
+    if (result != VK_SUCCESS) {
+      printf("Warning: Failed to create debug messenger (VkResult: %d)\n", result);
+    } else {
+      printf("Debug messenger created\n");
+    }
+  } else {
+    printf("Warning: vkCreateDebugUtilsMessengerEXT not found\n");
+  }
+
+  printf("Instance setup completed\n");
+  ecs_log(1, "Instance setup completed");
 }
+
 
 void SurfaceSetupSystem(ecs_iter_t *it) {
+  printf("SurfaceSetupSystem started\n");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  if (!SDL_Vulkan_CreateSurface(ctx->window, ctx->instance, NULL, &ctx->surface)) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create Vulkan surface");
+  if (!ctx || ctx->hasError) {
+    printf("Error: ctx is NULL or has error\n");
+    return;
   }
+
+  if (!ctx->window) {
+    printf("Error: window is NULL\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "SDL window not initialized";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  if (!ctx->instance) {
+    printf("Error: instance is NULL\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Vulkan instance not initialized";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  if (!SDL_Vulkan_CreateSurface(ctx->window, ctx->instance, NULL, &ctx->surface)) {
+    printf("Error: Failed to create Vulkan surface - %s\n", SDL_GetError());
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to create Vulkan surface";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  printf("Surface created successfully\n");
+
+  uint32_t deviceCount = 0;
+  VkResult result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, NULL);
+  if (result != VK_SUCCESS) {
+    printf("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)\n", result);
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to enumerate physical devices (first call)";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  printf("Physical device count: %u\n", deviceCount);
+  if (deviceCount == 0) {
+    printf("Error: No physical devices found\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "No Vulkan physical devices found";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  VkPhysicalDevice* devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
+  if (!devices) {
+    printf("Error: Failed to allocate memory for devices\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Memory allocation failed";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, devices);
+  if (result != VK_SUCCESS) {
+    printf("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)\n", result);
+    free(devices);
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to enumerate physical devices (second call)";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  ctx->physicalDevice = devices[0];  // Pick first device for now
+  free(devices);
+  printf("Physical device selected\n");
+
+  printf("Surface setup completed\n");
+  ecs_log(1, "Surface setup completed");
 }
 
+
 void DeviceSetupSystem(ecs_iter_t *it) {
+  printf("DeviceSetupSystem started\n");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, NULL);
-  VkPhysicalDevice* devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
-  vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, devices);
-  ctx->physicalDevice = devices[0];
-  free(devices);
+  if (!ctx) {
+    printf("Error: ctx is NULL\n");
+    return;
+  }
+  if (ctx->hasError) {
+    printf("Error: ctx has error state\n");
+    return;
+  }
+
+  if (ctx->physicalDevice == VK_NULL_HANDLE) {
+    printf("Error: physicalDevice is NULL\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Physical device not initialized";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  if (ctx->surface == VK_NULL_HANDLE) {
+    printf("Error: surface is NULL\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Surface not initialized";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(ctx->physicalDevice, &queueFamilyCount, NULL);
+  printf("Queue family count: %u\n", queueFamilyCount);
+  if (queueFamilyCount == 0) {
+    printf("Error: No queue families found\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "No queue families available";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
   VkQueueFamilyProperties* queueFamilies = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
+  if (!queueFamilies) {
+    printf("Error: Failed to allocate queueFamilies\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Memory allocation failed";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
   vkGetPhysicalDeviceQueueFamilyProperties(ctx->physicalDevice, &queueFamilyCount, queueFamilies);
 
   ctx->graphicsFamily = UINT32_MAX;
+  ctx->presentFamily = UINT32_MAX;
   for (uint32_t i = 0; i < queueFamilyCount; i++) {
-      if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-          VkBool32 presentSupport = false;
-          vkGetPhysicalDeviceSurfaceSupportKHR(ctx->physicalDevice, i, ctx->surface, &presentSupport);
-          if (presentSupport) {
-              ctx->graphicsFamily = i;
-              break;
-          }
-      }
+      if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) ctx->graphicsFamily = i;
+      VkBool32 presentSupport = VK_FALSE;
+      vkGetPhysicalDeviceSurfaceSupportKHR(ctx->physicalDevice, i, ctx->surface, &presentSupport);
+      if (presentSupport) ctx->presentFamily = i;
+      if (ctx->graphicsFamily != UINT32_MAX && ctx->presentFamily != UINT32_MAX) break;
   }
+  printf("Graphics family: %u, Present family: %u\n", ctx->graphicsFamily, ctx->presentFamily);
   free(queueFamilies);
 
-  float queuePriority = 1.0f;
-  VkDeviceQueueCreateInfo queueCreateInfo = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
-  queueCreateInfo.queueFamilyIndex = ctx->graphicsFamily;
-  queueCreateInfo.queueCount = 1;
-  queueCreateInfo.pQueuePriorities = &queuePriority;
+  if (ctx->graphicsFamily == UINT32_MAX || ctx->presentFamily == UINT32_MAX) {
+    printf("Error: Failed to find required queue families\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "No graphics or present queue family found";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
-  const char* deviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  VkDeviceCreateInfo deviceCreateInfo = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-  deviceCreateInfo.queueCreateInfoCount = 1;
-  deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+  VkDeviceQueueCreateInfo queueCreateInfos[2] = {{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO}};
+  float queuePriority = 1.0f;
+  queueCreateInfos[0].queueFamilyIndex = ctx->graphicsFamily;
+  queueCreateInfos[0].queueCount = 1;
+  queueCreateInfos[0].pQueuePriorities = &queuePriority;
+  uint32_t queueCreateInfoCount = 1;
+  if (ctx->graphicsFamily != ctx->presentFamily) {
+      queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+      queueCreateInfos[1].queueFamilyIndex = ctx->presentFamily;
+      queueCreateInfos[1].queueCount = 1;
+      queueCreateInfos[1].pQueuePriorities = &queuePriority;
+      queueCreateInfoCount = 2;
+  }
+
+  VkDeviceCreateInfo deviceCreateInfo = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};  // Fixed sType
+  deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
+  deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
+  const char *deviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
   deviceCreateInfo.enabledExtensionCount = 1;
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
 
   if (vkCreateDevice(ctx->physicalDevice, &deviceCreateInfo, NULL, &ctx->device) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create logical device");
+      printf("Error: vkCreateDevice failed\n");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create logical device";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
+
   vkGetDeviceQueue(ctx->device, ctx->graphicsFamily, 0, &ctx->graphicsQueue);
+  vkGetDeviceQueue(ctx->device, ctx->presentFamily, 0, &ctx->presentQueue);
+  printf("Logical device and queues created successfully\n");
+  ecs_log(1, "Logical device and queues created successfully");
 }
 
-void SwapchainSetupSystem(ecs_iter_t *it) {
-  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  VkSurfaceCapabilitiesKHR capabilities;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx->physicalDevice, ctx->surface, &capabilities);
 
+void SwapchainSetupSystem(ecs_iter_t *it) {
+  printf("SwapchainSetupSystem \n");
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+
+  // Query surface capabilities
+  VkSurfaceCapabilitiesKHR capabilities;
+  if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx->physicalDevice, ctx->surface, &capabilities) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to query surface capabilities";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  // Set swapchain extent
+  ctx->swapchainExtent = capabilities.currentExtent;
+
+  // Adjust image count
+  ctx->imageCount = 2;  // Desired number
+  if (ctx->imageCount < capabilities.minImageCount) {
+      ctx->imageCount = capabilities.minImageCount;
+  }
+  if (capabilities.maxImageCount > 0 && ctx->imageCount > capabilities.maxImageCount) {
+      ctx->imageCount = capabilities.maxImageCount;
+  }
+
+  // Query supported formats
+  uint32_t formatCount;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(ctx->physicalDevice, ctx->surface, &formatCount, NULL);
+  VkSurfaceFormatKHR* formats = malloc(sizeof(VkSurfaceFormatKHR) * formatCount);
+  vkGetPhysicalDeviceSurfaceFormatsKHR(ctx->physicalDevice, ctx->surface, &formatCount, formats);
+  VkSurfaceFormatKHR selectedFormat = formats[0];
+  for (uint32_t i = 0; i < formatCount; i++) {
+      if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB && 
+          formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+          selectedFormat = formats[i];
+          break;
+      }
+  }
+  free(formats);
+
+  // Query supported present modes
+  uint32_t presentModeCount;
+  vkGetPhysicalDeviceSurfacePresentModesKHR(ctx->physicalDevice, ctx->surface, &presentModeCount, NULL);
+  VkPresentModeKHR* presentModes = malloc(sizeof(VkPresentModeKHR) * presentModeCount);
+  vkGetPhysicalDeviceSurfacePresentModesKHR(ctx->physicalDevice, ctx->surface, &presentModeCount, presentModes);
+  VkPresentModeKHR selectedPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+  for (uint32_t i = 0; i < presentModeCount; i++) {
+      if (presentModes[i] == VK_PRESENT_MODE_FIFO_KHR) {
+          selectedPresentMode = presentModes[i];
+          break;
+      }
+  }
+  free(presentModes);
+
+  // Create swapchain
   VkSwapchainCreateInfoKHR swapchainCreateInfo = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
   swapchainCreateInfo.surface = ctx->surface;
-  swapchainCreateInfo.minImageCount = 2;
-  swapchainCreateInfo.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
-  swapchainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-  swapchainCreateInfo.imageExtent = capabilities.currentExtent;
+  swapchainCreateInfo.minImageCount = ctx->imageCount;
+  swapchainCreateInfo.imageFormat = selectedFormat.format;
+  swapchainCreateInfo.imageColorSpace = selectedFormat.colorSpace;
+  swapchainCreateInfo.imageExtent = ctx->swapchainExtent;
   swapchainCreateInfo.imageArrayLayers = 1;
   swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
   swapchainCreateInfo.preTransform = capabilities.currentTransform;
   swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+  swapchainCreateInfo.presentMode = selectedPresentMode;
   swapchainCreateInfo.clipped = VK_TRUE;
 
-  if (vkCreateSwapchainKHR(ctx->device, &swapchainCreateInfo, NULL, &ctx->swapchain) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create swapchain");
+  VkResult result = vkCreateSwapchainKHR(ctx->device, &swapchainCreateInfo, NULL, &ctx->swapchain);
+  if (result != VK_SUCCESS) {
+      char errorMsg[64];
+      sprintf(errorMsg, "Failed to create swapchain (VkResult: %d)", result);
+      ctx->hasError = true;
+      ctx->errorMessage = errorMsg;
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
+  // Get swapchain images
   vkGetSwapchainImagesKHR(ctx->device, ctx->swapchain, &ctx->imageCount, NULL);
   ctx->swapchainImages = malloc(sizeof(VkImage) * ctx->imageCount);
   vkGetSwapchainImagesKHR(ctx->device, ctx->swapchain, &ctx->imageCount, ctx->swapchainImages);
 
+  // Create image views
   ctx->swapchainImageViews = malloc(sizeof(VkImageView) * ctx->imageCount);
   for (uint32_t i = 0; i < ctx->imageCount; i++) {
       VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
       viewInfo.image = ctx->swapchainImages[i];
       viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      viewInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
+      viewInfo.format = selectedFormat.format;
       viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       viewInfo.subresourceRange.levelCount = 1;
       viewInfo.subresourceRange.layerCount = 1;
-      vkCreateImageView(ctx->device, &viewInfo, NULL, &ctx->swapchainImageViews[i]);
+      if (vkCreateImageView(ctx->device, &viewInfo, NULL, &ctx->swapchainImageViews[i]) != VK_SUCCESS) {
+          ctx->hasError = true;
+          ctx->errorMessage = "Failed to create swapchain image view";
+          ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+      }
   }
+
+  ecs_log(1, "Swapchain setup completed with %u images", ctx->imageCount);
 }
 
-void RenderSetupSystem(ecs_iter_t *it) {
+
+void TriangleBufferSetupSystem(ecs_iter_t *it) {
+  printf("TriangleBufferSetupSystem \n");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+
+  Vertex vertices[] = {
+      {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+  };
+  VkDeviceSize bufferSize = sizeof(vertices);
+
+  VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+  bufferInfo.size = bufferSize;
+  bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, &ctx->vertexBuffer) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create vertex buffer";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(ctx->device, ctx->vertexBuffer, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = 0;
+  VkPhysicalDeviceMemoryProperties memProperties;
+  vkGetPhysicalDeviceMemoryProperties(ctx->physicalDevice, &memProperties);
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+      if ((memRequirements.memoryTypeBits & (1 << i)) &&
+          (memProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
+          allocInfo.memoryTypeIndex = i;
+          break;
+      }
+  }
+
+  if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->vertexBufferMemory) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to allocate vertex buffer memory";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  if (vkBindBufferMemory(ctx->device, ctx->vertexBuffer, ctx->vertexBufferMemory, 0) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to bind vertex buffer memory";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  void* data;
+  if (vkMapMemory(ctx->device, ctx->vertexBufferMemory, 0, bufferSize, 0, &data) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to map vertex buffer memory";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  memcpy(data, vertices, (size_t)bufferSize);
+  vkUnmapMemory(ctx->device, ctx->vertexBufferMemory);
+
+  ecs_log(1, "Triangle vertex buffer setup completed");
+}
+
+
+void RenderPassSetupSystem(ecs_iter_t *it) {
+  printf("RenderPassSetupSystem \n");
+  ecs_log(1, "Starting RenderPassSetupSystem");
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+  if (!ctx->device) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Device is null in RenderPassSetupSystem";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
   VkAttachmentDescription colorAttachment = {0};
   colorAttachment.format = VK_FORMAT_B8G8R8A8_SRGB;
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -180,28 +510,69 @@ void RenderSetupSystem(ecs_iter_t *it) {
   renderPassInfo.pSubpasses = &subpass;
 
   if (vkCreateRenderPass(ctx->device, &renderPassInfo, NULL, &ctx->renderPass) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create render pass");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create render pass";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  VkSurfaceCapabilitiesKHR capabilities;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx->physicalDevice, ctx->surface, &capabilities);
-  ctx->swapchainFramebuffers = malloc(sizeof(VkFramebuffer) * ctx->imageCount);
+  ecs_log(1, "Render pass setup completed");
+}
+
+
+void FramebufferSetupSystem(ecs_iter_t *it) {
+  printf("FramebufferSetupSystem \n");
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+
+  ctx->framebuffers = malloc(sizeof(VkFramebuffer) * ctx->imageCount);
   for (uint32_t i = 0; i < ctx->imageCount; i++) {
       VkFramebufferCreateInfo framebufferInfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
       framebufferInfo.renderPass = ctx->renderPass;
       framebufferInfo.attachmentCount = 1;
       framebufferInfo.pAttachments = &ctx->swapchainImageViews[i];
-      framebufferInfo.width = capabilities.currentExtent.width;
-      framebufferInfo.height = capabilities.currentExtent.height;
+      framebufferInfo.width = ctx->swapchainExtent.width;
+      framebufferInfo.height = ctx->swapchainExtent.height;
       framebufferInfo.layers = 1;
-      vkCreateFramebuffer(ctx->device, &framebufferInfo, NULL, &ctx->swapchainFramebuffers[i]);
+
+      if (vkCreateFramebuffer(ctx->device, &framebufferInfo, NULL, &ctx->framebuffers[i]) != VK_SUCCESS) {
+          ctx->hasError = true;
+          ctx->errorMessage = "Failed to create framebuffer";
+          ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+      }
   }
+
+  ecs_log(1, "Framebuffer setup completed");
+}
+
+
+void CommandPoolSetupSystem(ecs_iter_t *it) {
+  printf("CommandPoolSetupSystem \n");
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
 
   VkCommandPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
   poolInfo.queueFamilyIndex = ctx->graphicsFamily;
   poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
   if (vkCreateCommandPool(ctx->device, &poolInfo, NULL, &ctx->commandPool) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create command pool");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create command pool";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  ecs_log(1, "Command pool setup completed");
+}
+
+
+void CommandBufferSetupSystem(ecs_iter_t *it) {
+  printf("CommandBufferSetupSystem \n");
+  ecs_log(1, "Starting CommandBufferSetupSystem");
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+  if (!ctx->device || !ctx->commandPool) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Required resources null in CommandBufferSetupSystem";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
   VkCommandBufferAllocateInfo cmdAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
@@ -209,46 +580,36 @@ void RenderSetupSystem(ecs_iter_t *it) {
   cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   cmdAllocInfo.commandBufferCount = 1;
   if (vkAllocateCommandBuffers(ctx->device, &cmdAllocInfo, &ctx->commandBuffer) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate command buffer");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to allocate command buffer";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-  bufferInfo.size = sizeof(vertices);
-  bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, &ctx->vertexBuffer) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create vertex buffer");
+  ecs_log(1, "Command buffer setup completed");
+}
+
+
+void PipelineSetupSystem(ecs_iter_t *it) {
+  printf("PipelineSetupSystem \n");
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+  if (!ctx->device || !ctx->renderPass) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Required resources null in PipelineSetupSystem";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(ctx->device, ctx->vertexBuffer, &memRequirements);
+  // Calculate the number of uint32_t elements in each array
+  size_t vertSpvSize = sizeof(vert_spv) / sizeof(vert_spv[0]);
+  size_t fragSpvSize = sizeof(frag_spv) / sizeof(frag_spv[0]);
 
-  VkMemoryAllocateInfo memAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-  memAllocInfo.allocationSize = memRequirements.size;
-  VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(ctx->physicalDevice, &memProperties);
-  uint32_t memoryTypeIndex = 0;
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-      if ((memRequirements.memoryTypeBits & (1 << i)) &&
-          (memProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
-          memoryTypeIndex = i;
-          break;
-      }
+  VkShaderModule vertShaderModule = createShaderModule(ctx->device, vert_spv, vertSpvSize);
+  VkShaderModule fragShaderModule = createShaderModule(ctx->device, frag_spv, fragSpvSize);
+  if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create shader modules";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  memAllocInfo.memoryTypeIndex = memoryTypeIndex;
-
-  if (vkAllocateMemory(ctx->device, &memAllocInfo, NULL, &ctx->vertexMemory) != VK_SUCCESS) {
-      SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate vertex memory");
-  }
-  vkBindBufferMemory(ctx->device, ctx->vertexBuffer, ctx->vertexMemory, 0);
-
-  void* data;
-  vkMapMemory(ctx->device, ctx->vertexMemory, 0, sizeof(vertices), 0, &data);
-  memcpy(data, vertices, sizeof(vertices));
-  vkUnmapMemory(ctx->device, ctx->vertexMemory);
-
-  VkShaderModule vertShaderModule = createShaderModule(ctx->device, vertexShaderCode);
-  VkShaderModule fragShaderModule = createShaderModule(ctx->device, fragmentShaderCode);
 
   VkPipelineShaderStageCreateInfo vertStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
   vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -262,6 +623,7 @@ void RenderSetupSystem(ecs_iter_t *it) {
 
   VkPipelineShaderStageCreateInfo shaderStages[] = {vertStageInfo, fragStageInfo};
 
+  // Rest of the pipeline setup (unchanged)...
   VkVertexInputBindingDescription bindingDesc = {0};
   bindingDesc.binding = 0;
   bindingDesc.stride = sizeof(Vertex);
@@ -316,7 +678,11 @@ void RenderSetupSystem(ecs_iter_t *it) {
   colorBlending.pAttachments = &colorBlendAttachment;
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-  vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->pipelineLayout);
+  if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->pipelineLayout) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create pipeline layout";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
   VkGraphicsPipelineCreateInfo pipelineInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
   pipelineInfo.stageCount = 2;
@@ -331,202 +697,274 @@ void RenderSetupSystem(ecs_iter_t *it) {
   pipelineInfo.renderPass = ctx->renderPass;
   pipelineInfo.subpass = 0;
 
-  vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->graphicsPipeline);
+  if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->graphicsPipeline) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create graphics pipeline";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
   vkDestroyShaderModule(ctx->device, fragShaderModule, NULL);
   vkDestroyShaderModule(ctx->device, vertShaderModule, NULL);
+  ecs_log(1, "Pipeline setup completed");
 }
+
+
 
 void SyncSetupSystem(ecs_iter_t *it) {
+  printf("SyncSetupSystem \n");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  VkSemaphoreCreateInfo semaphoreInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-  vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->imageAvailableSemaphore);
-  vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->renderFinishedSemaphore);
+  if (!ctx || ctx->hasError) return;
 
+  VkSemaphoreCreateInfo semaphoreInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-  vkCreateFence(ctx->device, &fenceInfo, NULL, &ctx->inFlightFence);
+
+  if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->imageAvailableSemaphore) != VK_SUCCESS ||
+      vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->renderFinishedSemaphore) != VK_SUCCESS ||
+      vkCreateFence(ctx->device, &fenceInfo, NULL, &ctx->renderFinishedFence) != VK_SUCCESS) {
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create synchronization objects";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  ecs_log(1, "Synchronization objects created");
 }
+
+
 
 void BeginRenderSystem(ecs_iter_t *it) {
-    WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
 
-    vkWaitForFences(ctx->device, 1, &ctx->inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(ctx->device, 1, &ctx->inFlightFence);
+  // Wait for the previous frame to finish
+  vkWaitForFences(ctx->device, 1, &ctx->renderFinishedFence, VK_TRUE, UINT64_MAX);
 
-    VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX, 
-                                           ctx->imageAvailableSemaphore, VK_NULL_HANDLE, 
-                                           &ctx->currentImageIndex);
-    if (result != VK_SUCCESS) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to acquire next image");
-        return;
-    }
+  // Acquire the next image
+  VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX,
+                                          ctx->imageAvailableSemaphore, VK_NULL_HANDLE, &ctx->imageIndex);
+  if (result != VK_SUCCESS) {
+    printf("Error: vkAcquireNextImageKHR failed (VkResult: %d)\n", result);
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to acquire next image";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
-    vkResetCommandBuffer(ctx->commandBuffer, 0);
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    if (vkBeginCommandBuffer(ctx->commandBuffer, &beginInfo) != VK_SUCCESS) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to begin command buffer");
-        return;
-    }
-
-    VkRenderPassBeginInfo renderPassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
-    renderPassInfo.renderPass = ctx->renderPass;
-    renderPassInfo.framebuffer = ctx->swapchainFramebuffers[ctx->currentImageIndex];
-    renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
-    renderPassInfo.renderArea.extent = (VkExtent2D){WIDTH, HEIGHT};
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
-
-    vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  // Reset the fence only after acquiring the image
+  vkResetFences(ctx->device, 1, &ctx->renderFinishedFence);
 }
+
+
 
 void RenderSystem(ecs_iter_t *it) {
-    WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
 
-    vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
-    VkBuffer vertexBuffers[] = {ctx->vertexBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
+  // Reset the command buffer
+  vkResetCommandBuffer(ctx->commandBuffer, 0);
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  if (vkBeginCommandBuffer(ctx->commandBuffer, &beginInfo) != VK_SUCCESS) {
+    printf("Error: Failed to begin command buffer\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to begin command buffer";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  VkRenderPassBeginInfo renderPassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+  renderPassInfo.renderPass = ctx->renderPass;
+  renderPassInfo.framebuffer = ctx->framebuffers[ctx->imageIndex];
+  renderPassInfo.renderArea.offset = (VkOffset2D){0, 0};
+  renderPassInfo.renderArea.extent = ctx->swapchainExtent;
+  VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  renderPassInfo.clearValueCount = 1;
+  renderPassInfo.pClearValues = &clearColor;
+
+  vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
+
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->vertexBuffer, offsets);
+  vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
+  vkCmdEndRenderPass(ctx->commandBuffer);
+
+  if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
+    printf("Error: Failed to end command buffer\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to end command buffer";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 }
+
+
 
 void EndRenderSystem(ecs_iter_t *it) {
-    WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
 
-    vkCmdEndRenderPass(ctx->commandBuffer);
-    if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to end command buffer");
-        return;
-    }
+  VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+  VkSemaphore waitSemaphores[] = {ctx->imageAvailableSemaphore};
+  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &ctx->commandBuffer;
+  VkSemaphore signalSemaphores[] = {ctx->renderFinishedSemaphore};
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = signalSemaphores;
 
-    VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    VkSemaphore waitSemaphores[] = {ctx->imageAvailableSemaphore};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &ctx->commandBuffer;
-    VkSemaphore signalSemaphores[] = {ctx->renderFinishedSemaphore};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
+  if (vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->renderFinishedFence) != VK_SUCCESS) {
+    printf("Error: Failed to submit queue\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to submit queue";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
-    if (vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->inFlightFence) != VK_SUCCESS) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to submit queue");
-        return;
-    }
+  VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = signalSemaphores;
+  VkSwapchainKHR swapchains[] = {ctx->swapchain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapchains;
+  presentInfo.pImageIndices = &ctx->imageIndex;
 
-    VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &ctx->swapchain;
-    presentInfo.pImageIndices = &ctx->currentImageIndex;
-
-    vkQueuePresentKHR(ctx->graphicsQueue, &presentInfo);
+  vkQueuePresentKHR(ctx->presentQueue, &presentInfo);
 }
 
-void cleanup_vulkan(WorldContext* ctx) {
-    vkDestroyPipeline(ctx->device, ctx->graphicsPipeline, NULL);
-    vkDestroyPipelineLayout(ctx->device, ctx->pipelineLayout, NULL);
-    vkDestroyBuffer(ctx->device, ctx->vertexBuffer, NULL);
-    vkFreeMemory(ctx->device, ctx->vertexMemory, NULL);
 
-    vkDestroySemaphore(ctx->device, ctx->renderFinishedSemaphore, NULL);
+
+void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
+  if (!ctx) return;
+
+  // Wait for queues to idle only if device exists
+  if (ctx->device) {
+    vkQueueWaitIdle(ctx->graphicsQueue);
+    vkQueueWaitIdle(ctx->presentQueue);
+
     vkDestroySemaphore(ctx->device, ctx->imageAvailableSemaphore, NULL);
-    vkDestroyFence(ctx->device, ctx->inFlightFence, NULL);
+    vkDestroySemaphore(ctx->device, ctx->renderFinishedSemaphore, NULL);
+    vkDestroyFence(ctx->device, ctx->renderFinishedFence, NULL);
 
     vkFreeCommandBuffers(ctx->device, ctx->commandPool, 1, &ctx->commandBuffer);
-    vkDestroyCommandPool(ctx->device, ctx->commandPool, NULL);
-    for (uint32_t i = 0; i < ctx->imageCount; i++) {
-        vkDestroyFramebuffer(ctx->device, ctx->swapchainFramebuffers[i], NULL);
-        vkDestroyImageView(ctx->device, ctx->swapchainImageViews[i], NULL);
-    }
-    free(ctx->swapchainFramebuffers);
-    free(ctx->swapchainImages);
-    free(ctx->swapchainImageViews);
+
+    vkDestroyPipeline(ctx->device, ctx->graphicsPipeline, NULL);
+    vkDestroyPipelineLayout(ctx->device, ctx->pipelineLayout, NULL);
     vkDestroyRenderPass(ctx->device, ctx->renderPass, NULL);
+
+    for (uint32_t i = 0; i < ctx->imageCount; i++) {
+      vkDestroyFramebuffer(ctx->device, ctx->framebuffers[i], NULL);
+    }
+    free(ctx->framebuffers);
+
+    for (uint32_t i = 0; i < ctx->imageCount; i++) {
+      vkDestroyImageView(ctx->device, ctx->swapchainImageViews[i], NULL);
+    }
+    free(ctx->swapchainImageViews);
+    free(ctx->swapchainImages);
     vkDestroySwapchainKHR(ctx->device, ctx->swapchain, NULL);
+
+    vkDestroyBuffer(ctx->device, ctx->vertexBuffer, NULL);
+    vkFreeMemory(ctx->device, ctx->vertexBufferMemory, NULL);
+
+    vkDestroyCommandPool(ctx->device, ctx->commandPool, NULL);
+
     vkDestroyDevice(ctx->device, NULL);
+  }
+
+  if (ctx->instance) {
     vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);
+
+    if (ctx->debugMessenger) {
+      PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugUtilsMessenger =
+          (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
+      if (destroyDebugUtilsMessenger) {
+        destroyDebugUtilsMessenger(ctx->instance, ctx->debugMessenger, NULL);
+        printf("Debug messenger destroyed\n");
+      } else {
+        printf("Warning: Failed to get vkDestroyDebugUtilsMessengerEXT function pointer\n");
+      }
+    }
+
     vkDestroyInstance(ctx->instance, NULL);
+  }
 }
+
 
 
 void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_set_ctx(world, ctx, NULL);
 
+  FlecsPhases phases;
+  flecs_phases_init(world, &phases);
+
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "InstanceSetupSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(phases.InstanceSetupPhase)) }),
       .callback = InstanceSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "SurfaceSetupSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.SurfaceSetupPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "SurfaceSetupSystem", .add = ecs_ids(ecs_dependson(phases.SurfaceSetupPhase)) }),
       .callback = SurfaceSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "DeviceSetupSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.DeviceSetupPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "DeviceSetupSystem", .add = ecs_ids(ecs_dependson(phases.DeviceSetupPhase)) }),
       .callback = DeviceSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "SwapchainSetupSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.SwapchainSetupPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "SwapchainSetupSystem", .add = ecs_ids(ecs_dependson(phases.SwapchainSetupPhase)) }),
       .callback = SwapchainSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "RenderSetupSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.RenderSetupPhase))
-      }),
-      .callback = RenderSetupSystem
+      .entity = ecs_entity(world, { .name = "TriangleBufferSetupSystem", .add = ecs_ids(ecs_dependson(phases.TriangleBufferSetupPhase)) }),
+      .callback = TriangleBufferSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "SyncSetupSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.SyncSetupPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "RenderPassSetupSystem", .add = ecs_ids(ecs_dependson(phases.RenderPassSetupPhase)) }),
+      .callback = RenderPassSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "FramebufferSetupSystem", .add = ecs_ids(ecs_dependson(phases.FramebufferSetupPhase)) }),
+      .callback = FramebufferSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "CommandPoolSetupSystem", .add = ecs_ids(ecs_dependson(phases.CommandPoolSetupPhase)) }),
+      .callback = CommandPoolSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "CommandBufferSetupSystem", .add = ecs_ids(ecs_dependson(phases.CommandBufferSetupPhase)) }),
+      .callback = CommandBufferSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "PipelineSetupSystem", .add = ecs_ids(ecs_dependson(phases.PipelineSetupPhase)) }),
+      .callback = PipelineSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "SyncSetupSystem", .add = ecs_ids(ecs_dependson(phases.SyncSetupPhase)) }),
       .callback = SyncSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "BeginRenderSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.BeginRenderPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "BeginRenderSystem", .add = ecs_ids(ecs_dependson(phases.BeginRenderPhase)) }),
       .callback = BeginRenderSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "RenderSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "RenderSystem", .add = ecs_ids(ecs_dependson(phases.RenderPhase)) }),
       .callback = RenderSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, {
-          .name = "EndRenderSystem",
-          .add = ecs_ids(ecs_dependson(GlobalPhases.EndRenderPhase))
-      }),
+      .entity = ecs_entity(world, { .name = "EndRenderSystem", .add = ecs_ids(ecs_dependson(phases.EndRenderPhase)) }),
       .callback = EndRenderSystem
   });
 }
