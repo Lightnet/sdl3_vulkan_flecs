@@ -22,9 +22,17 @@
 ```
 fonts
 include
+- flecs_types.h (global variable in context for flecs)
+- flecs_vulkan.h (vulkan set up and render)
+- frag.spv.h (shader in header)
+- vert.spv.h (shader in header)
 shaders
+- shader.frag
+- shader.vert
 src
 - main.c
+- flecs_types.c
+- flecs_vulkan.c
 CMakeLists.txt
 ```
 
@@ -35,6 +43,10 @@ CMakeLists.txt
 
 # Module design:
  To keep thing simple for add or remove module to debug or config correctly to develop application.
+
+# Shader:
+  Note that Vulkan SDK has compiler for shader to help build file format. There are couple ways but we working on shader header and shader.spv. It depend on the job.
+
 
 # Libraries using c++:
  * VulkanMemoryAllocator

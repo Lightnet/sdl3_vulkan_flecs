@@ -84,24 +84,46 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.apiVersion = VK_API_VERSION_1_0;
 
-  const char *extensions[] = {
-      VK_KHR_SURFACE_EXTENSION_NAME,
-      VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-      VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-  };
-  uint32_t extensionCount = sizeof(extensions) / sizeof(extensions[0]);
-  printf("Found %u Vulkan instance extensions:\n", extensionCount);
-  for (uint32_t i = 0; i < extensionCount; i++) {
-      printf("  %u: %s\n", i + 1, extensions[i]);
+  // Get SDL3 Vulkan instance extensions
+  uint32_t sdlExtensionCount = 0;
+  const char *const *sdlExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlExtensionCount);
+  if (!sdlExtensions || sdlExtensionCount == 0) {
+    printf("Error: Failed to get Vulkan instance extensions from SDL\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to get Vulkan instance extensions from SDL";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  // Add VK_EXT_debug_utils manually
+  uint32_t totalExtensionCount = sdlExtensionCount + 1;
+  const char **extensions = malloc(sizeof(const char *) * totalExtensionCount);
+  if (!extensions) {
+    printf("Error: Failed to allocate memory for extensions\n");
+    ctx->hasError = true;
+    ctx->errorMessage = "Memory allocation failed";
+    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  // Copy SDL extensions
+  for (uint32_t i = 0; i < sdlExtensionCount; i++) {
+    extensions[i] = sdlExtensions[i];
+  }
+  // Add debug utils extension
+  extensions[sdlExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+
+  printf("Found %u Vulkan instance extensions:\n", totalExtensionCount);
+  for (uint32_t i = 0; i < totalExtensionCount; i++) {
+    printf("  %u: %s\n", i + 1, extensions[i]);
   }
 
   VkInstanceCreateInfo createInfo = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
   createInfo.pApplicationInfo = &appInfo;
-  createInfo.enabledExtensionCount = extensionCount;
+  createInfo.enabledExtensionCount = totalExtensionCount;
   createInfo.ppEnabledExtensionNames = extensions;
   createInfo.enabledLayerCount = 0;
 
   VkResult result = vkCreateInstance(&createInfo, NULL, &ctx->instance);
+  free(extensions);  // Free after use
   if (result != VK_SUCCESS) {
     printf("Error: Failed to create Vulkan instance (VkResult: %d)\n", result);
     ctx->hasError = true;
@@ -110,32 +132,34 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   }
   printf("Vulkan instance created\n");
 
-  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-  debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  debugCreateInfo.pfnUserCallback = debugCallback;
-
+  // Setup debug messenger
   PFN_vkCreateDebugUtilsMessengerEXT createDebugUtilsMessenger =
       (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkCreateDebugUtilsMessengerEXT");
   if (createDebugUtilsMessenger) {
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+    debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                      VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugCreateInfo.pfnUserCallback = debugCallback;
+
     result = createDebugUtilsMessenger(ctx->instance, &debugCreateInfo, NULL, &ctx->debugMessenger);
     if (result != VK_SUCCESS) {
       printf("Warning: Failed to create debug messenger (VkResult: %d)\n", result);
+      ctx->debugMessenger = VK_NULL_HANDLE;  // Ensure it’s null if failed
     } else {
       printf("Debug messenger created\n");
     }
   } else {
-    printf("Warning: vkCreateDebugUtilsMessengerEXT not found\n");
+    printf("Warning: vkCreateDebugUtilsMessengerEXT not found - debug utils extension may not be supported\n");
+    ctx->debugMessenger = VK_NULL_HANDLE;
   }
 
   printf("Instance setup completed\n");
   ecs_log(1, "Instance setup completed");
 }
-
 
 void SurfaceSetupSystem(ecs_iter_t *it) {
   printf("SurfaceSetupSystem started\n");

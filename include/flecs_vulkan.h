@@ -1,7 +1,7 @@
 #ifndef FLECS_VULKAN_H
 #define FLECS_VULKAN_H
 
-#define VK_USE_PLATFORM_WIN32_KHR
+//#define VK_USE_PLATFORM_WIN32_KHR
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
