@@ -42,6 +42,7 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - [SDL 3.2.10](https://github.com/libsdl-org/SDL): Windowing and input.
     - [VulkanHeaders 1.4.304.1](https://github.com/KhronosGroup/Vulkan-Headers): Vulkan API headers.
     - [Flecs 4.0.5](https://github.com/SanderMertens/flecs): Entity Component System.
+    - [cimgui](https://github.com/cimgui/cimgui) render graphic user interface.
         
 - Planned/Not Yet Added:
     - [FreeType 2.13.3](https://github.com/freetype/freetype): Font rendering.
@@ -144,7 +145,9 @@ The project uses a modular approach to simplify development:
 - Source files (shader.vert, shader.frag) are provided for reference.
 
 ## Notes
-- Hardcoding: Triangle vertices and ImGui elements are currently hardcoded.
+- Hardcoding: None
+- Triangle vertices 
+- ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
 - Logging: Flecs-based logging is a work in progress and may be incomplete.
 
@@ -165,6 +168,7 @@ The project uses a modular approach to simplify development:
 ## Credits
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
 - [Kenney Fonts](https://kenney.nl/assets/kenney-fonts): Potential font assets (not yet integrated).
+- https://x.com/i/grok (free tier, help setup build and readme docs)
 
 ## License
 
