@@ -6,7 +6,8 @@
 #include "flecs_types.h"
 #include "flecs_vulkan.h"
 #include "flecs_imgui.h"
-#include "flecs_sdl.h" 
+#include "flecs_sdl.h"
+
 
 int main(int argc, char *argv[]) {
   printf("init main!\n");
@@ -57,28 +58,22 @@ int main(int argc, char *argv[]) {
 
   ecs_print(1, "Running setup phases...");
   ecs_progress(world, 0);
-  ecs_print(1, "Post-setup context: %p", (void*)ctx);
-  ecs_print(1, "Post-setup fence: %p", (void*)ctx->inFlightFence);
-  fflush(stdout);
+  // ecs_print(1, "Post-setup context: %p", (void*)ctx);
+  // ecs_print(1, "Post-setup fence: %p", (void*)ctx->inFlightFence);
 
   ecs_print(1, "Entering main loop...");
-  // while (!ctx->shouldQuit) {
-  //     SDL_Event event;
-  //     while (SDL_PollEvent(&event)) {
-  //         if (ctx->isImGuiInitialized) {
-  //           //ecs_print(1,"imgui input");
-  //             ImGui_ImplSDL3_ProcessEvent(&event);
-  //         }
-  //         if (event.type == SDL_EVENT_QUIT) {
-  //             ecs_print(1, "Quit event received");
-  //             ctx->shouldQuit = true;
-  //         }
-  //     }
-  //     ecs_progress(world, 0);
-  // }
+
+  Uint64 previousTime = SDL_GetTicks(); // Time at the start
 
   while (!ctx->shouldQuit) {
-    ecs_progress(world, 0);  // All event handling is now in ImGuiInputSystem
+    // Get current time and calculate delta time
+    Uint64 currentTime = SDL_GetTicks();
+    float deltaTime = (currentTime - previousTime) / 1000.0f; // Convert ms to seconds
+    previousTime = currentTime; // Update previous time for next frame
+    // Print delta time
+    //printf("Delta Time: %f seconds\n", deltaTime);
+
+    ecs_progress(world, deltaTime);  // All event handling is now in ImGuiInputSystem
   }
 
   ecs_print(1, "Cleaning up...");
