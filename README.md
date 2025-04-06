@@ -11,11 +11,18 @@
 
  * Flecs logging (wip)
  * Module design (wip)
+    * vulkan
+    * imgui
  * Simple triangle (added)
+    * there are hard code
  * imgui (added)
+    * still there are hard code in render and other area.
+    * loop check if create due to input handler crashing before the set up.
  * cube (not added)
+    * ...
  * texture
  * render text
+    * freetype
 
   Need to add some features.
 

@@ -730,64 +730,97 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   ecs_log(1, "Pipeline setup completed");
 }
 
-
 void SyncSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"SyncSetupSystem");
-  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  VkSemaphoreCreateInfo semaphoreInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-  VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  ecs_print(1, "SyncSetupSystem starting...");
+  ecs_print(1, "Context pointer: %p", (void*)ctx);
 
-  if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->imageAvailableSemaphore) != VK_SUCCESS ||
-      vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->renderFinishedSemaphore) != VK_SUCCESS ||
-      vkCreateFence(ctx->device, &fenceInfo, NULL, &ctx->renderFinishedFence) != VK_SUCCESS) {
-      ecs_err("Failed to create synchronization objects");
+  VkSemaphoreCreateInfo semaphoreInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+  if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->imageAvailableSemaphore) != VK_SUCCESS) {
+      ecs_err("Failed to create image available semaphore");
       ctx->hasError = true;
-      ctx->errorMessage = "Failed to create synchronization objects";
+      ctx->errorMessage = "Semaphore creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
+  ecs_print(1, "Image available semaphore created: %p", (void*)ctx->imageAvailableSemaphore);
 
-  ecs_log(1, "Synchronization objects created");
+  if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->renderFinishedSemaphore) != VK_SUCCESS) {
+      ecs_err("Failed to create render finished semaphore");
+      ctx->hasError = true;
+      ctx->errorMessage = "Semaphore creation failed";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "Render finished semaphore created: %p", (void*)ctx->renderFinishedSemaphore);
+
+  VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  if (vkCreateFence(ctx->device, &fenceInfo, NULL, &ctx->inFlightFence) != VK_SUCCESS) {
+      ecs_err("Failed to create in-flight fence");
+      ctx->hasError = true;
+      ctx->errorMessage = "Fence creation failed";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "In-flight fence created: %p", (void*)ctx->inFlightFence);
+
+  ecs_print(1, "SyncSetupSystem completed");
 }
 
 
 void BeginRenderSystem(ecs_iter_t *it) {
-  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
+  ecs_print(1, "BeginRenderSystem starting...");
+  ecs_print(1, "Context pointer: %p", (void*)ctx);
+  ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
+
+  if (ctx->inFlightFence == VK_NULL_HANDLE) {
+      ecs_err("In-flight fence is null, skipping render");
+      return;
+  }
+
   // Wait for the previous frame to finish
-  vkWaitForFences(ctx->device, 1, &ctx->renderFinishedFence, VK_TRUE, UINT64_MAX);
+  vkWaitForFences(ctx->device, 1, &ctx->inFlightFence, VK_TRUE, UINT64_MAX);
+  vkResetFences(ctx->device, 1, &ctx->inFlightFence);
 
   // Acquire the next image
   VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX,
                                           ctx->imageAvailableSemaphore, VK_NULL_HANDLE, &ctx->imageIndex);
-  if (result != VK_SUCCESS) {
-    ecs_err("Error: vkAcquireNextImageKHR failed (VkResult: %d)", result);
-    ctx->hasError = true;
-    ctx->errorMessage = "Failed to acquire next image";
-    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+      ecs_print(1, "Swapchain out of date, skipping frame");
+      return;
+  } else if (result != VK_SUCCESS) {
+      ecs_err("Error: vkAcquireNextImageKHR failed (VkResult: %d)", result);
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to acquire next image";
+      return; // Don’t abort, just skip frame
   }
 
-  // Reset the fence only after acquiring the image
-  vkResetFences(ctx->device, 1, &ctx->renderFinishedFence);
+  ecs_print(1, "BeginRenderSystem completed, imageIndex: %u", ctx->imageIndex);
 }
 
+
+
 void RenderSystem(ecs_iter_t *it) {
-  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  // Reset the command buffer
-  vkResetCommandBuffer(ctx->commandBuffer, 0);
+  ecs_print(1, "RenderSystem starting...");
+  ecs_print(1, "Context pointer: %p", (void*)ctx);
+  ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
+
+  if (vkResetCommandBuffer(ctx->commandBuffer, 0) != VK_SUCCESS) {
+      ecs_err("Failed to reset command buffer");
+      return;
+  }
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   if (vkBeginCommandBuffer(ctx->commandBuffer, &beginInfo) != VK_SUCCESS) {
-    ecs_err("Error: Failed to begin command buffer");
-    ctx->hasError = true;
-    ctx->errorMessage = "Failed to begin command buffer";
-    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+      ecs_err("Failed to begin command buffer");
+      return;
   }
 
   VkRenderPassBeginInfo renderPassInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
@@ -801,27 +834,39 @@ void RenderSystem(ecs_iter_t *it) {
 
   vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
- // Triangle rendering
   vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->vertexBuffer, offsets);
   vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
 
-  // ImGui rendering
-  ImDrawData* drawData = igGetDrawData();
-  ImGui_ImplVulkan_RenderDrawData(drawData, ctx->commandBuffer, VK_NULL_HANDLE);
+  if (ctx->isImGuiInitialized) {
+      ImGui_ImplVulkan_NewFrame();
+      ImGui_ImplSDL3_NewFrame();
+      igNewFrame();
+
+      igBegin("Test Window", NULL, 0);
+      igText("Hello, Vulkan and ImGui!");
+      igEnd();
+
+      igRender();
+      ImGui_ImplVulkan_RenderDrawData(igGetDrawData(), ctx->commandBuffer, VK_NULL_HANDLE);
+  }
 
   vkCmdEndRenderPass(ctx->commandBuffer);
-  vkEndCommandBuffer(ctx->commandBuffer);
+  if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
+      ecs_err("Failed to end command buffer");
+      return;
+  }
 
+  ecs_print(1, "RenderSystem completed");
 }
 
 
-
-
 void EndRenderSystem(ecs_iter_t *it) {
-  WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
+
+  ecs_print(1, "EndRenderSystem starting...");
 
   VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
   VkSemaphore waitSemaphores[] = {ctx->imageAvailableSemaphore};
@@ -835,168 +880,196 @@ void EndRenderSystem(ecs_iter_t *it) {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  if (vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->renderFinishedFence) != VK_SUCCESS) {
-    ecs_err("Error: Failed to submit queue");
-    ctx->hasError = true;
-    ctx->errorMessage = "Failed to submit queue";
-    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  if (vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->inFlightFence) != VK_SUCCESS) {
+      ecs_err("Error: Failed to submit queue");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to submit queue";
+      return;
   }
 
   VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
-  VkSwapchainKHR swapchains[] = {ctx->swapchain};
   presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = swapchains;
+  presentInfo.pSwapchains = &ctx->swapchain;
   presentInfo.pImageIndices = &ctx->imageIndex;
 
-  vkQueuePresentKHR(ctx->presentQueue, &presentInfo);
-}
+  VkResult presentResult = vkQueuePresentKHR(ctx->presentQueue, &presentInfo);
+  if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
+      ecs_print(1, "Swapchain out of date or suboptimal, skipping present");
+  } else if (presentResult != VK_SUCCESS) {
+      ecs_err("Error: vkQueuePresentKHR failed (VkResult: %d)", presentResult);
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to present queue";
+  }
 
+  ecs_print(1, "EndRenderSystem completed");
+}
 
 
 void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
   if (!ctx) return;
 
-  // Wait for queues to idle only if device exists
+  ecs_print(1, "Vulkan cleanup starting...");
+  ecs_print(1, "Cleanup called, fence: %p", (void*)ctx->inFlightFence);
+
   if (ctx->device) {
-    vkDeviceWaitIdle(ctx->device);
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    if (ctx->imguiContext) { // Check if context exists
-        igDestroyContext(ctx->imguiContext);
-        ctx->imguiContext = NULL; // Clear it after destruction
-    }
-    vkDestroyDescriptorPool(ctx->device, ctx->descriptorPool, NULL);
+      vkDeviceWaitIdle(ctx->device);
 
-    vkQueueWaitIdle(ctx->graphicsQueue);
-    vkQueueWaitIdle(ctx->presentQueue);
-
-    vkDestroySemaphore(ctx->device, ctx->imageAvailableSemaphore, NULL);
-    vkDestroySemaphore(ctx->device, ctx->renderFinishedSemaphore, NULL);
-    vkDestroyFence(ctx->device, ctx->renderFinishedFence, NULL);
-
-    vkFreeCommandBuffers(ctx->device, ctx->commandPool, 1, &ctx->commandBuffer);
-
-    vkDestroyPipeline(ctx->device, ctx->graphicsPipeline, NULL);
-    vkDestroyPipelineLayout(ctx->device, ctx->pipelineLayout, NULL);
-    vkDestroyRenderPass(ctx->device, ctx->renderPass, NULL);
-
-    for (uint32_t i = 0; i < ctx->imageCount; i++) {
-      vkDestroyFramebuffer(ctx->device, ctx->framebuffers[i], NULL);
-    }
-    free(ctx->framebuffers);
-
-    for (uint32_t i = 0; i < ctx->imageCount; i++) {
-      vkDestroyImageView(ctx->device, ctx->swapchainImageViews[i], NULL);
-    }
-    free(ctx->swapchainImageViews);
-    free(ctx->swapchainImages);
-    vkDestroySwapchainKHR(ctx->device, ctx->swapchain, NULL);
-
-    vkDestroyBuffer(ctx->device, ctx->vertexBuffer, NULL);
-    vkFreeMemory(ctx->device, ctx->vertexBufferMemory, NULL);
-
-    vkDestroyCommandPool(ctx->device, ctx->commandPool, NULL);
-
-    vkDestroyDevice(ctx->device, NULL);
-  }
-
-  if (ctx->instance) {
-    vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);
-
-    if (ctx->debugMessenger) {
-      PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugUtilsMessenger =
-          (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
-      if (destroyDebugUtilsMessenger) {
-        destroyDebugUtilsMessenger(ctx->instance, ctx->debugMessenger, NULL);
-        ecs_err("Debug messenger destroyed");
-      } else {
-        ecs_err("Warning: Failed to get vkDestroyDebugUtilsMessengerEXT function pointer");
+      // Destroy device-specific objects
+      if (ctx->inFlightFence != VK_NULL_HANDLE) {
+          vkDestroyFence(ctx->device, ctx->inFlightFence, NULL);
+          ctx->inFlightFence = VK_NULL_HANDLE;
       }
-    }
-
-    vkDestroyInstance(ctx->instance, NULL);
+      if (ctx->renderFinishedSemaphore != VK_NULL_HANDLE) {
+          vkDestroySemaphore(ctx->device, ctx->renderFinishedSemaphore, NULL);
+          ctx->renderFinishedSemaphore = VK_NULL_HANDLE;
+      }
+      if (ctx->imageAvailableSemaphore != VK_NULL_HANDLE) {
+          vkDestroySemaphore(ctx->device, ctx->imageAvailableSemaphore, NULL);
+          ctx->imageAvailableSemaphore = VK_NULL_HANDLE;
+      }
+      if (ctx->commandPool != VK_NULL_HANDLE) {
+          vkDestroyCommandPool(ctx->device, ctx->commandPool, NULL);
+          ctx->commandPool = VK_NULL_HANDLE;
+      }
+      if (ctx->vertexBufferMemory != VK_NULL_HANDLE) {
+          vkFreeMemory(ctx->device, ctx->vertexBufferMemory, NULL);
+          ctx->vertexBufferMemory = VK_NULL_HANDLE;
+      }
+      if (ctx->vertexBuffer != VK_NULL_HANDLE) {
+          vkDestroyBuffer(ctx->device, ctx->vertexBuffer, NULL);
+          ctx->vertexBuffer = VK_NULL_HANDLE;
+      }
+      if (ctx->graphicsPipeline != VK_NULL_HANDLE) {
+          vkDestroyPipeline(ctx->device, ctx->graphicsPipeline, NULL);
+          ctx->graphicsPipeline = VK_NULL_HANDLE;
+      }
+      if (ctx->pipelineLayout != VK_NULL_HANDLE) { // Added
+          vkDestroyPipelineLayout(ctx->device, ctx->pipelineLayout, NULL);
+          ctx->pipelineLayout = VK_NULL_HANDLE;
+      }
+      if (ctx->renderPass != VK_NULL_HANDLE) {
+          vkDestroyRenderPass(ctx->device, ctx->renderPass, NULL);
+          ctx->renderPass = VK_NULL_HANDLE;
+      }
+      for (uint32_t i = 0; i < ctx->imageCount; i++) {
+          if (ctx->framebuffers && ctx->framebuffers[i] != VK_NULL_HANDLE) {
+              vkDestroyFramebuffer(ctx->device, ctx->framebuffers[i], NULL);
+              ctx->framebuffers[i] = VK_NULL_HANDLE;
+          }
+          if (ctx->swapchainImageViews && ctx->swapchainImageViews[i] != VK_NULL_HANDLE) {
+              vkDestroyImageView(ctx->device, ctx->swapchainImageViews[i], NULL);
+              ctx->swapchainImageViews[i] = VK_NULL_HANDLE;
+          }
+      }
+      if (ctx->framebuffers) {
+          free(ctx->framebuffers);
+          ctx->framebuffers = NULL;
+      }
+      if (ctx->swapchainImageViews) {
+          free(ctx->swapchainImageViews);
+          ctx->swapchainImageViews = NULL;
+      }
+      if (ctx->swapchainImages) {
+          free(ctx->swapchainImages);
+          ctx->swapchainImages = NULL;
+      }
+      if (ctx->swapchain != VK_NULL_HANDLE) {
+          vkDestroySwapchainKHR(ctx->device, ctx->swapchain, NULL);
+          ctx->swapchain = VK_NULL_HANDLE;
+      }
+      vkDestroyDevice(ctx->device, NULL);
+      ctx->device = VK_NULL_HANDLE;
   }
+
+  // Destroy instance-specific objects after device is gone
+  if (ctx->instance) {
+      if (ctx->debugMessenger != VK_NULL_HANDLE) { // Added
+          PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugUtilsMessenger =
+              (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
+          if (destroyDebugUtilsMessenger) {
+              destroyDebugUtilsMessenger(ctx->instance, ctx->debugMessenger, NULL);
+              ctx->debugMessenger = VK_NULL_HANDLE;
+          }
+      }
+      if (ctx->surface != VK_NULL_HANDLE) {
+          vkDestroySurfaceKHR(ctx->instance, ctx->surface, NULL);
+          ctx->surface = VK_NULL_HANDLE;
+      }
+      vkDestroyInstance(ctx->instance, NULL);
+      ctx->instance = VK_NULL_HANDLE;
+  }
+
+  ecs_print(1, "Vulkan cleanup completed");
 }
 
-void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
-  ecs_print(1,"init vulkan module");
-  ecs_set_ctx(world, ctx, NULL);
 
+
+void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
+  ecs_print(1, "init vulkan module");
+
+  // Setup systems (unchanged)
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { 
-        .name = "InstanceSetupSystem", 
-        .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) 
-      }),
+      .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) }),
       .callback = InstanceSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "SurfaceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SurfaceSetupPhase)) }),
       .callback = SurfaceSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "DeviceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.DeviceSetupPhase)) }),
       .callback = DeviceSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "SwapchainSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SwapchainSetupPhase)) }),
       .callback = SwapchainSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "TriangleBufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.TriangleBufferSetupPhase)) }),
       .callback = TriangleBufferSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "RenderPassSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPassSetupPhase)) }),
       .callback = RenderPassSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "FramebufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.FramebufferSetupPhase)) }),
       .callback = FramebufferSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "CommandPoolSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CommandPoolSetupPhase)) }),
       .callback = CommandPoolSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "CommandBufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CommandBufferSetupPhase)) }),
       .callback = CommandBufferSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "PipelineSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.PipelineSetupPhase)) }),
       .callback = PipelineSetupSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "SyncSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SyncSetupPhase)) }),
       .callback = SyncSetupSystem
   });
 
+  // Runtime systems
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "BeginRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginRenderPhase)) }),
       .callback = BeginRenderSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "RenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPhase)) }),
       .callback = RenderSystem
   });
-
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "EndRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndRenderPhase)) }),
       .callback = EndRenderSystem
   });
 }
+
 
 
 

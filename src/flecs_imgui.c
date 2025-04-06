@@ -32,7 +32,6 @@ static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
 }
 
 
-
 // Optional: Vulkan result checker
 static void check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
@@ -75,51 +74,80 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
   init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   init_info.RenderPass = ctx->renderPass;
   init_info.Allocator = NULL;
-  init_info.CheckVkResultFn = NULL; // Add if desired
-  if (!ImGui_ImplVulkan_Init(&init_info)) {
+  init_info.CheckVkResultFn = NULL;
+
+  bool vulkanInitSuccess = ImGui_ImplVulkan_Init(&init_info);
+  ecs_print(1, "ImGui Vulkan init result: %d", vulkanInitSuccess);
+  if (!vulkanInitSuccess) {
       ecs_err("Failed to initialize ImGui Vulkan backend");
       ctx->hasError = true;
       ctx->errorMessage = "ImGui Vulkan init failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
+  ecs_print(1, "Pre-font fence: %p", (void*)ctx->inFlightFence);
+  ecs_print(1, "Context pointer pre-font: %p", (void*)ctx);
+
+  // Use ImGui’s default font creation (like the example)
   ecs_print(1, "ImGui_ImplVulkan_CreateFontsTexture");
   if (!ImGui_ImplVulkan_CreateFontsTexture()) {
-      ecs_err("Failed to create ImGui fonts texture");
+      ecs_err("Failed to create ImGui font texture");
       ctx->hasError = true;
-      ctx->errorMessage = "ImGui font texture creation failed";
+      ctx->errorMessage = "Font texture creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  ctx->isImGuiInitialized = true; // Set flag after successful setup
-  ecs_log(1, "ImGui setup completed");
+  ecs_print(1, "Post-font fence: %p", (void*)ctx->inFlightFence);
+  ecs_print(1, "Context pointer post-font: %p", (void*)ctx);
+
+  ctx->isImGuiInitialized = true;
+  ecs_print(1, "ImGui setup completed");
 }
 
 
 void ImGuiBeginSystem(ecs_iter_t *it) {
-    WorldContext *ctx = ecs_get_ctx(it->world);
-    if (!ctx || ctx->hasError) return;
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
 
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-    igNewFrame();
+  ecs_print(1, "ImGuiBeginSystem starting...");
+  ecs_print(1, "Context pointer: %p", (void*)ctx);
+  ecs_print(1, "Fence in ImGuiBeginSystem: %p", (void*)ctx->inFlightFence);
+
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplSDL3_NewFrame();
+  igNewFrame();
+
+  ecs_print(1, "ImGuiBeginSystem completed");
 }
+
 
 void ImGuiUpdateSystem(ecs_iter_t *it) {
-    WorldContext *ctx = ecs_get_ctx(it->world);
-    if (!ctx || ctx->hasError) return;
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
 
-    //Example ImGui window
-    igBegin("Hello, Vulkan!", NULL, 0);
-    igText("This is a test window.");
-    igEnd();
+  ecs_print(1, "ImGuiUpdateSystem starting...");
+  ecs_print(1, "Context pointer: %p", (void*)ctx);
+  ecs_print(1, "Fence in ImGuiUpdateSystem: %p", (void*)ctx->inFlightFence);
+
+  igBegin("Hello, Vulkan!", NULL, 0);
+  igText("This is a Vulkan and ImGui demo!");
+  igEnd();
+
+  ecs_print(1, "ImGuiUpdateSystem completed");
 }
 
-void ImGuiEndSystem(ecs_iter_t *it) {
-    WorldContext *ctx = ecs_get_ctx(it->world);
-    if (!ctx || ctx->hasError) return;
 
-    igRender();
+void ImGuiEndSystem(ecs_iter_t *it) {
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+
+  ecs_print(1, "ImGuiEndSystem starting...");
+  ecs_print(1, "Context pointer: %p", (void*)ctx);
+  ecs_print(1, "Fence in ImGuiEndSystem: %p", (void*)ctx->inFlightFence);
+
+  igRender();
+
+  ecs_print(1, "ImGuiEndSystem completed");
 }
 
 
@@ -127,24 +155,34 @@ void flecs_imgui_cleanup(WorldContext *ctx) {
   if (!ctx) return;
 
   if (ctx->device) {
+      ecs_print(1, "Waiting for device idle...");
       vkDeviceWaitIdle(ctx->device);
-      if (ctx->isImGuiInitialized) { // Only shutdown if initialized
+
+      if (ctx->isImGuiInitialized) {
+          ecs_print(1, "Destroying ImGui fonts texture...");
+          ImGui_ImplVulkan_DestroyFontsTexture(); // Explicitly destroy fonts
+          ecs_print(1, "Shutting down ImGui Vulkan backend...");
           ImGui_ImplVulkan_Shutdown();
+          ecs_print(1, "Shutting down ImGui SDL3 backend...");
           ImGui_ImplSDL3_Shutdown();
-          ctx->isImGuiInitialized = false; // Reset flag
+          ctx->isImGuiInitialized = false;
       }
+
       if (ctx->imguiContext) {
+          ecs_print(1, "Destroying ImGui context...");
           igDestroyContext(ctx->imguiContext);
           ctx->imguiContext = NULL;
       }
+
       if (ctx->descriptorPool != VK_NULL_HANDLE) {
+          ecs_print(1, "Destroying ImGui descriptor pool...");
           vkDestroyDescriptorPool(ctx->device, ctx->descriptorPool, NULL);
           ctx->descriptorPool = VK_NULL_HANDLE;
       }
+
+      ecs_print(1, "ImGui cleanup completed");
   }
 }
-
-
 
 
 void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {

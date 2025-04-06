@@ -40,6 +40,7 @@ typedef struct {
   VkSemaphore renderFinishedSemaphore;
   VkFence renderFinishedFence;
   uint32_t imageIndex;
+  VkFence inFlightFence;              
   bool shouldQuit;
   bool hasError;
   const char *errorMessage;
