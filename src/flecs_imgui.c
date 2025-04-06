@@ -50,7 +50,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
   io->DisplaySize.x = (float)WIDTH;
   io->DisplaySize.y = (float)HEIGHT;
 
-  ecs_print(1, "ImGui_ImplSDL3_InitForVulkan");
+  // ecs_print(1, "ImGui_ImplSDL3_InitForVulkan");
   if (!ImGui_ImplSDL3_InitForVulkan(ctx->window)) {
       ecs_err("Failed to initialize ImGui SDL3 backend");
       ctx->hasError = true;
@@ -59,7 +59,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
   }
 
   ctx->descriptorPool = createImGuiDescriptorPool(ctx->device);
-  ecs_print(1, "Initialize Vulkan backend");
+  // ecs_print(1, "Initialize Vulkan backend");
   ImGui_ImplVulkan_InitInfo init_info = {0};
   init_info.Instance = ctx->instance;
   init_info.PhysicalDevice = ctx->physicalDevice;
@@ -77,7 +77,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
   init_info.CheckVkResultFn = NULL;
 
   bool vulkanInitSuccess = ImGui_ImplVulkan_Init(&init_info);
-  ecs_print(1, "ImGui Vulkan init result: %d", vulkanInitSuccess);
+  // ecs_print(1, "ImGui Vulkan init result: %d", vulkanInitSuccess);
   if (!vulkanInitSuccess) {
       ecs_err("Failed to initialize ImGui Vulkan backend");
       ctx->hasError = true;
@@ -85,11 +85,11 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  ecs_print(1, "Pre-font fence: %p", (void*)ctx->inFlightFence);
-  ecs_print(1, "Context pointer pre-font: %p", (void*)ctx);
+  // ecs_print(1, "Pre-font fence: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "Context pointer pre-font: %p", (void*)ctx);
 
   // Use ImGui’s default font creation (like the example)
-  ecs_print(1, "ImGui_ImplVulkan_CreateFontsTexture");
+  // ecs_print(1, "ImGui_ImplVulkan_CreateFontsTexture");
   if (!ImGui_ImplVulkan_CreateFontsTexture()) {
       ecs_err("Failed to create ImGui font texture");
       ctx->hasError = true;
@@ -97,11 +97,11 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  ecs_print(1, "Post-font fence: %p", (void*)ctx->inFlightFence);
-  ecs_print(1, "Context pointer post-font: %p", (void*)ctx);
+  // ecs_print(1, "Post-font fence: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "Context pointer post-font: %p", (void*)ctx);
 
   ctx->isImGuiInitialized = true;
-  ecs_print(1, "ImGui setup completed");
+  // ecs_print(1, "ImGui setup completed");
 }
 
 
@@ -215,7 +215,7 @@ void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {
     ecs_print(1, "Initializing ImGui module...");
     //ecs_set_ctx(world, ctx, NULL);//no need to readded it from vulkan order.
 
-    ecs_print(1, "ImGuiSetupSystem");
+    // ecs_print(1, "ImGuiSetupSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { 
             .name = "ImGui_SetupSystem", 
@@ -224,27 +224,27 @@ void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {
         .callback = ImGuiSetupSystem
     });
 
-    ecs_print(1, "ImGuiCMDBufferSystem");
+    // ecs_print(1, "ImGuiCMDBufferSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { .name = "ImGuiCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
         .callback = ImGuiCMDBufferSystem
     });
 
-    ecs_print(1, "ImGuiBeginSystem");
+    // ecs_print(1, "ImGuiBeginSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginGUIPhase)) }),
         .callback = ImGuiBeginSystem
     });
-    ecs_print(1, "ImGuiUpdateSystem");
+    // ecs_print(1, "ImGuiUpdateSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.UpdateGUIPhase)) }),
         .callback = ImGuiUpdateSystem
     });
-    ecs_print(1, "ImGuiEndSystem");
+    // ecs_print(1, "ImGuiEndSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndGUIPhase)) }),
         .callback = ImGuiEndSystem
     });
 
-    ecs_print(1, "ImGui module initialized");
+    // ecs_print(1, "ImGui module initialized");
 }

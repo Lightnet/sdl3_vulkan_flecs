@@ -117,7 +117,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
       ecs_err("Warning: Failed to create debug messenger (VkResult: %d)", result);
       ctx->debugMessenger = VK_NULL_HANDLE;
     } else {
-      ecs_err("Debug messenger created");
+      ecs_print(1,"Debug messenger created");
     }
   } else {
     ecs_err("Warning: vkCreateDebugUtilsMessengerEXT not found");
@@ -534,7 +534,7 @@ void FramebufferSetupSystem(ecs_iter_t *it) {
       }
   }
 
-  ecs_log(1, "Framebuffer setup completed");
+  // ecs_log(1, "Framebuffer setup completed");
 }
 
 
@@ -554,7 +554,7 @@ void CommandPoolSetupSystem(ecs_iter_t *it) {
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  ecs_log(1, "Command pool setup completed");
+  // ecs_log(1, "Command pool setup completed");
 }
 
 
@@ -580,7 +580,7 @@ void CommandBufferSetupSystem(ecs_iter_t *it) {
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  ecs_log(1, "Command buffer setup completed");
+  // ecs_log(1, "Command buffer setup completed");
 }
 
 
@@ -703,7 +703,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
 
   vkDestroyShaderModule(ctx->device, fragShaderModule, NULL);
   vkDestroyShaderModule(ctx->device, vertShaderModule, NULL);
-  ecs_log(1, "Pipeline setup completed");
+  // ecs_log(1, "Pipeline setup completed");
 }
 
 
@@ -711,8 +711,8 @@ void SyncSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "SyncSetupSystem starting...");
-  ecs_print(1, "Context pointer: %p", (void*)ctx);
+  // ecs_print(1, "SyncSetupSystem starting...");
+  // ecs_print(1, "Context pointer: %p", (void*)ctx);
 
   VkSemaphoreCreateInfo semaphoreInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->imageAvailableSemaphore) != VK_SUCCESS) {
@@ -721,7 +721,7 @@ void SyncSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Semaphore creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Image available semaphore created: %p", (void*)ctx->imageAvailableSemaphore);
+  // ecs_print(1, "Image available semaphore created: %p", (void*)ctx->imageAvailableSemaphore);
 
   if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->renderFinishedSemaphore) != VK_SUCCESS) {
       ecs_err("Failed to create render finished semaphore");
@@ -729,7 +729,7 @@ void SyncSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Semaphore creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Render finished semaphore created: %p", (void*)ctx->renderFinishedSemaphore);
+  // ecs_print(1, "Render finished semaphore created: %p", (void*)ctx->renderFinishedSemaphore);
 
   VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -739,9 +739,9 @@ void SyncSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Fence creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "In-flight fence created: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "In-flight fence created: %p", (void*)ctx->inFlightFence);
 
-  ecs_print(1, "SyncSetupSystem completed");
+  // ecs_print(1, "SyncSetupSystem completed");
 }
 
 
@@ -889,7 +889,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
   if (!ctx) return;
 
   ecs_print(1, "Vulkan cleanup starting...");
-  ecs_print(1, "Cleanup called, fence: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "Cleanup called, fence: %p", (void*)ctx->inFlightFence);
 
   if (ctx->device) {
       vkDeviceWaitIdle(ctx->device);
@@ -979,7 +979,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
       ctx->instance = VK_NULL_HANDLE;
   }
 
-  ecs_print(1, "Vulkan cleanup completed");
+  // ecs_print(1, "Vulkan cleanup completed");
 }
 
 
@@ -1059,8 +1059,4 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
       .callback = EndRenderSystem
   });
 }
-
-
-
-
 
