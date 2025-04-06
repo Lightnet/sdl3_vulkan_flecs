@@ -60,11 +60,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 
 void InstanceSetupSystem(ecs_iter_t *it) {
-  // printf("InstanceSetupSystem started\n");
   ecs_print(1,"InstanceSetupSystem started");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) {
-    // printf("Error: ctx is NULL or has error\n");
+    ecs_err("Error: ctx is NULL or has error");
     return;
   }
 
@@ -123,7 +122,6 @@ void InstanceSetupSystem(ecs_iter_t *it) {
     ctx->errorMessage = "Failed to create Vulkan instance";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  // printf("Vulkan instance created\n");
 
   // Setup debug messenger
   PFN_vkCreateDebugUtilsMessengerEXT createDebugUtilsMessenger =
@@ -181,7 +179,6 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
     ctx->errorMessage = "Failed to create Vulkan surface";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  // printf("Surface created successfully\n");
 
   uint32_t deviceCount = 0;
   VkResult result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, NULL);
@@ -191,7 +188,7 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
     ctx->errorMessage = "Failed to enumerate physical devices (first call)";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  // printf("Physical device count: %u\n", deviceCount);
+  
   if (deviceCount == 0) {
     ecs_err("Error: No physical devices found");
     ctx->hasError = true;
@@ -647,7 +644,6 @@ void PipelineSetupSystem(ecs_iter_t *it) {
 
   VkPipelineShaderStageCreateInfo shaderStages[] = {vertStageInfo, fragStageInfo};
 
-  // Rest of the pipeline setup (unchanged)...
   VkVertexInputBindingDescription bindingDesc = {0};
   bindingDesc.binding = 0;
   bindingDesc.stride = sizeof(Vertex);
@@ -778,7 +774,6 @@ void BeginRenderSystem(ecs_iter_t *it) {
   vkResetFences(ctx->device, 1, &ctx->renderFinishedFence);
 }
 
-
 void RenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
@@ -805,20 +800,23 @@ void RenderSystem(ecs_iter_t *it) {
   renderPassInfo.pClearValues = &clearColor;
 
   vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-  vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
 
+ // Triangle rendering
+  vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->vertexBuffer, offsets);
   vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
-  vkCmdEndRenderPass(ctx->commandBuffer);
 
-  if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
-    ecs_err("Error: Failed to end command buffer");
-    ctx->hasError = true;
-    ctx->errorMessage = "Failed to end command buffer";
-    ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-  }
+  // ImGui rendering
+  ImDrawData* drawData = igGetDrawData();
+  ImGui_ImplVulkan_RenderDrawData(drawData, ctx->commandBuffer, VK_NULL_HANDLE);
+
+  vkCmdEndRenderPass(ctx->commandBuffer);
+  vkEndCommandBuffer(ctx->commandBuffer);
+
 }
+
+
 
 
 void EndRenderSystem(ecs_iter_t *it) {
@@ -862,6 +860,15 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
 
   // Wait for queues to idle only if device exists
   if (ctx->device) {
+    vkDeviceWaitIdle(ctx->device);
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    if (ctx->imguiContext) { // Check if context exists
+        igDestroyContext(ctx->imguiContext);
+        ctx->imguiContext = NULL; // Clear it after destruction
+    }
+    vkDestroyDescriptorPool(ctx->device, ctx->descriptorPool, NULL);
+
     vkQueueWaitIdle(ctx->graphicsQueue);
     vkQueueWaitIdle(ctx->presentQueue);
 
@@ -917,76 +924,76 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1,"init vulkan module");
   ecs_set_ctx(world, ctx, NULL);
 
-  FlecsPhases phases;
-  flecs_phases_init(world, &phases);
-
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(phases.InstanceSetupPhase)) }),
+      .entity = ecs_entity(world, { 
+        .name = "InstanceSetupSystem", 
+        .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) 
+      }),
       .callback = InstanceSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "SurfaceSetupSystem", .add = ecs_ids(ecs_dependson(phases.SurfaceSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "SurfaceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SurfaceSetupPhase)) }),
       .callback = SurfaceSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "DeviceSetupSystem", .add = ecs_ids(ecs_dependson(phases.DeviceSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "DeviceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.DeviceSetupPhase)) }),
       .callback = DeviceSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "SwapchainSetupSystem", .add = ecs_ids(ecs_dependson(phases.SwapchainSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "SwapchainSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SwapchainSetupPhase)) }),
       .callback = SwapchainSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "TriangleBufferSetupSystem", .add = ecs_ids(ecs_dependson(phases.TriangleBufferSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "TriangleBufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.TriangleBufferSetupPhase)) }),
       .callback = TriangleBufferSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "RenderPassSetupSystem", .add = ecs_ids(ecs_dependson(phases.RenderPassSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "RenderPassSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPassSetupPhase)) }),
       .callback = RenderPassSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "FramebufferSetupSystem", .add = ecs_ids(ecs_dependson(phases.FramebufferSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "FramebufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.FramebufferSetupPhase)) }),
       .callback = FramebufferSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "CommandPoolSetupSystem", .add = ecs_ids(ecs_dependson(phases.CommandPoolSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "CommandPoolSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CommandPoolSetupPhase)) }),
       .callback = CommandPoolSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "CommandBufferSetupSystem", .add = ecs_ids(ecs_dependson(phases.CommandBufferSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "CommandBufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CommandBufferSetupPhase)) }),
       .callback = CommandBufferSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "PipelineSetupSystem", .add = ecs_ids(ecs_dependson(phases.PipelineSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "PipelineSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.PipelineSetupPhase)) }),
       .callback = PipelineSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "SyncSetupSystem", .add = ecs_ids(ecs_dependson(phases.SyncSetupPhase)) }),
+      .entity = ecs_entity(world, { .name = "SyncSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SyncSetupPhase)) }),
       .callback = SyncSetupSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "BeginRenderSystem", .add = ecs_ids(ecs_dependson(phases.BeginRenderPhase)) }),
+      .entity = ecs_entity(world, { .name = "BeginRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginRenderPhase)) }),
       .callback = BeginRenderSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "RenderSystem", .add = ecs_ids(ecs_dependson(phases.RenderPhase)) }),
+      .entity = ecs_entity(world, { .name = "RenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPhase)) }),
       .callback = RenderSystem
   });
 
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "EndRenderSystem", .add = ecs_ids(ecs_dependson(phases.EndRenderPhase)) }),
+      .entity = ecs_entity(world, { .name = "EndRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndRenderPhase)) }),
       .callback = EndRenderSystem
   });
 }

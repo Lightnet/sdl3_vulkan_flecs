@@ -1,8 +1,7 @@
 #include "flecs_types.h"
 
 FlecsPhases GlobalPhases = {0};
-
-
+//init once setup for vulkan but not others else error same entity setup.
 void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   // Runtime phases (main loop, single flow)
   phases->LogicUpdatePhase = ecs_new_w_id(world, EcsPhase);
@@ -59,6 +58,11 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
 
   phases->SyncSetupPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SyncSetupPhase, EcsDependsOn, phases->PipelineSetupPhase);
+
+  phases->SetupLogicPhase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->SetupLogicPhase, EcsDependsOn, phases->SyncSetupPhase);
+
+  //GlobalPhases = *phases;
 }
 
 

@@ -5,6 +5,11 @@
 #include <SDL3/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 #include "flecs.h"
+#include "cimgui.h"         // C ImGui wrapper
+#include "cimgui_impl.h"    // Implementation helpers
+
+#define WIDTH 800
+#define HEIGHT 600
 
 typedef struct {
   SDL_Window *window;
@@ -25,6 +30,7 @@ typedef struct {
   VkBuffer vertexBuffer;
   VkDeviceMemory vertexBufferMemory;
   VkRenderPass renderPass;
+  VkDescriptorPool descriptorPool;  // New: For ImGui
   VkPipelineLayout pipelineLayout;
   VkPipeline graphicsPipeline;
   VkFramebuffer *framebuffers;
@@ -37,6 +43,9 @@ typedef struct {
   bool shouldQuit;
   bool hasError;
   const char *errorMessage;
+  // ImGui additions
+  ImGuiContext* imguiContext;
+  bool isImGuiInitialized;
 } WorldContext;
 
 
@@ -58,15 +67,17 @@ typedef struct {
   ecs_entity_t DeviceSetupPhase;
   ecs_entity_t SwapchainSetupPhase;
   ecs_entity_t TriangleBufferSetupPhase;
-  ecs_entity_t RenderPassSetupPhase;    // New phase
-  ecs_entity_t FramebufferSetupPhase;   // New phase
-  ecs_entity_t CommandPoolSetupPhase;   // New phase
-  ecs_entity_t CommandBufferSetupPhase; // New phase
-  ecs_entity_t PipelineSetupPhase;      // New phase
+  ecs_entity_t RenderPassSetupPhase;    
+  ecs_entity_t FramebufferSetupPhase;   
+  ecs_entity_t CommandPoolSetupPhase;   
+  ecs_entity_t CommandBufferSetupPhase; 
+  ecs_entity_t PipelineSetupPhase;      
   ecs_entity_t SyncSetupPhase;
+  ecs_entity_t SetupLogicPhase;
 } FlecsPhases;
 
-void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases);
 extern FlecsPhases GlobalPhases;
+
+void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases);
 
 #endif

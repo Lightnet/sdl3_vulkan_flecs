@@ -9,10 +9,10 @@
 # Features:
   To work on vulkan modules in some degree to handle add, remove, render and setup. Working on the flecs logging which still need work.
 
- * Flecs logging.
- * Module design
- * Simple triangle
- * imgui (not added)
+ * Flecs logging (wip)
+ * Module design (wip)
+ * Simple triangle (added)
+ * imgui (added)
  * cube (not added)
  * texture
  * render text
@@ -75,7 +75,6 @@ CMakeLists.txt
   Using the VulkanMemoryAllocator. https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
 
   Reason a lot of boilerplate code.
-
 
 
 ## github:
