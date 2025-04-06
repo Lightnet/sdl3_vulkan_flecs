@@ -33,18 +33,6 @@ static const Vertex vertices[] = {
 //     "    outColor = vec4(fragColor, 1.0);\n"
 //     "}\0";
 
-// VkShaderModule createShaderModule(VkDevice device, const char* code) {
-//     VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-//     createInfo.codeSize = strlen(code) + 1;
-//     createInfo.pCode = (const uint32_t*)code;
-//     VkShaderModule module;
-//     if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-//         ecs_err("Failed to create shader module");
-//         return VK_NULL_HANDLE;  // Non-critical, so just log
-//     }
-//     return module;
-// }
-
 
 VkShaderModule createShaderModule(VkDevice device, const uint32_t* code, size_t codeSize) {
   VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
@@ -59,14 +47,13 @@ VkShaderModule createShaderModule(VkDevice device, const uint32_t* code, size_t 
 }
 
 
-
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   VkDebugUtilsMessageSeverityFlagBitsEXT severity,
   VkDebugUtilsMessageTypeFlagsEXT type,
   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
   void* pUserData) {
   // ecs_log(1, "Instance setup completed");
-  ecs_print(1,"Vulkan validation layer: %s\n", pCallbackData->pMessage);
+  ecs_err("Vulkan validation layer: %s", pCallbackData->pMessage);
   //printf("Vulkan validation layer: %s\n", pCallbackData->pMessage);
   return VK_FALSE;
 }
@@ -102,7 +89,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   uint32_t totalExtensionCount = sdlExtensionCount + 1;
   const char **extensions = malloc(sizeof(const char *) * totalExtensionCount);
   if (!extensions) {
-    // printf("Error: Failed to allocate memory for extensions\n");
+    ecs_err("Error: Failed to allocate memory for extensions");
     ctx->hasError = true;
     ctx->errorMessage = "Memory allocation failed";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -163,7 +150,6 @@ void InstanceSetupSystem(ecs_iter_t *it) {
     ctx->debugMessenger = VK_NULL_HANDLE;
   }
 
-  //printf("Instance setup completed\n");
   ecs_log(1, "Instance setup completed");
 }
 
@@ -455,6 +441,7 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, &ctx->vertexBuffer) != VK_SUCCESS) {
+      ecs_err("Failed to create vertex buffer");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create vertex buffer";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -477,12 +464,14 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
   }
 
   if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->vertexBufferMemory) != VK_SUCCESS) {
+      ecs_err("Failed to allocate vertex buffer memory");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to allocate vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
   if (vkBindBufferMemory(ctx->device, ctx->vertexBuffer, ctx->vertexBufferMemory, 0) != VK_SUCCESS) {
+      ecs_err("Failed to bind vertex buffer memory");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to bind vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -490,6 +479,7 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
 
   void* data;
   if (vkMapMemory(ctx->device, ctx->vertexBufferMemory, 0, bufferSize, 0, &data) != VK_SUCCESS) {
+      ecs_err("Failed to map vertex buffer memory");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to map vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -506,6 +496,7 @@ void RenderPassSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   if (!ctx->device) {
+      ecs_err("Device is null in RenderPassSetupSystem");
       ctx->hasError = true;
       ctx->errorMessage = "Device is null in RenderPassSetupSystem";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -537,6 +528,7 @@ void RenderPassSetupSystem(ecs_iter_t *it) {
   renderPassInfo.pSubpasses = &subpass;
 
   if (vkCreateRenderPass(ctx->device, &renderPassInfo, NULL, &ctx->renderPass) != VK_SUCCESS) {
+      ecs_err("Failed to create render pass");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create render pass";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -562,6 +554,7 @@ void FramebufferSetupSystem(ecs_iter_t *it) {
       framebufferInfo.layers = 1;
 
       if (vkCreateFramebuffer(ctx->device, &framebufferInfo, NULL, &ctx->framebuffers[i]) != VK_SUCCESS) {
+          ecs_err("Failed to create framebuffer");
           ctx->hasError = true;
           ctx->errorMessage = "Failed to create framebuffer";
           ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -582,6 +575,7 @@ void CommandPoolSetupSystem(ecs_iter_t *it) {
   poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
   if (vkCreateCommandPool(ctx->device, &poolInfo, NULL, &ctx->commandPool) != VK_SUCCESS) {
+      ecs_err("Failed to create command pool");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create command pool";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -596,6 +590,7 @@ void CommandBufferSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   if (!ctx->device || !ctx->commandPool) {
+      ecs_err("Required resources null in CommandBufferSetupSystem");
       ctx->hasError = true;
       ctx->errorMessage = "Required resources null in CommandBufferSetupSystem";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -606,6 +601,7 @@ void CommandBufferSetupSystem(ecs_iter_t *it) {
   cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   cmdAllocInfo.commandBufferCount = 1;
   if (vkAllocateCommandBuffers(ctx->device, &cmdAllocInfo, &ctx->commandBuffer) != VK_SUCCESS) {
+      ecs_err("Failed to allocate command buffer");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to allocate command buffer";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -620,6 +616,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   if (!ctx->device || !ctx->renderPass) {
+      ecs_err("Required resources null in PipelineSetupSystem");
       ctx->hasError = true;
       ctx->errorMessage = "Required resources null in PipelineSetupSystem";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -632,6 +629,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   VkShaderModule vertShaderModule = createShaderModule(ctx->device, vert_spv, vertSpvSize);
   VkShaderModule fragShaderModule = createShaderModule(ctx->device, frag_spv, fragSpvSize);
   if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
+      ecs_err("Failed to create shader modules");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create shader modules";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -705,6 +703,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
   if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->pipelineLayout) != VK_SUCCESS) {
+      ecs_err("Failed to create pipeline layout");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create pipeline layout";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -724,6 +723,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   pipelineInfo.subpass = 0;
 
   if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->graphicsPipeline) != VK_SUCCESS) {
+      ecs_err("Failed to create graphics pipeline");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create graphics pipeline";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -747,6 +747,7 @@ void SyncSetupSystem(ecs_iter_t *it) {
   if (vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->imageAvailableSemaphore) != VK_SUCCESS ||
       vkCreateSemaphore(ctx->device, &semaphoreInfo, NULL, &ctx->renderFinishedSemaphore) != VK_SUCCESS ||
       vkCreateFence(ctx->device, &fenceInfo, NULL, &ctx->renderFinishedFence) != VK_SUCCESS) {
+      ecs_err("Failed to create synchronization objects");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create synchronization objects";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
