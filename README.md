@@ -17,10 +17,10 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - Easy addition/removal of modules for debugging and configuration.
         
 - Simple Triangle:
-    - Renders a hardcoded colored triangle using Vulkan.
+    - made into command buffer triangle system to handle render vulkan
         
 - ImGui Integration:
-    - Basic UI with hardcoded elements in the render loop.
+    - made into command buffer imgui system to handle render vulkan
     - Workaround for input handler crash by checking initialization in the main loop.
         
 - Flecs Logging (WIP):
@@ -39,7 +39,7 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 ## Libraries
 
 - Included:
-    - [SDL 3.2.8](https://github.com/libsdl-org/SDL): Windowing and input.
+    - [SDL 3.2.10](https://github.com/libsdl-org/SDL): Windowing and input.
     - [VulkanHeaders 1.4.304.1](https://github.com/KhronosGroup/Vulkan-Headers): Vulkan API headers.
     - [Flecs 4.0.5](https://github.com/SanderMertens/flecs): Entity Component System.
         
@@ -80,6 +80,7 @@ sdl3_vulkan_flecs/
 - Create a modular framework for 3D world-building tests.
 - Leverage SDL3 for windowing/input, Vulkan for rendering, and Flecs for entity management.
 - Minimize C++ usage, wrapping C libraries where beneficial (e.g., VulkanMemoryAllocator).
+
 ## Building
 
 1. Ensure CMake and Visual Studio 2022 are installed.
@@ -109,6 +110,26 @@ run.bat
 ```
 - A window should open displaying a colored triangle and an ImGui "Test Window" with "Hello, Vulkan and ImGui!" text.
 - Close the window to exit.
+
+## Dev Shader:
+  Note that using the Vulkan SDK tool are easy to compile shader type for header or spv file. This for windows default path for Vulkan SDK. It depend on vulkan version may change.
+
+shader.bat
+```
+@echo off 
+SET VULKAN_VERSION = "1.4.304.1"
+"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V shaders/shader.vert -o shaders/vert.spv
+"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V shaders/shader.frag -o shaders/frag.spv
+```
+
+shaderh.bat
+```
+@echo off 
+SET VULKAN_VERSION = "1.4.304.1"
+"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V --vn vert_spv shaders/shader.vert -o shaders/vert.spv.h
+"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V --vn frag_spv shaders/shader.frag -o shaders/frag.spv.h
+```
+
 
 ## Module Design
 

@@ -128,10 +128,11 @@ void ImGuiCMDBufferSystem(ecs_iter_t *it){
     igNewFrame();
 
     igBegin("Test Window", NULL, 0);
-    igText("TEST Vulkan and ImGui! ");
     if (igButton("Click Me", (ImVec2){0, 0})) {
       ecs_print(1, "Button clicked!");
     }
+    igText("TEST Vulkan and ImGui! ");
+    
     igEnd();
 
     igRender();
@@ -148,9 +149,9 @@ void ImGuiBeginSystem(ecs_iter_t *it) {
   // ecs_print(1, "Context pointer: %p", (void*)ctx);
   // ecs_print(1, "Fence in ImGuiBeginSystem: %p", (void*)ctx->inFlightFence);
 
-  ImGui_ImplVulkan_NewFrame();
-  ImGui_ImplSDL3_NewFrame();
-  igNewFrame();
+  // ImGui_ImplVulkan_NewFrame();
+  // ImGui_ImplSDL3_NewFrame();
+  // igNewFrame();
 
   // ecs_print(1, "ImGuiBeginSystem completed");
 }
@@ -164,12 +165,12 @@ void ImGuiUpdateSystem(ecs_iter_t *it) {
   // ecs_print(1, "Context pointer: %p", (void*)ctx);
   // ecs_print(1, "Fence in ImGuiUpdateSystem: %p", (void*)ctx->inFlightFence);
 
-  igBegin("Hello, Vulkan!", NULL, 0);
-  igText("This is a Vulkan and ImGui demo!");
-  if (igButton("Click Me", (ImVec2){0, 0})) {
-    ecs_print(1, "Button clicked!");
-  }
-  igEnd();
+  // igBegin("Hello, Vulkan!", NULL, 0);
+  // igText("This is a Vulkan and ImGui demo!");
+  // if (igButton("Click Me", (ImVec2){0, 0})) {
+  //   ecs_print(1, "Button clicked!");
+  // }
+  // igEnd();
 
   // ecs_print(1, "ImGuiUpdateSystem completed");
 }
@@ -183,7 +184,7 @@ void ImGuiEndSystem(ecs_iter_t *it) {
   // ecs_print(1, "Context pointer: %p", (void*)ctx);
   // ecs_print(1, "Fence in ImGuiEndSystem: %p", (void*)ctx->inFlightFence);
 
-  igRender();
+  // igRender();
 
   // ecs_print(1, "ImGuiEndSystem completed");
 }
