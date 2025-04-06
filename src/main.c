@@ -13,12 +13,15 @@ int main(int argc, char *argv[]) {
   printf("init main!\n");  // Confirm main starts
 
   ecs_world_t *world = ecs_init();
-  //ecs_log_set_level(1);  // Enable logging at level 1 (info)
+  // ecs_log_set_level(1);  // Enable logging at level 1 (info)
+  //ecs_log_set_level(0);  // Enable logging at level 1 (info)
 
   WorldContext ctx = {0};
   ctx.window = window;
   ecs_print(1,"Calling flecs_vulkan_module_init...");
   flecs_vulkan_module_init(world, &ctx);
+  ecs_err("test1");
+  //ecs_err("test2");
 
   ecs_print(1,"Entering main loop...");
   while (!ctx.shouldQuit) {

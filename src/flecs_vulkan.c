@@ -92,7 +92,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   uint32_t sdlExtensionCount = 0;
   const char *const *sdlExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlExtensionCount);
   if (!sdlExtensions || sdlExtensionCount == 0) {
-    ecs_print(1,"Error: Failed to get Vulkan instance extensions from SDL");
+    ecs_err("Error: Failed to get Vulkan instance extensions from SDL");
     ctx->hasError = true;
     ctx->errorMessage = "Failed to get Vulkan instance extensions from SDL";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -131,7 +131,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   VkResult result = vkCreateInstance(&createInfo, NULL, &ctx->instance);
   free(extensions);
   if (result != VK_SUCCESS) {
-    ecs_print(1,"Error: Failed to create Vulkan instance (VkResult: %d)", result);
+    ecs_err("Error: Failed to create Vulkan instance (VkResult: %d)", result);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to create Vulkan instance";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -153,13 +153,13 @@ void InstanceSetupSystem(ecs_iter_t *it) {
 
     result = createDebugUtilsMessenger(ctx->instance, &debugCreateInfo, NULL, &ctx->debugMessenger);
     if (result != VK_SUCCESS) {
-      ecs_print(1,"Warning: Failed to create debug messenger (VkResult: %d)", result);
+      ecs_err("Warning: Failed to create debug messenger (VkResult: %d)", result);
       ctx->debugMessenger = VK_NULL_HANDLE;
     } else {
-      ecs_print(1,"Debug messenger created");
+      ecs_err("Debug messenger created");
     }
   } else {
-    ecs_print(1,"Warning: vkCreateDebugUtilsMessengerEXT not found");
+    ecs_err("Warning: vkCreateDebugUtilsMessengerEXT not found");
     ctx->debugMessenger = VK_NULL_HANDLE;
   }
 
@@ -172,25 +172,25 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"SurfaceSetupSystem started");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) {
-    ecs_print(1,"Error: ctx is NULL or has error");
+    ecs_err("Error: ctx is NULL or has error");
     return;
   }
 
   if (!ctx->window) {
-    ecs_print(1,"Error: window is NULL");
+    ecs_err("Error: window is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "SDL window not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   if (!ctx->instance) {
-    ecs_print(1,"Error: instance is NULL");
+    ecs_err("Error: instance is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "Vulkan instance not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
   if (!SDL_Vulkan_CreateSurface(ctx->window, ctx->instance, NULL, &ctx->surface)) {
-    ecs_print(1,"Error: Failed to create Vulkan surface - %s", SDL_GetError());
+    ecs_err("Error: Failed to create Vulkan surface - %s", SDL_GetError());
     ctx->hasError = true;
     ctx->errorMessage = "Failed to create Vulkan surface";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -200,14 +200,14 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
   uint32_t deviceCount = 0;
   VkResult result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, NULL);
   if (result != VK_SUCCESS) {
-    ecs_print(1,"Error: vkEnumeratePhysicalDevices failed (VkResult: %d)", result);
+    ecs_err("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)", result);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to enumerate physical devices (first call)";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   // printf("Physical device count: %u\n", deviceCount);
   if (deviceCount == 0) {
-    ecs_print(1,"Error: No physical devices found");
+    ecs_err("Error: No physical devices found");
     ctx->hasError = true;
     ctx->errorMessage = "No Vulkan physical devices found";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -215,14 +215,14 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
 
   VkPhysicalDevice* devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
   if (!devices) {
-    // printf("Error: Failed to allocate memory for devices\n");
+    ecs_err("Error: Failed to allocate memory for devices");
     ctx->hasError = true;
     ctx->errorMessage = "Memory allocation failed";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   result = vkEnumeratePhysicalDevices(ctx->instance, &deviceCount, devices);
   if (result != VK_SUCCESS) {
-    // printf("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)\n", result);
+    ecs_err("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)", result);
     free(devices);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to enumerate physical devices (second call)";
@@ -231,9 +231,7 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
 
   ctx->physicalDevice = devices[0];  // Pick first device for now
   free(devices);
-  // printf("Physical device selected\n");
-
-  // printf("Surface setup completed\n");
+  
   ecs_log(1, "Surface setup completed");
 }
 
@@ -242,22 +240,22 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"DeviceSetupSystem started");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx) {
-    ecs_print(1,"Error: ctx is NULL");
+    ecs_err("Error: ctx is NULL");
     return;
   }
   if (ctx->hasError) {
-    ecs_print(1,"Error: ctx has error state");
+    ecs_err("Error: ctx has error state");
     return;
   }
 
   if (ctx->physicalDevice == VK_NULL_HANDLE) {
-    ecs_print(1,"Error: physicalDevice is NULL");
+    ecs_err("Error: physicalDevice is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "Physical device not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   if (ctx->surface == VK_NULL_HANDLE) {
-    ecs_print(1,"Error: surface is NULL");
+    ecs_err("Error: surface is NULL");
     ctx->hasError = true;
     ctx->errorMessage = "Surface not initialized";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -267,7 +265,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   vkGetPhysicalDeviceQueueFamilyProperties(ctx->physicalDevice, &queueFamilyCount, NULL);
   ecs_print(1,"Queue family count: %u", queueFamilyCount);
   if (queueFamilyCount == 0) {
-    ecs_print(1,"Error: No queue families found");
+    ecs_err("Error: No queue families found");
     ctx->hasError = true;
     ctx->errorMessage = "No queue families available";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -275,7 +273,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   VkQueueFamilyProperties* queueFamilies = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
   if (!queueFamilies) {
-    ecs_print(1,"Error: Failed to allocate queueFamilies");
+    ecs_err("Error: Failed to allocate queueFamilies");
     ctx->hasError = true;
     ctx->errorMessage = "Memory allocation failed";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -295,7 +293,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   free(queueFamilies);
 
   if (ctx->graphicsFamily == UINT32_MAX || ctx->presentFamily == UINT32_MAX) {
-    ecs_print(1,"Error: Failed to find required queue families");
+    ecs_err("Error: Failed to find required queue families");
     ctx->hasError = true;
     ctx->errorMessage = "No graphics or present queue family found";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -323,7 +321,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions;
 
   if (vkCreateDevice(ctx->physicalDevice, &deviceCreateInfo, NULL, &ctx->device) != VK_SUCCESS) {
-      ecs_print(1,"Error: vkCreateDevice failed");
+      ecs_err("Error: vkCreateDevice failed");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create logical device";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -407,7 +405,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   VkResult result = vkCreateSwapchainKHR(ctx->device, &swapchainCreateInfo, NULL, &ctx->swapchain);
   if (result != VK_SUCCESS) {
       char errorMsg[64];
-      ecs_print(1,errorMsg, "Failed to create swapchain (VkResult: %d)", result);
+      ecs_err(errorMsg, "Failed to create swapchain (VkResult: %d)", result);
       ctx->hasError = true;
       ctx->errorMessage = errorMsg;
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -758,7 +756,6 @@ void SyncSetupSystem(ecs_iter_t *it) {
 }
 
 
-
 void BeginRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
@@ -770,7 +767,7 @@ void BeginRenderSystem(ecs_iter_t *it) {
   VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX,
                                           ctx->imageAvailableSemaphore, VK_NULL_HANDLE, &ctx->imageIndex);
   if (result != VK_SUCCESS) {
-    printf("Error: vkAcquireNextImageKHR failed (VkResult: %d)\n", result);
+    ecs_err("Error: vkAcquireNextImageKHR failed (VkResult: %d)", result);
     ctx->hasError = true;
     ctx->errorMessage = "Failed to acquire next image";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -779,7 +776,6 @@ void BeginRenderSystem(ecs_iter_t *it) {
   // Reset the fence only after acquiring the image
   vkResetFences(ctx->device, 1, &ctx->renderFinishedFence);
 }
-
 
 
 void RenderSystem(ecs_iter_t *it) {
@@ -792,7 +788,7 @@ void RenderSystem(ecs_iter_t *it) {
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   if (vkBeginCommandBuffer(ctx->commandBuffer, &beginInfo) != VK_SUCCESS) {
-    printf("Error: Failed to begin command buffer\n");
+    ecs_err("Error: Failed to begin command buffer");
     ctx->hasError = true;
     ctx->errorMessage = "Failed to begin command buffer";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -816,13 +812,12 @@ void RenderSystem(ecs_iter_t *it) {
   vkCmdEndRenderPass(ctx->commandBuffer);
 
   if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
-    printf("Error: Failed to end command buffer\n");
+    ecs_err("Error: Failed to end command buffer");
     ctx->hasError = true;
     ctx->errorMessage = "Failed to end command buffer";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 }
-
 
 
 void EndRenderSystem(ecs_iter_t *it) {
@@ -842,7 +837,7 @@ void EndRenderSystem(ecs_iter_t *it) {
   submitInfo.pSignalSemaphores = signalSemaphores;
 
   if (vkQueueSubmit(ctx->graphicsQueue, 1, &submitInfo, ctx->renderFinishedFence) != VK_SUCCESS) {
-    printf("Error: Failed to submit queue\n");
+    ecs_err("Error: Failed to submit queue");
     ctx->hasError = true;
     ctx->errorMessage = "Failed to submit queue";
     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
@@ -907,9 +902,9 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
           (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
       if (destroyDebugUtilsMessenger) {
         destroyDebugUtilsMessenger(ctx->instance, ctx->debugMessenger, NULL);
-        ecs_print(1,"Debug messenger destroyed");
+        ecs_err("Debug messenger destroyed");
       } else {
-        ecs_print(1,"Warning: Failed to get vkDestroyDebugUtilsMessengerEXT function pointer");
+        ecs_err("Warning: Failed to get vkDestroyDebugUtilsMessengerEXT function pointer");
       }
     }
 
