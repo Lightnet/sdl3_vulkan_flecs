@@ -31,19 +31,6 @@ static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
   return descriptorPool;
 }
 
-void ImGuiInputSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError || !ctx->isImGuiInitialized) return;
-
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    ImGui_ImplSDL3_ProcessEvent(&event);
-    if (event.type == SDL_EVENT_QUIT) {
-      ecs_print(1, "Quit event received");
-      ctx->shouldQuit = true;
-    }
-  }
-}
 
 // Optional: Vulkan result checker
 static void check_vk_result(VkResult err) {
@@ -235,16 +222,6 @@ void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {
             .add = ecs_ids(ecs_dependson(GlobalPhases.SetupLogicPhase)) 
         }),
         .callback = ImGuiSetupSystem
-    });
-
-    // New input system
-    ecs_print(1, "ImGuiInputSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { 
-            .name = "ImGuiInputSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) 
-        }),
-        .callback = ImGuiInputSystem
     });
 
     ecs_print(1, "ImGuiCMDBufferSystem");

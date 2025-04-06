@@ -6,6 +6,7 @@
 #include "flecs_types.h"
 #include "flecs_vulkan.h"
 #include "flecs_imgui.h"
+#include "flecs_sdl.h" 
 
 int main(int argc, char *argv[]) {
   printf("init main!\n");
@@ -43,6 +44,10 @@ int main(int argc, char *argv[]) {
 
   ecs_print(1, "Initializing GlobalPhases...");
   flecs_phases_init(world, &GlobalPhases);
+
+  ecs_print(1, "Calling flecs_sdl_module_init...");
+  //SDL Input event
+  flecs_sdl_module_init(world, ctx);
 
   ecs_print(1, "Calling flecs_vulkan_module_init...");
   flecs_vulkan_module_init(world, ctx);

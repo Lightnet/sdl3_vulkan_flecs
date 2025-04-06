@@ -142,6 +142,7 @@ set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 add_executable(${PROJECT_NAME}
   ${SOURCE_DIR}/main.c
   ${SOURCE_DIR}/flecs_types.c
+  ${SOURCE_DIR}/flecs_sdl.c
   ${SOURCE_DIR}/flecs_vulkan.c
   ${SOURCE_DIR}/flecs_imgui.c
   # ${SRC_FILES}
