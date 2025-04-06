@@ -58,6 +58,10 @@ typedef struct {
 typedef struct {
   ecs_entity_t LogicUpdatePhase;
   ecs_entity_t BeginRenderPhase;
+  //vertex and imgui
+  ecs_entity_t BeginCMDBufferPhase;
+  ecs_entity_t EndCMDBufferPhase;
+
   ecs_entity_t BeginGUIPhase;
   ecs_entity_t UpdateGUIPhase;
   ecs_entity_t EndGUIPhase;

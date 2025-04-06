@@ -1,3 +1,5 @@
+// Main Entry
+
 #include <SDL3/SDL.h>
 #include <stdio.h>
 #include "flecs.h"
@@ -5,13 +7,28 @@
 #include "flecs_vulkan.h"
 #include "flecs_imgui.h"
 
-
 int main(int argc, char *argv[]) {
-  SDL_Init(SDL_INIT_VIDEO);
-  SDL_Window *window = SDL_CreateWindow("Vulkan Triangle with ImGui", WIDTH, HEIGHT, SDL_WINDOW_VULKAN);
   printf("init main!\n");
   fflush(stdout);
 
+  if(!SDL_Init(SDL_INIT_VIDEO)){
+    SDL_Log( "SDL could not initialize! SDL error: %s\n", SDL_GetError() );
+    return -1;
+  }
+
+  SDL_Window *window = SDL_CreateWindow("Vulkan Triangle with ImGui",
+    WIDTH, 
+    HEIGHT, 
+    SDL_WINDOW_VULKAN
+  );
+
+  if (!window){
+    printf("SDL_CreateWindow fail!\n");
+    SDL_Log( "Window could not be created! SDL error: %s\n", SDL_GetError() );
+    SDL_Quit();
+    return -1;
+  }
+  
   ecs_world_t *world = ecs_init();
   WorldContext *ctx = calloc(1, sizeof(WorldContext));
   if (!ctx) {
@@ -40,18 +57,23 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
   ecs_print(1, "Entering main loop...");
+  // while (!ctx->shouldQuit) {
+  //     SDL_Event event;
+  //     while (SDL_PollEvent(&event)) {
+  //         if (ctx->isImGuiInitialized) {
+  //           //ecs_print(1,"imgui input");
+  //             ImGui_ImplSDL3_ProcessEvent(&event);
+  //         }
+  //         if (event.type == SDL_EVENT_QUIT) {
+  //             ecs_print(1, "Quit event received");
+  //             ctx->shouldQuit = true;
+  //         }
+  //     }
+  //     ecs_progress(world, 0);
+  // }
+
   while (!ctx->shouldQuit) {
-      SDL_Event event;
-      while (SDL_PollEvent(&event)) {
-          if (ctx->isImGuiInitialized) {
-              ImGui_ImplSDL3_ProcessEvent(&event);
-          }
-          if (event.type == SDL_EVENT_QUIT) {
-              ecs_print(1, "Quit event received");
-              ctx->shouldQuit = true;
-          }
-      }
-      ecs_progress(world, 0);
+    ecs_progress(world, 0);  // All event handling is now in ImGuiInputSystem
   }
 
   ecs_print(1, "Cleaning up...");

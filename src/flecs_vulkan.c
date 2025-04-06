@@ -730,6 +730,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   ecs_log(1, "Pipeline setup completed");
 }
 
+
 void SyncSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
@@ -772,9 +773,9 @@ void BeginRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "BeginRenderSystem starting...");
-  ecs_print(1, "Context pointer: %p", (void*)ctx);
-  ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "BeginRenderSystem starting...");
+  // ecs_print(1, "Context pointer: %p", (void*)ctx);
+  // ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
 
   if (ctx->inFlightFence == VK_NULL_HANDLE) {
       ecs_err("In-flight fence is null, skipping render");
@@ -798,18 +799,18 @@ void BeginRenderSystem(ecs_iter_t *it) {
       return; // Don’t abort, just skip frame
   }
 
-  ecs_print(1, "BeginRenderSystem completed, imageIndex: %u", ctx->imageIndex);
+  // ecs_print(1, "BeginRenderSystem completed, imageIndex: %u", ctx->imageIndex);
 }
-
 
 
 void RenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
+  // ecs_print(1,"RenderSystem");
 
-  ecs_print(1, "RenderSystem starting...");
-  ecs_print(1, "Context pointer: %p", (void*)ctx);
-  ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "RenderSystem starting...");
+  // ecs_print(1, "Context pointer: %p", (void*)ctx);
+  // ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
 
   if (vkResetCommandBuffer(ctx->commandBuffer, 0) != VK_SUCCESS) {
       ecs_err("Failed to reset command buffer");
@@ -834,31 +835,32 @@ void RenderSystem(ecs_iter_t *it) {
 
   vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+  // ecs_print(1, "RenderSystem completed");
+}
+
+void BeginCMDBufferSystem(ecs_iter_t *it) {
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+  // ecs_print(1,"BeginCMDBufferSystem");
+  //triangle
   vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->vertexBuffer, offsets);
   vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
 
-  if (ctx->isImGuiInitialized) {
-      ImGui_ImplVulkan_NewFrame();
-      ImGui_ImplSDL3_NewFrame();
-      igNewFrame();
+}
 
-      igBegin("Test Window", NULL, 0);
-      igText("Hello, Vulkan and ImGui!");
-      igEnd();
 
-      igRender();
-      ImGui_ImplVulkan_RenderDrawData(igGetDrawData(), ctx->commandBuffer, VK_NULL_HANDLE);
-  }
+void EndCMDBufferSystem(ecs_iter_t *it) {
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+  // ecs_print(1,"EndCMDBufferSystem");
 
   vkCmdEndRenderPass(ctx->commandBuffer);
   if (vkEndCommandBuffer(ctx->commandBuffer) != VK_SUCCESS) {
       ecs_err("Failed to end command buffer");
       return;
   }
-
-  ecs_print(1, "RenderSystem completed");
 }
 
 
@@ -866,7 +868,7 @@ void EndRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "EndRenderSystem starting...");
+  // ecs_print(1, "EndRenderSystem starting...");
 
   VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
   VkSemaphore waitSemaphores[] = {ctx->imageAvailableSemaphore};
@@ -903,7 +905,7 @@ void EndRenderSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Failed to present queue";
   }
 
-  ecs_print(1, "EndRenderSystem completed");
+  // ecs_print(1, "EndRenderSystem completed");
 }
 
 
@@ -1005,7 +1007,6 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
 }
 
 
-
 void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "init vulkan module");
 
@@ -1064,6 +1065,19 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
       .entity = ecs_entity(world, { .name = "RenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPhase)) }),
       .callback = RenderSystem
   });
+
+  //cmd buffer triangle buffer
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "BeginCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
+    .callback = BeginCMDBufferSystem
+  });
+
+  //end cmd buffer
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "EndCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndCMDBufferPhase)) }),
+    .callback = EndCMDBufferSystem
+  });
+
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "EndRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndRenderPhase)) }),
       .callback = EndRenderSystem

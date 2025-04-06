@@ -31,6 +31,19 @@ static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
   return descriptorPool;
 }
 
+void ImGuiInputSystem(ecs_iter_t *it) {
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError || !ctx->isImGuiInitialized) return;
+
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    ImGui_ImplSDL3_ProcessEvent(&event);
+    if (event.type == SDL_EVENT_QUIT) {
+      ecs_print(1, "Quit event received");
+      ctx->shouldQuit = true;
+    }
+  }
+}
 
 // Optional: Vulkan result checker
 static void check_vk_result(VkResult err) {
@@ -105,19 +118,41 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
 }
 
 
+void ImGuiCMDBufferSystem(ecs_iter_t *it){
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+
+  if (ctx->isImGuiInitialized) {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    igNewFrame();
+
+    igBegin("Test Window", NULL, 0);
+    igText("TEST Vulkan and ImGui! ");
+    if (igButton("Click Me", (ImVec2){0, 0})) {
+      ecs_print(1, "Button clicked!");
+    }
+    igEnd();
+
+    igRender();
+    ImGui_ImplVulkan_RenderDrawData(igGetDrawData(), ctx->commandBuffer, VK_NULL_HANDLE);
+  }
+}
+
+
 void ImGuiBeginSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "ImGuiBeginSystem starting...");
-  ecs_print(1, "Context pointer: %p", (void*)ctx);
-  ecs_print(1, "Fence in ImGuiBeginSystem: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "ImGuiBeginSystem starting...");
+  // ecs_print(1, "Context pointer: %p", (void*)ctx);
+  // ecs_print(1, "Fence in ImGuiBeginSystem: %p", (void*)ctx->inFlightFence);
 
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplSDL3_NewFrame();
   igNewFrame();
 
-  ecs_print(1, "ImGuiBeginSystem completed");
+  // ecs_print(1, "ImGuiBeginSystem completed");
 }
 
 
@@ -125,15 +160,18 @@ void ImGuiUpdateSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "ImGuiUpdateSystem starting...");
-  ecs_print(1, "Context pointer: %p", (void*)ctx);
-  ecs_print(1, "Fence in ImGuiUpdateSystem: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "ImGuiUpdateSystem starting...");
+  // ecs_print(1, "Context pointer: %p", (void*)ctx);
+  // ecs_print(1, "Fence in ImGuiUpdateSystem: %p", (void*)ctx->inFlightFence);
 
   igBegin("Hello, Vulkan!", NULL, 0);
   igText("This is a Vulkan and ImGui demo!");
+  if (igButton("Click Me", (ImVec2){0, 0})) {
+    ecs_print(1, "Button clicked!");
+  }
   igEnd();
 
-  ecs_print(1, "ImGuiUpdateSystem completed");
+  // ecs_print(1, "ImGuiUpdateSystem completed");
 }
 
 
@@ -141,13 +179,13 @@ void ImGuiEndSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "ImGuiEndSystem starting...");
-  ecs_print(1, "Context pointer: %p", (void*)ctx);
-  ecs_print(1, "Fence in ImGuiEndSystem: %p", (void*)ctx->inFlightFence);
+  // ecs_print(1, "ImGuiEndSystem starting...");
+  // ecs_print(1, "Context pointer: %p", (void*)ctx);
+  // ecs_print(1, "Fence in ImGuiEndSystem: %p", (void*)ctx->inFlightFence);
 
   igRender();
 
-  ecs_print(1, "ImGuiEndSystem completed");
+  // ecs_print(1, "ImGuiEndSystem completed");
 }
 
 
@@ -189,13 +227,29 @@ void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {
     ecs_print(1, "Initializing ImGui module...");
     //ecs_set_ctx(world, ctx, NULL);//no need to readded it from vulkan order.
 
-    ecs_print(1, "ImGuiSetupSystem=============");
+    ecs_print(1, "ImGuiSetupSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { 
             .name = "ImGui_SetupSystem", 
             .add = ecs_ids(ecs_dependson(GlobalPhases.SetupLogicPhase)) 
         }),
         .callback = ImGuiSetupSystem
+    });
+
+    // New input system
+    ecs_print(1, "ImGuiInputSystem");
+    ecs_system_init(world, &(ecs_system_desc_t){
+        .entity = ecs_entity(world, { 
+            .name = "ImGuiInputSystem", 
+            .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) 
+        }),
+        .callback = ImGuiInputSystem
+    });
+
+    ecs_print(1, "ImGuiCMDBufferSystem");
+    ecs_system_init(world, &(ecs_system_desc_t){
+        .entity = ecs_entity(world, { .name = "ImGuiCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
+        .callback = ImGuiCMDBufferSystem
     });
 
     ecs_print(1, "ImGuiBeginSystem");

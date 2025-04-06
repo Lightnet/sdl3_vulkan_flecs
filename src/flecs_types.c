@@ -1,6 +1,7 @@
 #include "flecs_types.h"
 
 FlecsPhases GlobalPhases = {0};
+
 //init once setup for vulkan but not others else error same entity setup.
 void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   // Runtime phases (main loop, single flow)
@@ -22,8 +23,16 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   phases->RenderPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->RenderPhase, EcsDependsOn, phases->EndGUIPhase);
 
+  phases->BeginCMDBufferPhase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->BeginCMDBufferPhase, EcsDependsOn, phases->RenderPhase);
+
+  phases->EndCMDBufferPhase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->EndCMDBufferPhase, EcsDependsOn, phases->BeginCMDBufferPhase);
+
   phases->EndRenderPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->EndRenderPhase, EcsDependsOn, phases->RenderPhase);
+  ecs_add_pair(world, phases->EndRenderPhase, EcsDependsOn, phases->EndCMDBufferPhase);
+
+
 
   // Setup phases (single flow, run once under EcsOnStart)
   phases->InstanceSetupPhase = ecs_new_w_id(world, EcsPhase);
@@ -62,7 +71,6 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   phases->SetupLogicPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SetupLogicPhase, EcsDependsOn, phases->SyncSetupPhase);
 
-  //GlobalPhases = *phases;
 }
 
 
