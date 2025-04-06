@@ -7,13 +7,30 @@
  * VS2022 c/c++
 
 # Features:
-  To keep some part module in some degree. For later add on but some area not easy to break down. Work on the flecs logging which still need work.
+  To work on vulkan modules in some degree to handle add, remove, render and setup. Working on the flecs logging which still need work.
 
  * Flecs logging.
  * Module design
  * Simple triangle
+ * imgui (not added)
+ * cube (not added)
+ * texture
+ * render text
 
   Need to add some features.
+
+# Libraries:
+ * SDL release-3.2.8 (added)
+ * vulkan sdk 1.4.304.1
+ * flecs v4.0.5
+ * freetype VER-2-13-3 (not added)
+ * volk 1.4.304 (remove)
+ * VulkanHeaders vulkan-sdk-1.4.304.1 (added)
+ * VulkanMemoryAllocator v3.2.1 (not added)
+ * mimalloc (not added)
+ * cglm (not added)
+ * assimp (not added)
+ * 
 
 # Information:
   
@@ -59,16 +76,7 @@ CMakeLists.txt
 
   Reason a lot of boilerplate code.
 
-# Libraries:
- * SDL (added)
- * volk (remove)
- * VulkanHeaders (added)
- * VulkanMemoryAllocator (added)
- * mimalloc (not added)
- * freetype (added)
- * cglm (not added)
- * assimp (not added)
- * 
+
 
 ## github:
  * https://github.com/libsdl-org/SDL
