@@ -291,8 +291,6 @@ static void createFontAtlas(WorldContext *ctx) {
 }
 
 
-
-
 void TextSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
@@ -429,8 +427,11 @@ void TextSetupSystem(ecs_iter_t *it) {
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-  VkViewport viewport = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 1.0f};
-  VkRect2D scissor = {{0, 0}, {WIDTH, HEIGHT}};
+  // VkViewport viewport = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 1.0f};
+  // VkRect2D scissor = {{0, 0}, {WIDTH, HEIGHT}};
+  VkViewport viewport = {0.0f, 0.0f, (float)ctx->width, (float)ctx->height, 0.0f, 1.0f};
+  VkRect2D scissor = {{0, 0}, {ctx->width, ctx->height}};
+
   VkPipelineViewportStateCreateInfo viewportState = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
   viewportState.viewportCount = 1;
   viewportState.pViewports = &viewport;
@@ -504,6 +505,8 @@ void TextRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError || !ctx->glyphs) return;
 
+  //ecs_print(1, "TextRenderSystem - WIDTH: %d, HEIGHT: %d", ctx->width, ctx->height);
+
   const char *text = "Hello World";
   size_t textLen = strlen(text);
   TextVertex vertices[44];
@@ -518,13 +521,12 @@ void TextRenderSystem(ecs_iter_t *it) {
       totalWidth += glyphs[glyphIdx].advanceX;
   }
 
-  // Convert pixel coordinates to NDC (-1 to 1)
-  float screenWidth = 800.0f;
-  float screenHeight = 600.0f;
-  float x = (screenWidth - totalWidth) / 2.0f; // Pixel x (e.g., 400)
-  float y = screenHeight / 2.0f;               // Pixel y (e.g., 300)
-  float ndcX = (2.0f * x / screenWidth) - 1.0f; // NDC x (e.g., 0.0 for center)
-  float ndcY = 1.0f - (2.0f * y / screenHeight); // NDC y (e.g., 0.0 for center, flipped Y)
+  float screenWidth = (float)ctx->width;   // Updated from 800.0f
+  float screenHeight = (float)ctx->height; // Updated from 600.0f
+  float x = (screenWidth - totalWidth) / 2.0f;
+  float y = screenHeight / 2.0f;
+  float ndcX = (2.0f * x / screenWidth) - 1.0f;
+  float ndcY = 1.0f - (2.0f * y / screenHeight);
 
   for (size_t i = 0; i < textLen; i++) {
       char c = text[i];
@@ -563,7 +565,6 @@ void TextRenderSystem(ecs_iter_t *it) {
   vkCmdBindDescriptorSets(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->textPipelineLayout, 0, 1, &ctx->textDescriptorSet, 0, NULL);
   vkCmdDrawIndexed(ctx->commandBuffer, indexCount, 1, 0, 0, 0);
 }
-
 
 
 

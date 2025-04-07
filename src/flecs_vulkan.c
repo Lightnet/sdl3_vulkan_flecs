@@ -292,8 +292,10 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 }
 
 
+
+
 void SwapchainSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"SwapchainSetupSystem ");
+  ecs_print(1, "SwapchainSetupSystem ");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
@@ -307,6 +309,17 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
 
   // Set swapchain extent
   ctx->swapchainExtent = capabilities.currentExtent;
+  ctx->width = ctx->swapchainExtent.width;  // Store width
+  ctx->height = ctx->swapchainExtent.height; // Store height
+  ecs_print(1, "Swapchain extent set - WIDTH: %d, HEIGHT: %d", ctx->width, ctx->height);
+
+  // Ensure valid dimensions (from my suggestion)
+  if (ctx->width == 0 || ctx->height == 0) {
+      ecs_err("Invalid swapchain dimensions: WIDTH=%d, HEIGHT=%d", ctx->width, ctx->height);
+      ctx->hasError = true;
+      ctx->errorMessage = "Invalid swapchain dimensions";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
 
   // Adjust image count
   ctx->imageCount = 2;  // Desired number
@@ -394,6 +407,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
 
   ecs_log(1, "Swapchain setup completed with %u images", ctx->imageCount);
 }
+
 
 
 void TriangleBufferSetupSystem(ecs_iter_t *it) {

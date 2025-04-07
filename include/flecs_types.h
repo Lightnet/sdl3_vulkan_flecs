@@ -29,66 +29,66 @@ typedef struct {
 ECS_COMPONENT_DECLARE(TextComponent);
 
 typedef struct {
-  SDL_Window *window;
-  VkInstance instance;
-  VkDebugUtilsMessengerEXT debugMessenger;
-  VkSurfaceKHR surface;
-  VkPhysicalDevice physicalDevice;
-  VkDevice device;
-  VkQueue graphicsQueue;
-  VkQueue presentQueue;
-  uint32_t graphicsFamily;            // Graphics queue family index
-  uint32_t presentFamily;             //Present queue family index
-  VkSwapchainKHR swapchain;
-  VkImage *swapchainImages;
-  VkImageView *swapchainImageViews;
-  uint32_t imageCount;
-  VkExtent2D swapchainExtent;
+  SDL_Window *window;                                       // SDL Window
+  VkInstance instance;                                      // Vulkan instance
+  VkDebugUtilsMessengerEXT debugMessenger;                  // Vulkan 
+  VkSurfaceKHR surface;                                     // SDL surface
+  VkPhysicalDevice physicalDevice;                          // Vulkan 
+  VkDevice device;                                          // Vulkan 
+  VkQueue graphicsQueue;                                    // Vulkan 
+  VkQueue presentQueue;                                     // Vulkan 
+  uint32_t graphicsFamily;                                  // Graphics queue family index
+  uint32_t presentFamily;                                   // Present queue family index
+  VkSwapchainKHR swapchain;                                 // Vulkan 
+  VkImage *swapchainImages;                                 // Vulkan 
+  VkImageView *swapchainImageViews;                         // Vulkan 
+  uint32_t imageCount;                                      // Vulkan 
+  VkExtent2D swapchainExtent;                               // Vulkan 
 
-  VkBuffer vertexBuffer;                  // triangle
-  VkDeviceMemory vertexBufferMemory;      // triangle
-  VkDeviceMemory indexBufferMemory;       // triangle
-  VkBuffer indexBuffer;                   // triangle
+  VkBuffer vertexBuffer;                                    // triangle
+  VkDeviceMemory vertexBufferMemory;                        // triangle
+  VkDeviceMemory indexBufferMemory;                         // triangle
+  VkBuffer indexBuffer;                                     // triangle
 
-  VkBuffer textVertexBuffer;                          // text vertices
-  VkDeviceMemory textVertexBufferMemory;              // text vertices
-  VkBuffer textIndexBuffer;                           // text indices
-  VkDeviceMemory textIndexBufferMemory;               // text indices
-  VkDescriptorPool textDescriptorPool;                // text system
-  VkDescriptorSet textDescriptorSet; // Add this to store the descriptor set
-  VkDescriptorSetLayout textDescriptorSetLayout;      // font texture binding
-  VkPipelineLayout textPipelineLayout;                // Text pipeline layout
-  VkPipeline textPipeline;                            // Text pipeline
+  VkBuffer textVertexBuffer;                                // text vertices
+  VkDeviceMemory textVertexBufferMemory;                    // text vertices
+  VkBuffer textIndexBuffer;                                 // text indices
+  VkDeviceMemory textIndexBufferMemory;                     // text indices
+  VkDescriptorPool textDescriptorPool;                      // text system
+  VkDescriptorSet textDescriptorSet;                        // store the text descriptor set
+  VkDescriptorSetLayout textDescriptorSetLayout;            // font text texture binding
+  VkPipelineLayout textPipelineLayout;                      // Text pipeline layout
+  VkPipeline textPipeline;                                  // Text pipeline
   
-  VkImage fontImage;                  // Font atlas texture
-  VkDeviceMemory fontImageMemory;     // Font atlas memory
-  VkImageView fontImageView;          //  Font atlas image view
-  VkSampler fontSampler;              // Sampler for font texture
+  VkImage fontImage;                                        // Font atlas texture
+  VkDeviceMemory fontImageMemory;                           // Font atlas memory
+  VkImageView fontImageView;                                // Font atlas image view
+  VkSampler fontSampler;                                    // Sampler for font texture
   
-  void *glyphs;            // Metrics for ASCII 32-126 (95 characters)
-  int atlasWidth, atlasHeight;   // Font atlas dimensions
+  void *glyphs;                                             // Metrics for ASCII 32-126 (95 characters)
+  int atlasWidth, atlasHeight;                              // Font atlas dimensions
   
-  VkDescriptorPool descriptorPool;  // ImGui
+  VkDescriptorPool descriptorPool;                          // ImGui
   
-  VkRenderPass renderPass;
-  VkPipelineLayout pipelineLayout;
-  VkPipeline graphicsPipeline;
-  VkFramebuffer *framebuffers;
-  VkCommandPool commandPool;
-  VkCommandBuffer commandBuffer;
-  VkSemaphore imageAvailableSemaphore;
-  VkSemaphore renderFinishedSemaphore;
-  VkFence renderFinishedFence;
-  uint32_t imageIndex;
-  VkFence inFlightFence;              
-  bool shouldQuit;
-  bool hasError;
-  const char *errorMessage;
-  uint32_t width;  // Add this for window width
-  uint32_t height; // Add this for window height
+  VkRenderPass renderPass;                                  // Vulkan 
+  VkPipelineLayout pipelineLayout;                          //  
+  VkPipeline graphicsPipeline;                              // 
+  VkFramebuffer *framebuffers;                              // Vulkan 
+  VkCommandPool commandPool;                                // Vulkan 
+  VkCommandBuffer commandBuffer;                            // Vulkan 
+  VkSemaphore imageAvailableSemaphore;                      // Vulkan 
+  VkSemaphore renderFinishedSemaphore;                      // Vulkan 
+  VkFence renderFinishedFence;                              // Vulkan 
+  uint32_t imageIndex;                                      // Vulkan 
+  VkFence inFlightFence;                                    // Vulkan       
+  bool shouldQuit;                                          // SDL 
+  bool hasError;                                            // Error
+  const char *errorMessage;                                 // Error
+  uint32_t width;                                           // Add this for window width
+  uint32_t height;                                          // Add this for window height
   // ImGui additions
-  ImGuiContext* imguiContext;
-  bool isImGuiInitialized;
+  ImGuiContext* imguiContext;                               // imgui 
+  bool isImGuiInitialized;                                  // imgui
 } WorldContext;
 
 
