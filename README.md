@@ -41,15 +41,18 @@ This project is a testbed for building a modular 3D rendering system using Vulka
         
 - Simple Triangle:
     - made into command buffer triangle system to handle render vulkan
+    - module set up and render
+    - hard code world context variable
         
 - ImGui Integration:
     - made into command buffer imgui system to handle render vulkan
     - Workaround for input handler crash by checking initialization in the main loop.
     - This wrapper from imgui to cimgui for c++ wrapper to c.
+    - hard code world context variable
 
-- Render Text "Hello World"
-  - Using free type font.
-  - not yet module.
+- Freetype Render Text font "Hello World"
+  - module for set up and render.
+  - hard code world context variable
         
 - Flecs Logging (WIP):
     - Custom logging system using Flecs, still under development.
@@ -57,7 +60,6 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 - Planned Features:
     - Cube rendering.
     - Texture support.
-    - Text rendering with FreeType.
         
 # Requirements:
 - CMake: For building the project.
@@ -71,9 +73,9 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - [VulkanHeaders 1.4.304.1](https://github.com/KhronosGroup/Vulkan-Headers): Vulkan API headers.
     - [Flecs 4.0.5](https://github.com/SanderMertens/flecs): Entity Component System.
     - [cimgui](https://github.com/cimgui/cimgui) render graphic user interface.
+    - [FreeType 2.13.3](https://github.com/freetype/freetype): Font rendering.
         
 - Planned/Not Yet Added:
-    - [FreeType 2.13.3](https://github.com/freetype/freetype): Font rendering.
     - [VulkanMemoryAllocator 3.2.1](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Memory management.
     - [mimalloc](https://github.com/microsoft/mimalloc): Memory allocator.
     - [cglm](https://github.com/recp/cglm): Math library.
@@ -194,10 +196,7 @@ endlocal
 
 ## Notes:
 - Hardcoding:
-  - triangle world context variable
-  - imgui world context variable
-  - freetype font world context variable
-- Triangle vertices 
+  - world context modules
 - ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
 - Logging: Flecs-based logging is a work in progress and may be incomplete.
@@ -205,16 +204,11 @@ endlocal
 ## Planned Improvements:
 - Replace hardcoded elements with dynamic systems.
 - Add VulkanMemoryAllocator for better memory management.
-- Implement cube rendering, textures, and FreeType text rendering.
+- Implement cube rendering and textures
 
 ## Images:
 
-(Add screenshots here once available, e.g., triangle and ImGui window)
-
-```text
-![Triangle Render](images/triangle.png)
-![ImGui Window](images/imgui.png)
-```
+![Triangle Render](screenshots/triangle.png)
 
 ## Credits:
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
