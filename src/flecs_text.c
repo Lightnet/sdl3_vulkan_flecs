@@ -292,160 +292,211 @@ static void createFontAtlas(WorldContext *ctx) {
 
 
 
+
 void TextSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
   ecs_print(1, "TextSetupSystem starting...");
-  createFontAtlas(ctx);
 
-  // Only create text buffers if they don’t already exist
+  // Create text-specific descriptor pool (refined Option 1)
+  VkDescriptorPoolSize poolSizes[] = {
+    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
+  };
+  VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+  poolInfo.maxSets = 1; // Single set for static text
+  poolInfo.poolSizeCount = 1;
+  poolInfo.pPoolSizes = poolSizes;
+  if (vkCreateDescriptorPool(ctx->device, &poolInfo, NULL, &ctx->textDescriptorPool) != VK_SUCCESS) {
+      ecs_err("Failed to create text descriptor pool");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create text descriptor pool";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "Text descriptor pool created");
+
+  // Create descriptor set layout
+  VkDescriptorSetLayoutBinding samplerLayoutBinding = {0};
+  samplerLayoutBinding.binding = 0;
+  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  samplerLayoutBinding.descriptorCount = 1;
+  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+  layoutInfo.bindingCount = 1;
+  layoutInfo.pBindings = &samplerLayoutBinding;
+  if (vkCreateDescriptorSetLayout(ctx->device, &layoutInfo, NULL, &ctx->textDescriptorSetLayout) != VK_SUCCESS) {
+      ecs_err("Failed to create text descriptor set layout");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create text descriptor set layout";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "Text descriptor set layout created: %p", (void*)ctx->textDescriptorSetLayout);
+
+  // Allocate descriptor set
+  VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+  allocInfo.descriptorPool = ctx->textDescriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &ctx->textDescriptorSetLayout;
+  if (vkAllocateDescriptorSets(ctx->device, &allocInfo, &ctx->textDescriptorSet) != VK_SUCCESS) {
+      ecs_err("Failed to allocate text descriptor set");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to allocate text descriptor set";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "Text descriptor set allocated: %p", (void*)ctx->textDescriptorSet);
+
+  // Create font atlas
+  createFontAtlas(ctx);
+  if (ctx->fontImageView == VK_NULL_HANDLE || ctx->fontSampler == VK_NULL_HANDLE) {
+      ecs_err("Font atlas creation failed: ImageView=%p, Sampler=%p", (void*)ctx->fontImageView, (void*)ctx->fontSampler);
+      ctx->hasError = true;
+      ctx->errorMessage = "Font atlas creation failed";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "Font atlas created: ImageView=%p, Sampler=%p", (void*)ctx->fontImageView, (void*)ctx->fontSampler);
+
+  // Update descriptor set
+  VkDescriptorImageInfo imageInfo = {0};
+  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  imageInfo.imageView = ctx->fontImageView;
+  imageInfo.sampler = ctx->fontSampler;
+
+  VkWriteDescriptorSet descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+  descriptorWrite.dstSet = ctx->textDescriptorSet;
+  descriptorWrite.dstBinding = 0;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  descriptorWrite.pImageInfo = &imageInfo;
+
+  vkUpdateDescriptorSets(ctx->device, 1, &descriptorWrite, 0, NULL);
+  ecs_print(1, "Text descriptor set updated");
+
+  // Create buffers
   if (!ctx->textVertexBuffer) {
       createBuffer(ctx, 44 * sizeof(TextVertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &ctx->textVertexBuffer, &ctx->textVertexBufferMemory);
+      ecs_print(1, "Text vertex buffer created: %p", (void*)ctx->textVertexBuffer);
   }
   if (!ctx->textIndexBuffer) {
       createBuffer(ctx, 66 * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &ctx->textIndexBuffer, &ctx->textIndexBufferMemory);
+      ecs_print(1, "Text index buffer created: %p", (void*)ctx->textIndexBuffer);
   }
 
+  // Shader and pipeline setup (reverted to your original style)
+  VkShaderModule vertShaderModule = createShaderModule(ctx->device, (const unsigned char *)text_vert_spv, sizeof(text_vert_spv));
+  VkShaderModule fragShaderModule = createShaderModule(ctx->device, (const unsigned char *)text_frag_spv, sizeof(text_frag_spv));
+  if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
+      ecs_err("Failed to create text shader modules");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create text shader modules";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  VkPipelineShaderStageCreateInfo vertStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+  vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  vertStageInfo.module = vertShaderModule;
+  vertStageInfo.pName = "main";
+
+  VkPipelineShaderStageCreateInfo fragStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+  fragStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  fragStageInfo.module = fragShaderModule;
+  fragStageInfo.pName = "main";
+
+  VkPipelineShaderStageCreateInfo shaderStages[] = {vertStageInfo, fragStageInfo};
+
+  VkVertexInputBindingDescription bindingDesc = {0};
+  bindingDesc.binding = 0;
+  bindingDesc.stride = sizeof(TextVertex);
+  bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+  VkVertexInputAttributeDescription attributeDescs[2] = {0};
+  attributeDescs[0].binding = 0;
+  attributeDescs[0].location = 0;
+  attributeDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
+  attributeDescs[0].offset = offsetof(TextVertex, pos);
+  attributeDescs[1].binding = 0;
+  attributeDescs[1].location = 1;
+  attributeDescs[1].format = VK_FORMAT_R32G32_SFLOAT;
+  attributeDescs[1].offset = offsetof(TextVertex, uv);
+
+  VkPipelineVertexInputStateCreateInfo vertexInputInfo = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+  vertexInputInfo.vertexAttributeDescriptionCount = 2;
+  vertexInputInfo.pVertexAttributeDescriptions = attributeDescs;
+
+  VkPipelineInputAssemblyStateCreateInfo inputAssembly = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+  inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+  VkViewport viewport = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 1.0f};
+  VkRect2D scissor = {{0, 0}, {WIDTH, HEIGHT}};
+  VkPipelineViewportStateCreateInfo viewportState = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+  viewportState.viewportCount = 1;
+  viewportState.pViewports = &viewport;
+  viewportState.scissorCount = 1;
+  viewportState.pScissors = &scissor;
+
+  VkPipelineRasterizationStateCreateInfo rasterizer = {VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+  rasterizer.lineWidth = 1.0f;
+  rasterizer.cullMode = VK_CULL_MODE_NONE;
+  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+
+  VkPipelineMultisampleStateCreateInfo multisampling = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+  multisampling.sampleShadingEnable = VK_FALSE;
+  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+  VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
+  colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
+                                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  colorBlendAttachment.blendEnable = VK_TRUE;
+  colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+  colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+  VkPipelineColorBlendStateCreateInfo colorBlending = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+  colorBlending.attachmentCount = 1;
+  colorBlending.pAttachments = &colorBlendAttachment;
+
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+  pipelineLayoutInfo.setLayoutCount = 1;
+  pipelineLayoutInfo.pSetLayouts = &ctx->textDescriptorSetLayout;
+  if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->textPipelineLayout) != VK_SUCCESS) {
+      ecs_err("Failed to create text pipeline layout");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create text pipelineodu layout";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  VkGraphicsPipelineCreateInfo pipelineInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+  pipelineInfo.stageCount = 2;
+  pipelineInfo.pStages = shaderStages;
+  pipelineInfo.pVertexInputState = &vertexInputInfo;
+  pipelineInfo.pInputAssemblyState = &inputAssembly;
+  pipelineInfo.pViewportState = &viewportState;
+  pipelineInfo.pRasterizationState = &rasterizer;
+  pipelineInfo.pMultisampleState = &multisampling;
+  pipelineInfo.pColorBlendState = &colorBlending;
+  pipelineInfo.layout = ctx->textPipelineLayout;
+  pipelineInfo.renderPass = ctx->renderPass;
+  pipelineInfo.subpass = 0;
+
+  if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->textPipeline) != VK_SUCCESS) {
+      ecs_err("Failed to create text graphics pipeline");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create text graphics pipeline";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  ecs_print(1, "Text pipeline created: %p", (void*)ctx->textPipeline);
+
+  vkDestroyShaderModule(ctx->device, fragShaderModule, NULL);
+  vkDestroyShaderModule(ctx->device, vertShaderModule, NULL);
+
   ecs_print(1, "TextSetupSystem completed");
-}
-
-
-void TextPipelineSetupSystem(ecs_iter_t *it) {
-    WorldContext *ctx = ecs_get_ctx(it->world);
-    if (!ctx || ctx->hasError) return;
-
-    ecs_print(1, "TextPipelineSetupSystem starting...");
-
-    VkShaderModule vertShaderModule = createShaderModule(ctx->device, (const unsigned char *)text_vert_spv, sizeof(text_vert_spv));
-    VkShaderModule fragShaderModule = createShaderModule(ctx->device, (const unsigned char *)text_frag_spv, sizeof(text_frag_spv));
-    if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
-        ecs_err("Failed to create text shader modules");
-        ctx->hasError = true;
-        ctx->errorMessage = "Failed to create text shader modules";
-        ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-    }
-
-    VkPipelineShaderStageCreateInfo vertStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertStageInfo.module = vertShaderModule;
-    vertStageInfo.pName = "main";
-
-    VkPipelineShaderStageCreateInfo fragStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    fragStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragStageInfo.module = fragShaderModule;
-    fragStageInfo.pName = "main";
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertStageInfo, fragStageInfo};
-
-    VkVertexInputBindingDescription bindingDesc = {0};
-    bindingDesc.binding = 0;
-    bindingDesc.stride = sizeof(TextVertex);
-    bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    VkVertexInputAttributeDescription attributeDescs[2] = {0};
-    attributeDescs[0].binding = 0;
-    attributeDescs[0].location = 0;
-    attributeDescs[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescs[0].offset = offsetof(TextVertex, pos);
-    attributeDescs[1].binding = 0;
-    attributeDescs[1].location = 1;
-    attributeDescs[1].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescs[1].offset = offsetof(TextVertex, uv);
-
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
-    vertexInputInfo.vertexAttributeDescriptionCount = 2;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescs;
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-    VkViewport viewport = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 1.0f};
-    VkRect2D scissor = {{0, 0}, {WIDTH, HEIGHT}};
-    VkPipelineViewportStateCreateInfo viewportState = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-    viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
-    viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
-
-    VkPipelineRasterizationStateCreateInfo rasterizer = {VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_NONE;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-
-    VkPipelineMultisampleStateCreateInfo multisampling = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
-                                         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_TRUE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    VkPipelineColorBlendStateCreateInfo colorBlending = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {0};
-    samplerLayoutBinding.binding = 0;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &samplerLayoutBinding;
-    if (vkCreateDescriptorSetLayout(ctx->device, &layoutInfo, NULL, &ctx->textDescriptorSetLayout) != VK_SUCCESS) {
-        ecs_err("Failed to create text descriptor set layout");
-        ctx->hasError = true;
-        ctx->errorMessage = "Failed to create text descriptor set layout";
-        ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-    }
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &ctx->textDescriptorSetLayout;
-    if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->textPipelineLayout) != VK_SUCCESS) {
-        ecs_err("Failed to create text pipeline layout");
-        ctx->hasError = true;
-        ctx->errorMessage = "Failed to create text pipeline layout";
-        ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-    }
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.layout = ctx->textPipelineLayout;
-    pipelineInfo.renderPass = ctx->renderPass;
-    pipelineInfo.subpass = 0;
-
-    if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->textPipeline) != VK_SUCCESS) {
-        ecs_err("Failed to create text graphics pipeline");
-        ctx->hasError = true;
-        ctx->errorMessage = "Failed to create text graphics pipeline";
-        ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-    }
-
-    vkDestroyShaderModule(ctx->device, fragShaderModule, NULL);
-    vkDestroyShaderModule(ctx->device, vertShaderModule, NULL);
-
-    ecs_print(1, "TextPipelineSetupSystem completed");
 }
 
 
@@ -453,7 +504,7 @@ void TextRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError || !ctx->glyphs) return;
 
-  ecs_print(1, "TextRenderSystem starting...");
+  //ecs_print(1, "TextRenderSystem starting...");
 
   const char *text = "Hello World";
   size_t textLen = strlen(text);
@@ -504,6 +555,7 @@ void TextRenderSystem(ecs_iter_t *it) {
   VkDescriptorSet descriptorSet;
   VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
   allocInfo.descriptorPool = ctx->descriptorPool;
+  //allocInfo.descriptorPool = ctx->textDescriptorPool;
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &ctx->textDescriptorSetLayout;
   if (vkAllocateDescriptorSets(ctx->device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
@@ -532,8 +584,9 @@ void TextRenderSystem(ecs_iter_t *it) {
   vkCmdBindDescriptorSets(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->textPipelineLayout, 0, 1, &descriptorSet, 0, NULL);
   vkCmdDrawIndexed(ctx->commandBuffer, indexCount, 1, 0, 0, 0);
 
-  ecs_print(1, "TextRenderSystem completed");
+  //ecs_print(1, "TextRenderSystem completed");
 }
+
 
 
 
@@ -554,6 +607,10 @@ void flecs_text_cleanup(WorldContext *ctx) {
   if (ctx->textDescriptorSetLayout != VK_NULL_HANDLE) {
       vkDestroyDescriptorSetLayout(ctx->device, ctx->textDescriptorSetLayout, NULL);
       ctx->textDescriptorSetLayout = VK_NULL_HANDLE;
+  }
+  if (ctx->textDescriptorPool != VK_NULL_HANDLE) {
+      vkDestroyDescriptorPool(ctx->device, ctx->textDescriptorPool, NULL);
+      ctx->textDescriptorPool = VK_NULL_HANDLE; // This also frees ctx->textDescriptorSet
   }
   if (ctx->fontSampler != VK_NULL_HANDLE) {
       vkDestroySampler(ctx->device, ctx->fontSampler, NULL);
@@ -596,25 +653,16 @@ void flecs_text_cleanup(WorldContext *ctx) {
 }
 
 
-
-
 void flecs_text_module_init(ecs_world_t *world, WorldContext *ctx) {
     ecs_print(1, "Initializing text module...");
 
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { 
             .name = "TextSetupSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.CommandPoolSetupPhase)) 
+            //.add = ecs_ids(ecs_dependson(GlobalPhases.CommandPoolSetupPhase)) 
+            .add = ecs_ids(ecs_dependson(GlobalPhases.SetupLogicPhase)) 
         }),
         .callback = TextSetupSystem
-    });
-
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { 
-            .name = "TextPipelineSetupSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.PipelineSetupPhase)) 
-        }),
-        .callback = TextPipelineSetupSystem
     });
 
     ecs_system_init(world, &(ecs_system_desc_t){

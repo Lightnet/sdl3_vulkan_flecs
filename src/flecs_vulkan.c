@@ -1059,4 +1059,3 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
       .callback = EndRenderSystem
   });
 }
-

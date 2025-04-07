@@ -1,10 +1,10 @@
 #ifndef FLECS_TYPES_H
 #define FLECS_TYPES_H
 
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_vulkan.h>
+#include <SDL3/SDL.h>       //SDL 3.x
+#include <SDL3/SDL_vulkan.h>//SDL 3.x
 #include <vulkan/vulkan.h>
-#include "flecs.h"
+#include "flecs.h"          //flecs v4.x
 #include "cimgui.h"         // C ImGui wrapper
 #include "cimgui_impl.h"    // Implementation helpers
 #include <ft2build.h>
@@ -44,25 +44,33 @@ typedef struct {
   VkImageView *swapchainImageViews;
   uint32_t imageCount;
   VkExtent2D swapchainExtent;
-  VkBuffer vertexBuffer;
-  VkDeviceMemory vertexBufferMemory;
-  VkDeviceMemory indexBufferMemory;
-  VkBuffer textVertexBuffer;     // New: For text vertices
-  VkDeviceMemory textVertexBufferMemory;  // New: For text vertices
-  VkBuffer textIndexBuffer;      // New: For text indices
-  VkDeviceMemory textIndexBufferMemory;   // New: For text indices
-  VkBuffer indexBuffer;
-  VkImage fontImage;                  // New: Font atlas texture
-  VkDeviceMemory fontImageMemory;     // New: Font atlas memory
-  VkImageView fontImageView;          // New: Font atlas image view
-  VkSampler fontSampler;              // New: Sampler for font texture
-  VkDescriptorSetLayout textDescriptorSetLayout; // New: For font texture binding
-  VkPipelineLayout textPipelineLayout;  // New: Text pipeline layout
-  VkPipeline textPipeline;             // New: Text pipeline
+
+  VkBuffer vertexBuffer;                  // triangle
+  VkDeviceMemory vertexBufferMemory;      // triangle
+  VkDeviceMemory indexBufferMemory;       // triangle
+  VkBuffer indexBuffer;                   // triangle
+
+  VkBuffer textVertexBuffer;                          // text vertices
+  VkDeviceMemory textVertexBufferMemory;              // text vertices
+  VkBuffer textIndexBuffer;                           // text indices
+  VkDeviceMemory textIndexBufferMemory;               // text indices
+  VkDescriptorPool textDescriptorPool;                // text system
+  VkDescriptorSet textDescriptorSet; // Add this to store the descriptor set
+  VkDescriptorSetLayout textDescriptorSetLayout;      // font texture binding
+  VkPipelineLayout textPipelineLayout;                // Text pipeline layout
+  VkPipeline textPipeline;                            // Text pipeline
+  
+  VkImage fontImage;                  // Font atlas texture
+  VkDeviceMemory fontImageMemory;     // Font atlas memory
+  VkImageView fontImageView;          //  Font atlas image view
+  VkSampler fontSampler;              // Sampler for font texture
+  
   void *glyphs;            // Metrics for ASCII 32-126 (95 characters)
   int atlasWidth, atlasHeight;   // Font atlas dimensions
+  
+  VkDescriptorPool descriptorPool;  // ImGui
+  
   VkRenderPass renderPass;
-  VkDescriptorPool descriptorPool;  // New: For ImGui
   VkPipelineLayout pipelineLayout;
   VkPipeline graphicsPipeline;
   VkFramebuffer *framebuffers;
@@ -76,6 +84,8 @@ typedef struct {
   bool shouldQuit;
   bool hasError;
   const char *errorMessage;
+  uint32_t width;  // Add this for window width
+  uint32_t height; // Add this for window height
   // ImGui additions
   ImGuiContext* imguiContext;
   bool isImGuiInitialized;

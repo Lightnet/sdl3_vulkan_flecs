@@ -1,4 +1,6 @@
 #include "flecs_sdl.h"
+#include "flecs_vulkan.h"
+
 
 void SDLInputSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
@@ -12,6 +14,12 @@ void SDLInputSystem(ecs_iter_t *it) {
     if (event.type == SDL_EVENT_QUIT) {
       ecs_print(1, "Quit event received");
       ctx->shouldQuit = true;
+    }else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+      int newWidth = event.window.data1;
+      int newHeight = event.window.data2;
+      ecs_print(1, "resize");
+      // Recreate swapchain (see below)
+      //recreateSwapchain(ctx);
     }
   }
 }

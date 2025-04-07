@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   SDL_Window *window = SDL_CreateWindow("Vulkan Triangle with ImGui",
     WIDTH, 
     HEIGHT, 
-    SDL_WINDOW_VULKAN
+    SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
   );
 
   if (!window){
@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Entering main loop...");
 
   Uint64 previousTime = SDL_GetTicks(); // Time at the start
+  //ecs_abort(ECS_INTERNAL_ERROR, "TEST"); // Test error
 
   while (!ctx->shouldQuit) {
     // Get current time and calculate delta time
