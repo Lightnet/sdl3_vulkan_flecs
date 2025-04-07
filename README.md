@@ -1,6 +1,29 @@
 
 # sdl3_vulkan_flecs
 
+# Status:
+ - Work in progress
+ - Added feautures to get vulkan working for simple things to set up and render.
+ - No entity added yet need to check set up and render.
+
+# Table of Contents:
+ * [Overview](#overview)
+ * [Features](#features)
+ * [Requirements](#requirements)
+ * [Libraries](#libraries)
+ * [Project Structure](#project-structure)
+ * [Goals](#goals)
+ * [Building](#building)
+ * [Running](#running)
+ * [Module Design](#module-design)
+ * [Dev Shader](#dev-shader)
+ * [Notes](#notes)
+ * [Planned Improvements](#planned-improvements)
+ * [Images](#images)
+ * [Credits](#credits)
+ * [License](#license)
+ * [Contributing](#contributing)
+
 A simple Vulkan-based project using SDL3 and Flecs for modular 3D rendering experiments.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -126,7 +149,20 @@ run.bat
 - A window should open displaying a colored triangle and an ImGui "Test Window" with "Hello, Vulkan and ImGui!" text.
 - Close the window to exit.
 
-## Dev Shader:
+## Module Design:
+
+The project uses a modular approach to simplify development:
+- Vulkan Module: Handles initialization, rendering, and cleanup.
+- ImGui Module: Manages UI setup and rendering.
+- Freetype for render text font.
+- Modules can be added or removed for debugging or feature testing.
+
+## Shaders:
+- Shaders are written in GLSL and compiled to SPIR-V using the Vulkan SDK’s glslangValidator.
+- Current approach embeds compiled shaders as headers (vert.spv.h, frag.spv.h) for simplicity.
+- Source files (shader.vert, shader.frag) are provided for reference.
+
+### Dev Shader:
   Note that using the Vulkan SDK tool are easy to compile shader type for header or spv file. This for windows default path for Vulkan SDK. It depend on vulkan version may change.
 
   Note that space in batch script is sensitive. 
@@ -156,20 +192,11 @@ endlocal
 ```
   This is for shader header file load application instead load from current directory file.
 
-## Module Design:
-
-The project uses a modular approach to simplify development:
-- Vulkan Module: Handles initialization, rendering, and cleanup.
-- ImGui Module: Manages UI setup and rendering.
-- Modules can be added or removed for debugging or feature testing.
-
-## Shaders:
-- Shaders are written in GLSL and compiled to SPIR-V using the Vulkan SDK’s glslangValidator.
-- Current approach embeds compiled shaders as headers (vert.spv.h, frag.spv.h) for simplicity.
-- Source files (shader.vert, shader.frag) are provided for reference.
-
 ## Notes:
-- Hardcoding: None
+- Hardcoding:
+  - triangle world context variable
+  - imgui world context variable
+  - freetype font world context variable
 - Triangle vertices 
 - ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
