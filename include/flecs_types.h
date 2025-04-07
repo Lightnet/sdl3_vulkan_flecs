@@ -98,17 +98,14 @@ typedef struct {
 } Vertex;
 
 typedef struct {
+  // loop order
   ecs_entity_t LogicUpdatePhase;
   ecs_entity_t BeginRenderPhase;
-  //vertex and imgui
   ecs_entity_t BeginCMDBufferPhase;
+  ecs_entity_t CMDBufferPhase;
   ecs_entity_t EndCMDBufferPhase;
-
-  ecs_entity_t BeginGUIPhase;
-  ecs_entity_t UpdateGUIPhase;
-  ecs_entity_t EndGUIPhase;
-  ecs_entity_t RenderPhase;
   ecs_entity_t EndRenderPhase;
+  // setup once
   ecs_entity_t InstanceSetupPhase;
   ecs_entity_t SurfaceSetupPhase;
   ecs_entity_t DeviceSetupPhase;

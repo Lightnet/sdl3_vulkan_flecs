@@ -567,7 +567,6 @@ void TextRenderSystem(ecs_iter_t *it) {
 }
 
 
-
 void flecs_text_cleanup(WorldContext *ctx) {
   if (!ctx || !ctx->device) return;
 
@@ -646,7 +645,7 @@ void flecs_text_module_init(ecs_world_t *world, WorldContext *ctx) {
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { 
             .name = "TextRenderSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) 
+            .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) 
         }),
         .callback = TextRenderSystem
     });

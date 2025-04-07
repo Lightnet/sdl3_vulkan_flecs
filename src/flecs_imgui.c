@@ -226,25 +226,25 @@ void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {
 
     // ecs_print(1, "ImGuiCMDBufferSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
+        .entity = ecs_entity(world, { .name = "ImGuiCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
         .callback = ImGuiCMDBufferSystem
     });
 
-    // ecs_print(1, "ImGuiBeginSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginGUIPhase)) }),
-        .callback = ImGuiBeginSystem
-    });
-    // ecs_print(1, "ImGuiUpdateSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.UpdateGUIPhase)) }),
-        .callback = ImGuiUpdateSystem
-    });
-    // ecs_print(1, "ImGuiEndSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndGUIPhase)) }),
-        .callback = ImGuiEndSystem
-    });
+    // // ecs_print(1, "ImGuiBeginSystem");
+    // ecs_system_init(world, &(ecs_system_desc_t){
+    //     .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginGUIPhase)) }),
+    //     .callback = ImGuiBeginSystem
+    // });
+    // // ecs_print(1, "ImGuiUpdateSystem");
+    // ecs_system_init(world, &(ecs_system_desc_t){
+    //     .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.UpdateGUIPhase)) }),
+    //     .callback = ImGuiUpdateSystem
+    // });
+    // // ecs_print(1, "ImGuiEndSystem");
+    // ecs_system_init(world, &(ecs_system_desc_t){
+    //     .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndGUIPhase)) }),
+    //     .callback = ImGuiEndSystem
+    // });
 
     // ecs_print(1, "ImGui module initialized");
 }

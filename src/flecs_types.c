@@ -11,28 +11,17 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   phases->BeginRenderPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->BeginRenderPhase, EcsDependsOn, phases->LogicUpdatePhase);
 
-  phases->BeginGUIPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->BeginGUIPhase, EcsDependsOn, phases->BeginRenderPhase);
-
-  phases->UpdateGUIPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->UpdateGUIPhase, EcsDependsOn, phases->BeginGUIPhase);
-
-  phases->EndGUIPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->EndGUIPhase, EcsDependsOn, phases->UpdateGUIPhase);
-
-  phases->RenderPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->RenderPhase, EcsDependsOn, phases->EndGUIPhase);
-
   phases->BeginCMDBufferPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->BeginCMDBufferPhase, EcsDependsOn, phases->RenderPhase);
+  ecs_add_pair(world, phases->BeginCMDBufferPhase, EcsDependsOn, phases->BeginRenderPhase);
+
+  phases->CMDBufferPhase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->CMDBufferPhase, EcsDependsOn, phases->BeginCMDBufferPhase);
 
   phases->EndCMDBufferPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->EndCMDBufferPhase, EcsDependsOn, phases->BeginCMDBufferPhase);
+  ecs_add_pair(world, phases->EndCMDBufferPhase, EcsDependsOn, phases->CMDBufferPhase);
 
   phases->EndRenderPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->EndRenderPhase, EcsDependsOn, phases->EndCMDBufferPhase);
-
-
 
   // Setup phases (single flow, run once under EcsOnStart)
   phases->InstanceSetupPhase = ecs_new_w_id(world, EcsPhase);

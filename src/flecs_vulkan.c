@@ -33,7 +33,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   //printf("Vulkan validation layer: %s\n", pCallbackData->pMessage);
   return VK_FALSE;
 }
-
+//=====================================
+// VULKAN SETUP
+//=====================================
 
 void InstanceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"InstanceSetupSystem started");
@@ -292,8 +294,6 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 }
 
 
-
-
 void SwapchainSetupSystem(ecs_iter_t *it) {
   ecs_print(1, "SwapchainSetupSystem ");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
@@ -409,73 +409,126 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
 }
 
 
-
 void TriangleBufferSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"TriangleBufferSetupSystem");
+  ecs_print(1, "TriangleBufferSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
+  // Vertex Buffer Setup
   Vertex vertices[] = {
-      {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+      {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Bottom (red)
+      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},  // Top-right (green)
+      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}  // Top-left (blue)
   };
-  VkDeviceSize bufferSize = sizeof(vertices);
+  VkDeviceSize vertexBufferSize = sizeof(vertices);
 
-  VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-  bufferInfo.size = bufferSize;
-  bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  VkBufferCreateInfo vertexBufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+  vertexBufferInfo.size = vertexBufferSize;
+  vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  vertexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, &ctx->triVertexBuffer) != VK_SUCCESS) {
-      ecs_err("Failed to create vertex buffer");
+  if (vkCreateBuffer(ctx->device, &vertexBufferInfo, NULL, &ctx->triVertexBuffer) != VK_SUCCESS) {
+      ecs_err("Failed to create triangle vertex buffer");
       ctx->hasError = true;
-      ctx->errorMessage = "Failed to create vertex buffer";
+      ctx->errorMessage = "Failed to create triangle vertex buffer";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(ctx->device, ctx->triVertexBuffer, &memRequirements);
+  VkMemoryRequirements vertexMemRequirements;
+  vkGetBufferMemoryRequirements(ctx->device, ctx->triVertexBuffer, &vertexMemRequirements);
 
-  VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = 0;
+  VkMemoryAllocateInfo vertexAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+  vertexAllocInfo.allocationSize = vertexMemRequirements.size;
   VkPhysicalDeviceMemoryProperties memProperties;
   vkGetPhysicalDeviceMemoryProperties(ctx->physicalDevice, &memProperties);
   for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-      if ((memRequirements.memoryTypeBits & (1 << i)) &&
-          (memProperties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
-          allocInfo.memoryTypeIndex = i;
+      if ((vertexMemRequirements.memoryTypeBits & (1 << i)) &&
+          (memProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
+          vertexAllocInfo.memoryTypeIndex = i;
           break;
       }
   }
 
-  if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->triVertexBufferMemory) != VK_SUCCESS) {
-      ecs_err("Failed to allocate vertex buffer memory");
+  if (vkAllocateMemory(ctx->device, &vertexAllocInfo, NULL, &ctx->triVertexBufferMemory) != VK_SUCCESS) {
+      ecs_err("Failed to allocate triangle vertex buffer memory");
       ctx->hasError = true;
-      ctx->errorMessage = "Failed to allocate vertex buffer memory";
+      ctx->errorMessage = "Failed to allocate triangle vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
   if (vkBindBufferMemory(ctx->device, ctx->triVertexBuffer, ctx->triVertexBufferMemory, 0) != VK_SUCCESS) {
-      ecs_err("Failed to bind vertex buffer memory");
+      ecs_err("Failed to bind triangle vertex buffer memory");
       ctx->hasError = true;
-      ctx->errorMessage = "Failed to bind vertex buffer memory";
+      ctx->errorMessage = "Failed to bind triangle vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  void* data;
-  if (vkMapMemory(ctx->device, ctx->triVertexBufferMemory, 0, bufferSize, 0, &data) != VK_SUCCESS) {
-      ecs_err("Failed to map vertex buffer memory");
+  void* vertexData;
+  if (vkMapMemory(ctx->device, ctx->triVertexBufferMemory, 0, vertexBufferSize, 0, &vertexData) != VK_SUCCESS) {
+      ecs_err("Failed to map triangle vertex buffer memory");
       ctx->hasError = true;
-      ctx->errorMessage = "Failed to map vertex buffer memory";
+      ctx->errorMessage = "Failed to map triangle vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  memcpy(data, vertices, (size_t)bufferSize);
+  memcpy(vertexData, vertices, (size_t)vertexBufferSize);
   vkUnmapMemory(ctx->device, ctx->triVertexBufferMemory);
 
-  ecs_log(1, "Triangle vertex buffer setup completed");
+  // Index Buffer Setup
+  uint32_t indices[] = {0, 1, 2}; // One triangle
+  VkDeviceSize indexBufferSize = sizeof(indices);
+
+  VkBufferCreateInfo indexBufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+  indexBufferInfo.size = indexBufferSize;
+  indexBufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  indexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  if (vkCreateBuffer(ctx->device, &indexBufferInfo, NULL, &ctx->triIndexBuffer) != VK_SUCCESS) {
+      ecs_err("Failed to create triangle index buffer");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to create triangle index buffer";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  VkMemoryRequirements indexMemRequirements;
+  vkGetBufferMemoryRequirements(ctx->device, ctx->triIndexBuffer, &indexMemRequirements);
+
+  VkMemoryAllocateInfo indexAllocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+  indexAllocInfo.allocationSize = indexMemRequirements.size;
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+      if ((indexMemRequirements.memoryTypeBits & (1 << i)) &&
+          (memProperties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) {
+          indexAllocInfo.memoryTypeIndex = i;
+          break;
+      }
+  }
+
+  if (vkAllocateMemory(ctx->device, &indexAllocInfo, NULL, &ctx->triIndexBufferMemory) != VK_SUCCESS) {
+      ecs_err("Failed to allocate triangle index buffer memory");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to allocate triangle index buffer memory";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  if (vkBindBufferMemory(ctx->device, ctx->triIndexBuffer, ctx->triIndexBufferMemory, 0) != VK_SUCCESS) {
+      ecs_err("Failed to bind triangle index buffer memory");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to bind triangle index buffer memory";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+
+  void* indexData;
+  if (vkMapMemory(ctx->device, ctx->triIndexBufferMemory, 0, indexBufferSize, 0, &indexData) != VK_SUCCESS) {
+      ecs_err("Failed to map triangle index buffer memory");
+      ctx->hasError = true;
+      ctx->errorMessage = "Failed to map triangle index buffer memory";
+      ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
+  }
+  memcpy(indexData, indices, (size_t)indexBufferSize);
+  vkUnmapMemory(ctx->device, ctx->triIndexBufferMemory);
+
+  ecs_log(1, "Triangle buffer setup completed");
 }
+
 
 
 void RenderPassSetupSystem(ecs_iter_t *it) {
@@ -758,6 +811,9 @@ void SyncSetupSystem(ecs_iter_t *it) {
   // ecs_print(1, "SyncSetupSystem completed");
 }
 
+//=====================================
+// RENDER LOOP
+//=====================================
 
 void BeginRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
@@ -793,12 +849,12 @@ void BeginRenderSystem(ecs_iter_t *it) {
 }
 
 
-void RenderSystem(ecs_iter_t *it) {
+void BeginCMDBufferSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
-  // ecs_print(1,"RenderSystem");
+  // ecs_print(1,"BeginCMDBufferSystem");
 
-  // ecs_print(1, "RenderSystem starting...");
+  // ecs_print(1, "BeginCMDBufferSystem starting...");
   // ecs_print(1, "Context pointer: %p", (void*)ctx);
   // ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
 
@@ -825,18 +881,21 @@ void RenderSystem(ecs_iter_t *it) {
 
   vkCmdBeginRenderPass(ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-  // ecs_print(1, "RenderSystem completed");
+  // ecs_print(1, "BeginCMDBufferSystem completed");
 }
 
-void BeginCMDBufferSystem(ecs_iter_t *it) {
+
+void TriangleRenderBufferSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
-  // ecs_print(1,"BeginCMDBufferSystem");
-  //triangle
+
+  //ecs_print(1, "TriangleRenderSystem");
+
   vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->triGraphicsPipeline);
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->triVertexBuffer, offsets);
-  vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
+  vkCmdBindIndexBuffer(ctx->commandBuffer, ctx->triIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+  vkCmdDrawIndexed(ctx->commandBuffer, 3, 1, 0, 0, 0); // 3 indices, 1 instance
 
 }
 
@@ -1000,6 +1059,10 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
 void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "init vulkan module");
 
+  //=====================================
+  // VULKAN SETUP
+  //=====================================
+
   // Setup systems (unchanged)
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) }),
@@ -1046,20 +1109,26 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
       .callback = SyncSetupSystem
   });
 
+  //=====================================
+  // VULKAN LOOP
+  //=====================================
+
   // Runtime systems
+
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "BeginRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginRenderPhase)) }),
       .callback = BeginRenderSystem
   });
-  ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "RenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPhase)) }),
-      .callback = RenderSystem
-  });
 
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "BeginCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
+      .callback = BeginCMDBufferSystem
+  });
+  
   //cmd buffer triangle buffer
   ecs_system_init(world, &(ecs_system_desc_t){
-    .entity = ecs_entity(world, { .name = "BeginCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
-    .callback = BeginCMDBufferSystem
+    .entity = ecs_entity(world, { .name = "TriangleRenderBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+    .callback = TriangleRenderBufferSystem
   });
 
   //end cmd buffer
