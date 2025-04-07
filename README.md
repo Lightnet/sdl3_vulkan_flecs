@@ -67,16 +67,22 @@ sdl3_vulkan_flecs/
 ├── include/            # Header files
 │   ├── flecs_imgui.h   # graphic user interface
 │   ├── flecs_sdl.h     # SDL Input
+│   ├── flecs_text.h    # freetype text font module
 │   ├── flecs_types.h   # Global context for Flecs
 │   ├── flecs_vulkan.h  # Vulkan setup and rendering
-│   ├── frag.spv.h      # Compiled fragment shader header
-│   └── vert.spv.h      # Compiled vertex shader header
+│   ├── frag.spv.h      # Compiled fragment triangle shader header
+│   ├── text_frag.spv.h # Compiled fragment text header
+│   ├── text_vert.spv.h # Compiled fragment text header
+│   └── vert.spv.h      # Compiled vertex triangle shader header
 ├── shaders/            # Shader source files
 │   ├── shader.frag     # Fragment shader
-│   └── shader.vert     # Vertex shader
+│   ├── shader.vert     # Vertex shader
+│   ├── text.frag       # Fragment shader
+│   └── text.vert       # Vertex shader
 ├── src/                # Source files
 │   ├── flces_imgui.c   # graphic user interface module
 │   ├── flces_sdl.c     # SDL input module and other add later
+│   ├── flces_text.c    # Freetype font text module
 │   ├── flecs_types.c   # Flecs context implementation
 │   ├── flecs_vulkan.c  # Vulkan module logic
 │   └── main.c          # Entry point
@@ -123,21 +129,32 @@ run.bat
 ## Dev Shader:
   Note that using the Vulkan SDK tool are easy to compile shader type for header or spv file. This for windows default path for Vulkan SDK. It depend on vulkan version may change.
 
+  Note that space in batch script is sensitive. 
+
 shader.bat
 ```
 @echo off 
-SET VULKAN_VERSION = "1.4.304.1"
-"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V shaders/shader.vert -o shaders/vert.spv
-"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V shaders/shader.frag -o shaders/frag.spv
+set VULKAN_VERSION=1.4.304.1
+set VULKAN_Path=C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe
+echo path "%VULKAN_Path%"
+%VULKAN_Path% -V shaders/shader.vert -o shaders/vert.spv
+%VULKAN_Path% -V shaders/shader.frag -o shaders/frag.spv
 ```
 
 shaderh.bat
 ```
 @echo off 
-SET VULKAN_VERSION = "1.4.304.1"
-"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V --vn vert_spv shaders/shader.vert -o shaders/vert.spv.h
-"C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V --vn frag_spv shaders/shader.frag -o shaders/frag.spv.h
+SetLocal
+set VULKAN_VERSION=1.4.304.1
+set VULKAN_Path=C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe
+echo path "%VULKAN_Path%"
+%VULKAN_Path% -V --vn vert_spv shaders/shader.vert -o shaders/vert.spv.h
+%VULKAN_Path% -V --vn frag_spv shaders/shader.frag -o shaders/frag.spv.h
+%VULKAN_Path% -V --vn text_vert_spv shaders/text.vert -o shaders/text_vert.spv.h
+%VULKAN_Path% -V --vn text_frag_spv shaders/text.frag -o shaders/text_frag.spv.h
+endlocal
 ```
+  This is for shader header file load application instead load from current directory file.
 
 ## Module Design:
 
