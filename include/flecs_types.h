@@ -37,8 +37,8 @@ typedef struct {
   VkDevice device;
   VkQueue graphicsQueue;
   VkQueue presentQueue;
-  uint32_t graphicsFamily;            // Added: Graphics queue family index
-  uint32_t presentFamily;             // Added: Present queue family index
+  uint32_t graphicsFamily;            // Graphics queue family index
+  uint32_t presentFamily;             //Present queue family index
   VkSwapchainKHR swapchain;
   VkImage *swapchainImages;
   VkImageView *swapchainImageViews;
