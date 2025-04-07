@@ -14,6 +14,7 @@ cmake --build . --config Debug
 
 if %ERRORLEVEL% NEQ 0 (
     echo Build failed!
+    endlocal
     exit /b %ERRORLEVEL%
 )
 

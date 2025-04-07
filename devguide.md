@@ -108,6 +108,12 @@ imgui
   bool isImGuiInitialized;
 ```
 
+```c
+VkDescriptorPool descriptorPool;  // New: For ImGui
+VkDescriptorPool textDescriptorPool;     // New: For text system
+```
+
+
 
 Note I missing some variable but it those ideas base on AI model build and refs. As it still need to use vulkan ref variable to access different area.
 
