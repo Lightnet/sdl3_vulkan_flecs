@@ -7,9 +7,26 @@
 #include "flecs.h"
 #include "cimgui.h"         // C ImGui wrapper
 #include "cimgui_impl.h"    // Implementation helpers
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #define WIDTH 800
 #define HEIGHT 600
+
+// typedef struct {
+//   float width, height;  // Glyph size in pixels
+//   float advance;        // Horizontal advance to next glyph
+//   float bearingX, bearingY; // Offset from baseline
+//   float uvX, uvY;       // Bottom-left UV coords in atlas
+//   float uvWidth, uvHeight; // UV dimensions
+// } GlyphMetrics;
+
+typedef struct {
+  char *text;           // Text to render
+  float x, y;           // Position in screen space
+} TextComponent;
+
+ECS_COMPONENT_DECLARE(TextComponent);
 
 typedef struct {
   SDL_Window *window;
@@ -29,6 +46,21 @@ typedef struct {
   VkExtent2D swapchainExtent;
   VkBuffer vertexBuffer;
   VkDeviceMemory vertexBufferMemory;
+  VkDeviceMemory indexBufferMemory;
+  VkBuffer textVertexBuffer;     // New: For text vertices
+  VkDeviceMemory textVertexBufferMemory;  // New: For text vertices
+  VkBuffer textIndexBuffer;      // New: For text indices
+  VkDeviceMemory textIndexBufferMemory;   // New: For text indices
+  VkBuffer indexBuffer;
+  VkImage fontImage;                  // New: Font atlas texture
+  VkDeviceMemory fontImageMemory;     // New: Font atlas memory
+  VkImageView fontImageView;          // New: Font atlas image view
+  VkSampler fontSampler;              // New: Sampler for font texture
+  VkDescriptorSetLayout textDescriptorSetLayout; // New: For font texture binding
+  VkPipelineLayout textPipelineLayout;  // New: Text pipeline layout
+  VkPipeline textPipeline;             // New: Text pipeline
+  void *glyphs;            // Metrics for ASCII 32-126 (95 characters)
+  int atlasWidth, atlasHeight;   // Font atlas dimensions
   VkRenderPass renderPass;
   VkDescriptorPool descriptorPool;  // New: For ImGui
   VkPipelineLayout pipelineLayout;

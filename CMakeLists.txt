@@ -145,6 +145,7 @@ add_executable(${PROJECT_NAME}
   ${SOURCE_DIR}/flecs_sdl.c
   ${SOURCE_DIR}/flecs_vulkan.c
   ${SOURCE_DIR}/flecs_imgui.c
+  ${SOURCE_DIR}/flecs_text.c
   # ${SRC_FILES}
 )
 

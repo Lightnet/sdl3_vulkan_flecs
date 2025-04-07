@@ -5,11 +5,11 @@ A simple Vulkan-based project using SDL3 and Flecs for modular 3D rendering expe
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# Overview
+# Overview:
 
 This project is a testbed for building a modular 3D rendering system using Vulkan, SDL3, and the Flecs ECS framework. It currently features a basic triangle renderer with ImGui integration, aiming to expand into a flexible module-based design for 3D world-building experiments.
 
-# Features
+# Features:
 
 - Modular Design (WIP):
     - Vulkan module for rendering and setup.
@@ -22,6 +22,11 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 - ImGui Integration:
     - made into command buffer imgui system to handle render vulkan
     - Workaround for input handler crash by checking initialization in the main loop.
+    - This wrapper from imgui to cimgui for c++ wrapper to c.
+
+- Render Text "Hello World"
+  - Using free type font.
+  - not yet module.
         
 - Flecs Logging (WIP):
     - Custom logging system using Flecs, still under development.
@@ -31,12 +36,12 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - Texture support.
     - Text rendering with FreeType.
         
-# Requirements
+# Requirements:
 - CMake: For building the project.
 - Visual Studio 2022: C/C++ development environment.
 - Vulkan SDK 1.4.304.1: Required for Vulkan functionality.
 
-## Libraries
+## Libraries:
 
 - Included:
     - [SDL 3.2.10](https://github.com/libsdl-org/SDL): Windowing and input.
@@ -53,14 +58,15 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     
 - Removed:
     - [Volk 1.4.304](https://github.com/zeux/volk): Replaced with direct Vulkan headers.
-    
 
-## Project Structure
+## Project Structure:
 
 ```text
 sdl3_vulkan_flecs/
 ├── fonts/              # (Planned) Font assets
 ├── include/            # Header files
+│   ├── flecs_imgui.h   # graphic user interface
+│   ├── flecs_sdl.h     # SDL Input
 │   ├── flecs_types.h   # Global context for Flecs
 │   ├── flecs_vulkan.h  # Vulkan setup and rendering
 │   ├── frag.spv.h      # Compiled fragment shader header
@@ -69,26 +75,28 @@ sdl3_vulkan_flecs/
 │   ├── shader.frag     # Fragment shader
 │   └── shader.vert     # Vertex shader
 ├── src/                # Source files
-│   ├── main.c          # Entry point
+│   ├── flces_imgui.c   # graphic user interface module
+│   ├── flces_sdl.c     # SDL input module and other add later
 │   ├── flecs_types.c   # Flecs context implementation
-│   └── flecs_vulkan.c  # Vulkan module logic
+│   ├── flecs_vulkan.c  # Vulkan module logic
+│   └── main.c          # Entry point
 ├── CMakeLists.txt      # CMake build configuration
 ├── build.bat           # Build script for VS2022
 └── run.bat             # Run script
 ```
 
-## Goals
+## Goals:
 - Create a modular framework for 3D world-building tests.
 - Leverage SDL3 for windowing/input, Vulkan for rendering, and Flecs for entity management.
 - Minimize C++ usage, wrapping C libraries where beneficial (e.g., VulkanMemoryAllocator).
 
-## Building
+## Building:
 
 1. Ensure CMake and Visual Studio 2022 are installed.
 2. Install the Vulkan SDK 1.4.304.1.
 3. Clone the repository:
     
- bash
+bash
 ```bash
 git clone https://github.com/yourusername/sdl3_vulkan_flecs.git
 cd sdl3_vulkan_flecs
@@ -101,7 +109,7 @@ bash
 build.bat
 ```
 
-## Running
+## Running:
 
 - Execute the run script:
     
@@ -131,32 +139,31 @@ SET VULKAN_VERSION = "1.4.304.1"
 "C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe" -V --vn frag_spv shaders/shader.frag -o shaders/frag.spv.h
 ```
 
-
-## Module Design
+## Module Design:
 
 The project uses a modular approach to simplify development:
 - Vulkan Module: Handles initialization, rendering, and cleanup.
 - ImGui Module: Manages UI setup and rendering.
 - Modules can be added or removed for debugging or feature testing.
 
-## Shaders
+## Shaders:
 - Shaders are written in GLSL and compiled to SPIR-V using the Vulkan SDK’s glslangValidator.
 - Current approach embeds compiled shaders as headers (vert.spv.h, frag.spv.h) for simplicity.
 - Source files (shader.vert, shader.frag) are provided for reference.
 
-## Notes
+## Notes:
 - Hardcoding: None
 - Triangle vertices 
 - ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
 - Logging: Flecs-based logging is a work in progress and may be incomplete.
 
-## Planned Improvements
+## Planned Improvements:
 - Replace hardcoded elements with dynamic systems.
 - Add VulkanMemoryAllocator for better memory management.
 - Implement cube rendering, textures, and FreeType text rendering.
 
-## Images
+## Images:
 
 (Add screenshots here once available, e.g., triangle and ImGui window)
 
@@ -165,15 +172,15 @@ The project uses a modular approach to simplify development:
 ![ImGui Window](images/imgui.png)
 ```
 
-## Credits
+## Credits:
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
 - [Kenney Fonts](https://kenney.nl/assets/kenney-fonts): Potential font assets (not yet integrated).
 - https://x.com/i/grok (free tier, help setup build and readme docs)
 
-## License
+## License:
 
 This project is licensed under the MIT License. See LICENSE for details.
 
-## Contributing
+## Contributing:
 
 Feel free to fork, submit issues, or send pull requests! This is an experimental project, and contributions are welcome.

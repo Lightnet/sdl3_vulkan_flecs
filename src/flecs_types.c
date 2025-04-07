@@ -74,5 +74,3 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
 }
 
 
-
-

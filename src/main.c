@@ -6,6 +6,7 @@
 #include "flecs_types.h"
 #include "flecs_vulkan.h"
 #include "flecs_imgui.h"
+#include "flecs_text.h"
 #include "flecs_sdl.h"
 
 
@@ -56,6 +57,16 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_imgui_module_init...");
   flecs_imgui_module_init(world, ctx);
 
+  flecs_text_module_init(world, ctx);
+
+  // Add a text entity
+  // ecs_entity_t textEntity = ecs_new(world);
+  // ecs_set(world, textEntity, TextComponent, {
+  //     .text = "Hello, Vulkan!",
+  //     .x = 50.0f,  // Screen space position
+  //     .y = 50.0f
+  // });
+
   ecs_print(1, "Running setup phases...");
   ecs_progress(world, 0);
   // ecs_print(1, "Post-setup context: %p", (void*)ctx);
@@ -81,6 +92,7 @@ int main(int argc, char *argv[]) {
   if (ctx->isImGuiInitialized) {
       flecs_imgui_cleanup(ctx);
   }
+  flecs_text_cleanup(ctx); 
   flecs_vulkan_cleanup(world, ctx);
   ecs_fini(world);
   SDL_DestroyWindow(ctx->window);
