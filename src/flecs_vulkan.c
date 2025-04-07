@@ -962,7 +962,6 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
   if (!ctx) return;
 
   ecs_print(1, "Vulkan cleanup starting...");
-  // ecs_print(1, "Cleanup called, fence: %p", (void*)ctx->inFlightFence);
 
   if (ctx->device) {
       vkDeviceWaitIdle(ctx->device);
@@ -992,11 +991,19 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
           vkDestroyBuffer(ctx->device, ctx->triVertexBuffer, NULL);
           ctx->triVertexBuffer = VK_NULL_HANDLE;
       }
+      if (ctx->triIndexBufferMemory != VK_NULL_HANDLE) { // Added
+          vkFreeMemory(ctx->device, ctx->triIndexBufferMemory, NULL);
+          ctx->triIndexBufferMemory = VK_NULL_HANDLE;
+      }
+      if (ctx->triIndexBuffer != VK_NULL_HANDLE) { // Added
+          vkDestroyBuffer(ctx->device, ctx->triIndexBuffer, NULL);
+          ctx->triIndexBuffer = VK_NULL_HANDLE;
+      }
       if (ctx->triGraphicsPipeline != VK_NULL_HANDLE) {
           vkDestroyPipeline(ctx->device, ctx->triGraphicsPipeline, NULL);
           ctx->triGraphicsPipeline = VK_NULL_HANDLE;
       }
-      if (ctx->triPipelineLayout != VK_NULL_HANDLE) { // Added
+      if (ctx->triPipelineLayout != VK_NULL_HANDLE) {
           vkDestroyPipelineLayout(ctx->device, ctx->triPipelineLayout, NULL);
           ctx->triPipelineLayout = VK_NULL_HANDLE;
       }
@@ -1034,9 +1041,9 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
       ctx->device = VK_NULL_HANDLE;
   }
 
-  // Destroy instance-specific objects after device is gone
+  // Destroy instance-specific objects
   if (ctx->instance) {
-      if (ctx->debugMessenger != VK_NULL_HANDLE) { // Added
+      if (ctx->debugMessenger != VK_NULL_HANDLE) {
           PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugUtilsMessenger =
               (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(ctx->instance, "vkDestroyDebugUtilsMessengerEXT");
           if (destroyDebugUtilsMessenger) {
@@ -1052,7 +1059,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
       ctx->instance = VK_NULL_HANDLE;
   }
 
-  // ecs_print(1, "Vulkan cleanup completed");
+  ecs_print(1, "Vulkan cleanup completed");
 }
 
 
