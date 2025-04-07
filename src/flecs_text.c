@@ -504,8 +504,6 @@ void TextRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError || !ctx->glyphs) return;
 
-  //ecs_print(1, "TextRenderSystem starting...");
-
   const char *text = "Hello World";
   size_t textLen = strlen(text);
   TextVertex vertices[44];
@@ -519,18 +517,24 @@ void TextRenderSystem(ecs_iter_t *it) {
       int glyphIdx = text[i] - 32;
       totalWidth += glyphs[glyphIdx].advanceX;
   }
-  float x = (800.0f - totalWidth) / 2.0f; // Center for 800x600
-  float y = 600.0f / 2.0f;
+
+  // Convert pixel coordinates to NDC (-1 to 1)
+  float screenWidth = 800.0f;
+  float screenHeight = 600.0f;
+  float x = (screenWidth - totalWidth) / 2.0f; // Pixel x (e.g., 400)
+  float y = screenHeight / 2.0f;               // Pixel y (e.g., 300)
+  float ndcX = (2.0f * x / screenWidth) - 1.0f; // NDC x (e.g., 0.0 for center)
+  float ndcY = 1.0f - (2.0f * y / screenHeight); // NDC y (e.g., 0.0 for center, flipped Y)
 
   for (size_t i = 0; i < textLen; i++) {
       char c = text[i];
       if (c < 32 || c > 126) continue;
 
       int glyphIdx = c - 32;
-      float x0 = x + glyphs[glyphIdx].bearingX;
-      float y0 = y - glyphs[glyphIdx].bearingY;
-      float x1 = x0 + glyphs[glyphIdx].width;
-      float y1 = y0 + glyphs[glyphIdx].height;
+      float x0 = ndcX + (2.0f * glyphs[glyphIdx].bearingX / screenWidth);
+      float y0 = ndcY - (2.0f * glyphs[glyphIdx].bearingY / screenHeight);
+      float x1 = x0 + (2.0f * glyphs[glyphIdx].width / screenWidth);
+      float y1 = y0 + (2.0f * glyphs[glyphIdx].height / screenHeight);
 
       vertices[vertexCount + 0] = (TextVertex){{x0, y0}, {glyphs[glyphIdx].u0, glyphs[glyphIdx].v0}};
       vertices[vertexCount + 1] = (TextVertex){{x1, y0}, {glyphs[glyphIdx].u1, glyphs[glyphIdx].v0}};
@@ -544,7 +548,7 @@ void TextRenderSystem(ecs_iter_t *it) {
       indices[indexCount + 4] = vertexCount + 3;
       indices[indexCount + 5] = vertexCount + 0;
 
-      x += glyphs[glyphIdx].advanceX;
+      ndcX += (2.0f * glyphs[glyphIdx].advanceX / screenWidth);
       vertexCount += 4;
       indexCount += 6;
   }
@@ -552,39 +556,12 @@ void TextRenderSystem(ecs_iter_t *it) {
   updateBuffer(ctx, ctx->textVertexBufferMemory, vertexCount * sizeof(TextVertex), vertices);
   updateBuffer(ctx, ctx->textIndexBufferMemory, indexCount * sizeof(uint32_t), indices);
 
-  VkDescriptorSet descriptorSet;
-  VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-  allocInfo.descriptorPool = ctx->descriptorPool;
-  //allocInfo.descriptorPool = ctx->textDescriptorPool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &ctx->textDescriptorSetLayout;
-  if (vkAllocateDescriptorSets(ctx->device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-      ecs_err("Failed to allocate text descriptor set");
-      return;
-  }
-
-  VkDescriptorImageInfo imageInfo = {0};
-  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  imageInfo.imageView = ctx->fontImageView;
-  imageInfo.sampler = ctx->fontSampler;
-
-  VkWriteDescriptorSet descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-  descriptorWrite.dstSet = descriptorSet;
-  descriptorWrite.dstBinding = 0;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  descriptorWrite.pImageInfo = &imageInfo;
-
-  vkUpdateDescriptorSets(ctx->device, 1, &descriptorWrite, 0, NULL);
-
   vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->textPipeline);
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->textVertexBuffer, offsets);
   vkCmdBindIndexBuffer(ctx->commandBuffer, ctx->textIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-  vkCmdBindDescriptorSets(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->textPipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+  vkCmdBindDescriptorSets(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->textPipelineLayout, 0, 1, &ctx->textDescriptorSet, 0, NULL);
   vkCmdDrawIndexed(ctx->commandBuffer, indexCount, 1, 0, 0, 0);
-
-  //ecs_print(1, "TextRenderSystem completed");
 }
 
 
