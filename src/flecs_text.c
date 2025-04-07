@@ -119,18 +119,18 @@ static void createFontAtlas(WorldContext *ctx) {
 
     FT_Set_Pixel_Sizes(face, 0, 48);
 
-    const int atlasWidth = 512; // Increased size to fit more glyphs
-    const int atlasHeight = 512;
-    unsigned char *atlasData = calloc(atlasWidth * atlasHeight, sizeof(unsigned char));
+    const int textAtlasWidth = 512; // Increased size to fit more textGlyphs
+    const int textAtlasHeight = 512;
+    unsigned char *atlasData = calloc(textAtlasWidth * textAtlasHeight, sizeof(unsigned char));
     int x = 0, y = 0, maxHeight = 0;
 
-    GlyphInfo glyphs[95];
-    memset(glyphs, 0, sizeof(glyphs));
+    GlyphInfo textGlyphs[95];
+    memset(textGlyphs, 0, sizeof(textGlyphs));
 
     for (unsigned char c = 32; c < 127; c++) {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER)) continue;
 
-        if (x + (int)face->glyph->bitmap.width >= atlasWidth) {
+        if (x + (int)face->glyph->bitmap.width >= textAtlasWidth) {
             x = 0;
             y += maxHeight + 1;
             maxHeight = 0;
@@ -140,36 +140,36 @@ static void createFontAtlas(WorldContext *ctx) {
             for (unsigned int j = 0; j < face->glyph->bitmap.width; j++) {
                 int atlasX = x + j;
                 int atlasY = y + i;
-                if (atlasX < atlasWidth && atlasY < atlasHeight) {
-                    atlasData[atlasY * atlasWidth + atlasX] = face->glyph->bitmap.buffer[i * face->glyph->bitmap.width + j];
+                if (atlasX < textAtlasWidth && atlasY < textAtlasHeight) {
+                    atlasData[atlasY * textAtlasWidth + atlasX] = face->glyph->bitmap.buffer[i * face->glyph->bitmap.width + j];
                 }
             }
         }
 
-        glyphs[c - 32].u0 = (float)x / atlasWidth;
-        glyphs[c - 32].v0 = (float)y / atlasHeight;
-        glyphs[c - 32].u1 = (float)(x + face->glyph->bitmap.width) / atlasWidth;
-        glyphs[c - 32].v1 = (float)(y + face->glyph->bitmap.rows) / atlasHeight;
-        glyphs[c - 32].width = face->glyph->bitmap.width;
-        glyphs[c - 32].height = face->glyph->bitmap.rows;
-        glyphs[c - 32].advanceX = face->glyph->advance.x >> 6;
-        glyphs[c - 32].bearingX = face->glyph->bitmap_left;
-        glyphs[c - 32].bearingY = face->glyph->bitmap_top;
+        textGlyphs[c - 32].u0 = (float)x / textAtlasWidth;
+        textGlyphs[c - 32].v0 = (float)y / textAtlasHeight;
+        textGlyphs[c - 32].u1 = (float)(x + face->glyph->bitmap.width) / textAtlasWidth;
+        textGlyphs[c - 32].v1 = (float)(y + face->glyph->bitmap.rows) / textAtlasHeight;
+        textGlyphs[c - 32].width = face->glyph->bitmap.width;
+        textGlyphs[c - 32].height = face->glyph->bitmap.rows;
+        textGlyphs[c - 32].advanceX = face->glyph->advance.x >> 6;
+        textGlyphs[c - 32].bearingX = face->glyph->bitmap_left;
+        textGlyphs[c - 32].bearingY = face->glyph->bitmap_top;
 
         x += face->glyph->bitmap.width + 1;
         maxHeight = face->glyph->bitmap.rows > maxHeight ? face->glyph->bitmap.rows : maxHeight;
     }
 
-    ctx->glyphs = malloc(sizeof(glyphs));
-    memcpy(ctx->glyphs, glyphs, sizeof(glyphs));
-    ctx->atlasWidth = atlasWidth;
-    ctx->atlasHeight = atlasHeight;
+    ctx->textGlyphs = malloc(sizeof(textGlyphs));
+    memcpy(ctx->textGlyphs, textGlyphs, sizeof(textGlyphs));
+    ctx->textAtlasWidth = textAtlasWidth;
+    ctx->textAtlasHeight = textAtlasHeight;
 
     VkImageCreateInfo imageInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.format = VK_FORMAT_R8_UNORM;
-    imageInfo.extent.width = atlasWidth;
-    imageInfo.extent.height = atlasHeight;
+    imageInfo.extent.width = textAtlasWidth;
+    imageInfo.extent.height = textAtlasHeight;
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
     imageInfo.arrayLayers = 1;
@@ -178,7 +178,7 @@ static void createFontAtlas(WorldContext *ctx) {
     imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    if (vkCreateImage(ctx->device, &imageInfo, NULL, &ctx->fontImage) != VK_SUCCESS) {
+    if (vkCreateImage(ctx->device, &imageInfo, NULL, &ctx->textFontImage) != VK_SUCCESS) {
         ecs_err("Failed to create font atlas image");
         free(atlasData);
         FT_Done_Face(face);
@@ -187,7 +187,7 @@ static void createFontAtlas(WorldContext *ctx) {
     }
 
     VkMemoryRequirements memReqs;
-    vkGetImageMemoryRequirements(ctx->device, ctx->fontImage, &memReqs);
+    vkGetImageMemoryRequirements(ctx->device, ctx->textFontImage, &memReqs);
     VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     allocInfo.allocationSize = memReqs.size;
     VkPhysicalDeviceMemoryProperties memProps;
@@ -199,20 +199,20 @@ static void createFontAtlas(WorldContext *ctx) {
         }
     }
 
-    if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->fontImageMemory) != VK_SUCCESS) {
-        vkDestroyImage(ctx->device, ctx->fontImage, NULL);
+    if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->textFontImageMemory) != VK_SUCCESS) {
+        vkDestroyImage(ctx->device, ctx->textFontImage, NULL);
         free(atlasData);
         FT_Done_Face(face);
         FT_Done_FreeType(ft);
         return;
     }
 
-    vkBindImageMemory(ctx->device, ctx->fontImage, ctx->fontImageMemory, 0);
+    vkBindImageMemory(ctx->device, ctx->textFontImage, ctx->textFontImageMemory, 0);
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
-    createBuffer(ctx, atlasWidth * atlasHeight, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, &stagingMemory);
-    updateBuffer(ctx, stagingMemory, atlasWidth * atlasHeight, atlasData);
+    createBuffer(ctx, textAtlasWidth * textAtlasHeight, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, &stagingMemory);
+    updateBuffer(ctx, stagingMemory, textAtlasWidth * textAtlasHeight, atlasData);
 
     VkCommandBufferAllocateInfo cmdAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     cmdAllocInfo.commandPool = ctx->commandPool;
@@ -233,17 +233,17 @@ static void createFontAtlas(WorldContext *ctx) {
         return;
     }
 
-    transitionImageLayout(commandBuffer, ctx->fontImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    transitionImageLayout(commandBuffer, ctx->textFontImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     VkBufferImageCopy region = {0};
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.layerCount = 1;
-    region.imageExtent.width = atlasWidth;
-    region.imageExtent.height = atlasHeight;
+    region.imageExtent.width = textAtlasWidth;
+    region.imageExtent.height = textAtlasHeight;
     region.imageExtent.depth = 1;
-    vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, ctx->fontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, ctx->textFontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    transitionImageLayout(commandBuffer, ctx->fontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    transitionImageLayout(commandBuffer, ctx->textFontImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         ecs_err("Failed to end one-time command buffer");
@@ -264,13 +264,13 @@ static void createFontAtlas(WorldContext *ctx) {
     vkDestroyBuffer(ctx->device, stagingBuffer, NULL);
 
     VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-    viewInfo.image = ctx->fontImage;
+    viewInfo.image = ctx->textFontImage;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = VK_FORMAT_R8_UNORM;
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.layerCount = 1;
-    if (vkCreateImageView(ctx->device, &viewInfo, NULL, &ctx->fontImageView) != VK_SUCCESS) {
+    if (vkCreateImageView(ctx->device, &viewInfo, NULL, &ctx->textFontImageView) != VK_SUCCESS) {
         ecs_err("Failed to create font image view");
     }
 
@@ -281,7 +281,7 @@ static void createFontAtlas(WorldContext *ctx) {
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    if (vkCreateSampler(ctx->device, &samplerInfo, NULL, &ctx->fontSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(ctx->device, &samplerInfo, NULL, &ctx->textFontSampler) != VK_SUCCESS) {
         ecs_err("Failed to create font sampler");
     }
 
@@ -346,19 +346,19 @@ void TextSetupSystem(ecs_iter_t *it) {
 
   // Create font atlas
   createFontAtlas(ctx);
-  if (ctx->fontImageView == VK_NULL_HANDLE || ctx->fontSampler == VK_NULL_HANDLE) {
-      ecs_err("Font atlas creation failed: ImageView=%p, Sampler=%p", (void*)ctx->fontImageView, (void*)ctx->fontSampler);
+  if (ctx->textFontImageView == VK_NULL_HANDLE || ctx->textFontSampler == VK_NULL_HANDLE) {
+      ecs_err("Font atlas creation failed: ImageView=%p, Sampler=%p", (void*)ctx->textFontImageView, (void*)ctx->textFontSampler);
       ctx->hasError = true;
       ctx->errorMessage = "Font atlas creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Font atlas created: ImageView=%p, Sampler=%p", (void*)ctx->fontImageView, (void*)ctx->fontSampler);
+  ecs_print(1, "Font atlas created: ImageView=%p, Sampler=%p", (void*)ctx->textFontImageView, (void*)ctx->textFontSampler);
 
   // Update descriptor set
   VkDescriptorImageInfo imageInfo = {0};
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  imageInfo.imageView = ctx->fontImageView;
-  imageInfo.sampler = ctx->fontSampler;
+  imageInfo.imageView = ctx->textFontImageView;
+  imageInfo.sampler = ctx->textFontSampler;
 
   VkWriteDescriptorSet descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
   descriptorWrite.dstSet = ctx->textDescriptorSet;
@@ -503,7 +503,7 @@ void TextSetupSystem(ecs_iter_t *it) {
 
 void TextRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError || !ctx->glyphs) return;
+  if (!ctx || ctx->hasError || !ctx->textGlyphs) return;
 
   //ecs_print(1, "TextRenderSystem - WIDTH: %d, HEIGHT: %d", ctx->width, ctx->height);
 
@@ -513,12 +513,12 @@ void TextRenderSystem(ecs_iter_t *it) {
   uint32_t indices[66];
   int vertexCount = 0, indexCount = 0;
 
-  GlyphInfo *glyphs = (GlyphInfo *)ctx->glyphs;
+  GlyphInfo *textGlyphs = (GlyphInfo *)ctx->textGlyphs;
   float totalWidth = 0.0f;
   for (size_t i = 0; i < textLen; i++) {
       if (text[i] < 32 || text[i] > 126) continue;
       int glyphIdx = text[i] - 32;
-      totalWidth += glyphs[glyphIdx].advanceX;
+      totalWidth += textGlyphs[glyphIdx].advanceX;
   }
 
   float screenWidth = (float)ctx->width;   // Updated from 800.0f
@@ -533,15 +533,15 @@ void TextRenderSystem(ecs_iter_t *it) {
       if (c < 32 || c > 126) continue;
 
       int glyphIdx = c - 32;
-      float x0 = ndcX + (2.0f * glyphs[glyphIdx].bearingX / screenWidth);
-      float y0 = ndcY - (2.0f * glyphs[glyphIdx].bearingY / screenHeight);
-      float x1 = x0 + (2.0f * glyphs[glyphIdx].width / screenWidth);
-      float y1 = y0 + (2.0f * glyphs[glyphIdx].height / screenHeight);
+      float x0 = ndcX + (2.0f * textGlyphs[glyphIdx].bearingX / screenWidth);
+      float y0 = ndcY - (2.0f * textGlyphs[glyphIdx].bearingY / screenHeight);
+      float x1 = x0 + (2.0f * textGlyphs[glyphIdx].width / screenWidth);
+      float y1 = y0 + (2.0f * textGlyphs[glyphIdx].height / screenHeight);
 
-      vertices[vertexCount + 0] = (TextVertex){{x0, y0}, {glyphs[glyphIdx].u0, glyphs[glyphIdx].v0}};
-      vertices[vertexCount + 1] = (TextVertex){{x1, y0}, {glyphs[glyphIdx].u1, glyphs[glyphIdx].v0}};
-      vertices[vertexCount + 2] = (TextVertex){{x1, y1}, {glyphs[glyphIdx].u1, glyphs[glyphIdx].v1}};
-      vertices[vertexCount + 3] = (TextVertex){{x0, y1}, {glyphs[glyphIdx].u0, glyphs[glyphIdx].v1}};
+      vertices[vertexCount + 0] = (TextVertex){{x0, y0}, {textGlyphs[glyphIdx].u0, textGlyphs[glyphIdx].v0}};
+      vertices[vertexCount + 1] = (TextVertex){{x1, y0}, {textGlyphs[glyphIdx].u1, textGlyphs[glyphIdx].v0}};
+      vertices[vertexCount + 2] = (TextVertex){{x1, y1}, {textGlyphs[glyphIdx].u1, textGlyphs[glyphIdx].v1}};
+      vertices[vertexCount + 3] = (TextVertex){{x0, y1}, {textGlyphs[glyphIdx].u0, textGlyphs[glyphIdx].v1}};
 
       indices[indexCount + 0] = vertexCount + 0;
       indices[indexCount + 1] = vertexCount + 1;
@@ -550,7 +550,7 @@ void TextRenderSystem(ecs_iter_t *it) {
       indices[indexCount + 4] = vertexCount + 3;
       indices[indexCount + 5] = vertexCount + 0;
 
-      ndcX += (2.0f * glyphs[glyphIdx].advanceX / screenWidth);
+      ndcX += (2.0f * textGlyphs[glyphIdx].advanceX / screenWidth);
       vertexCount += 4;
       indexCount += 6;
   }
@@ -590,21 +590,21 @@ void flecs_text_cleanup(WorldContext *ctx) {
       vkDestroyDescriptorPool(ctx->device, ctx->textDescriptorPool, NULL);
       ctx->textDescriptorPool = VK_NULL_HANDLE; // This also frees ctx->textDescriptorSet
   }
-  if (ctx->fontSampler != VK_NULL_HANDLE) {
-      vkDestroySampler(ctx->device, ctx->fontSampler, NULL);
-      ctx->fontSampler = VK_NULL_HANDLE;
+  if (ctx->textFontSampler != VK_NULL_HANDLE) {
+      vkDestroySampler(ctx->device, ctx->textFontSampler, NULL);
+      ctx->textFontSampler = VK_NULL_HANDLE;
   }
-  if (ctx->fontImageView != VK_NULL_HANDLE) {
-      vkDestroyImageView(ctx->device, ctx->fontImageView, NULL);
-      ctx->fontImageView = VK_NULL_HANDLE;
+  if (ctx->textFontImageView != VK_NULL_HANDLE) {
+      vkDestroyImageView(ctx->device, ctx->textFontImageView, NULL);
+      ctx->textFontImageView = VK_NULL_HANDLE;
   }
-  if (ctx->fontImageMemory != VK_NULL_HANDLE) {
-      vkFreeMemory(ctx->device, ctx->fontImageMemory, NULL);
-      ctx->fontImageMemory = VK_NULL_HANDLE;
+  if (ctx->textFontImageMemory != VK_NULL_HANDLE) {
+      vkFreeMemory(ctx->device, ctx->textFontImageMemory, NULL);
+      ctx->textFontImageMemory = VK_NULL_HANDLE;
   }
-  if (ctx->fontImage != VK_NULL_HANDLE) {
-      vkDestroyImage(ctx->device, ctx->fontImage, NULL);
-      ctx->fontImage = VK_NULL_HANDLE;
+  if (ctx->textFontImage != VK_NULL_HANDLE) {
+      vkDestroyImage(ctx->device, ctx->textFontImage, NULL);
+      ctx->textFontImage = VK_NULL_HANDLE;
   }
   if (ctx->textVertexBufferMemory != VK_NULL_HANDLE) {
       vkFreeMemory(ctx->device, ctx->textVertexBufferMemory, NULL);
@@ -622,9 +622,9 @@ void flecs_text_cleanup(WorldContext *ctx) {
       vkDestroyBuffer(ctx->device, ctx->textIndexBuffer, NULL);
       ctx->textIndexBuffer = VK_NULL_HANDLE;
   }
-  if (ctx->glyphs) {
-      free(ctx->glyphs);
-      ctx->glyphs = NULL;
+  if (ctx->textGlyphs) {
+      free(ctx->textGlyphs);
+      ctx->textGlyphs = NULL;
   }
 
   ecs_print(1, "Text cleanup completed");

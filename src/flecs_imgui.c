@@ -23,12 +23,12 @@ static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
   poolInfo.pPoolSizes = poolSizes;
   poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // Add this flag
 
-  VkDescriptorPool descriptorPool;
-  if (vkCreateDescriptorPool(device, &poolInfo, NULL, &descriptorPool) != VK_SUCCESS) {
+  VkDescriptorPool imguiDescriptorPool;
+  if (vkCreateDescriptorPool(device, &poolInfo, NULL, &imguiDescriptorPool) != VK_SUCCESS) {
       ecs_err("Failed to create ImGui descriptor pool");
       return VK_NULL_HANDLE;
   }
-  return descriptorPool;
+  return imguiDescriptorPool;
 }
 
 
@@ -58,7 +58,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  ctx->descriptorPool = createImGuiDescriptorPool(ctx->device);
+  ctx->imguiDescriptorPool = createImGuiDescriptorPool(ctx->device);
   // ecs_print(1, "Initialize Vulkan backend");
   ImGui_ImplVulkan_InitInfo init_info = {0};
   init_info.Instance = ctx->instance;
@@ -67,7 +67,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
   init_info.QueueFamily = ctx->graphicsFamily;
   init_info.Queue = ctx->graphicsQueue;
   init_info.PipelineCache = VK_NULL_HANDLE;
-  init_info.DescriptorPool = ctx->descriptorPool;
+  init_info.DescriptorPool = ctx->imguiDescriptorPool;
   init_info.Subpass = 0;
   init_info.MinImageCount = 2;
   init_info.ImageCount = ctx->imageCount;
@@ -200,10 +200,10 @@ void flecs_imgui_cleanup(WorldContext *ctx) {
           ctx->imguiContext = NULL;
       }
 
-      if (ctx->descriptorPool != VK_NULL_HANDLE) {
+      if (ctx->imguiDescriptorPool != VK_NULL_HANDLE) {
           ecs_print(1, "Destroying ImGui descriptor pool...");
-          vkDestroyDescriptorPool(ctx->device, ctx->descriptorPool, NULL);
-          ctx->descriptorPool = VK_NULL_HANDLE;
+          vkDestroyDescriptorPool(ctx->device, ctx->imguiDescriptorPool, NULL);
+          ctx->imguiDescriptorPool = VK_NULL_HANDLE;
       }
 
       ecs_print(1, "ImGui cleanup completed");

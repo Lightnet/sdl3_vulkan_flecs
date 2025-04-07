@@ -427,7 +427,7 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
   bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, &ctx->vertexBuffer) != VK_SUCCESS) {
+  if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, &ctx->triVertexBuffer) != VK_SUCCESS) {
       ecs_err("Failed to create vertex buffer");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create vertex buffer";
@@ -435,7 +435,7 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
   }
 
   VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(ctx->device, ctx->vertexBuffer, &memRequirements);
+  vkGetBufferMemoryRequirements(ctx->device, ctx->triVertexBuffer, &memRequirements);
 
   VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
   allocInfo.allocationSize = memRequirements.size;
@@ -450,14 +450,14 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
       }
   }
 
-  if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->vertexBufferMemory) != VK_SUCCESS) {
+  if (vkAllocateMemory(ctx->device, &allocInfo, NULL, &ctx->triVertexBufferMemory) != VK_SUCCESS) {
       ecs_err("Failed to allocate vertex buffer memory");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to allocate vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
 
-  if (vkBindBufferMemory(ctx->device, ctx->vertexBuffer, ctx->vertexBufferMemory, 0) != VK_SUCCESS) {
+  if (vkBindBufferMemory(ctx->device, ctx->triVertexBuffer, ctx->triVertexBufferMemory, 0) != VK_SUCCESS) {
       ecs_err("Failed to bind vertex buffer memory");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to bind vertex buffer memory";
@@ -465,14 +465,14 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
   }
 
   void* data;
-  if (vkMapMemory(ctx->device, ctx->vertexBufferMemory, 0, bufferSize, 0, &data) != VK_SUCCESS) {
+  if (vkMapMemory(ctx->device, ctx->triVertexBufferMemory, 0, bufferSize, 0, &data) != VK_SUCCESS) {
       ecs_err("Failed to map vertex buffer memory");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to map vertex buffer memory";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
   memcpy(data, vertices, (size_t)bufferSize);
-  vkUnmapMemory(ctx->device, ctx->vertexBufferMemory);
+  vkUnmapMemory(ctx->device, ctx->triVertexBufferMemory);
 
   ecs_log(1, "Triangle vertex buffer setup completed");
 }
@@ -688,7 +688,7 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   colorBlending.pAttachments = &colorBlendAttachment;
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-  if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->pipelineLayout) != VK_SUCCESS) {
+  if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->triPipelineLayout) != VK_SUCCESS) {
       ecs_err("Failed to create pipeline layout");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create pipeline layout";
@@ -704,11 +704,11 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   pipelineInfo.pRasterizationState = &rasterizer;
   pipelineInfo.pMultisampleState = &multisampling;
   pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.layout = ctx->pipelineLayout;
+  pipelineInfo.layout = ctx->triPipelineLayout;
   pipelineInfo.renderPass = ctx->renderPass;
   pipelineInfo.subpass = 0;
 
-  if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->graphicsPipeline) != VK_SUCCESS) {
+  if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->triGraphicsPipeline) != VK_SUCCESS) {
       ecs_err("Failed to create graphics pipeline");
       ctx->hasError = true;
       ctx->errorMessage = "Failed to create graphics pipeline";
@@ -833,9 +833,9 @@ void BeginCMDBufferSystem(ecs_iter_t *it) {
   if (!ctx || ctx->hasError) return;
   // ecs_print(1,"BeginCMDBufferSystem");
   //triangle
-  vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->graphicsPipeline);
+  vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->triGraphicsPipeline);
   VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->vertexBuffer, offsets);
+  vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->triVertexBuffer, offsets);
   vkCmdDraw(ctx->commandBuffer, 3, 1, 0, 0);
 
 }
@@ -925,21 +925,21 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
           vkDestroyCommandPool(ctx->device, ctx->commandPool, NULL);
           ctx->commandPool = VK_NULL_HANDLE;
       }
-      if (ctx->vertexBufferMemory != VK_NULL_HANDLE) {
-          vkFreeMemory(ctx->device, ctx->vertexBufferMemory, NULL);
-          ctx->vertexBufferMemory = VK_NULL_HANDLE;
+      if (ctx->triVertexBufferMemory != VK_NULL_HANDLE) {
+          vkFreeMemory(ctx->device, ctx->triVertexBufferMemory, NULL);
+          ctx->triVertexBufferMemory = VK_NULL_HANDLE;
       }
-      if (ctx->vertexBuffer != VK_NULL_HANDLE) {
-          vkDestroyBuffer(ctx->device, ctx->vertexBuffer, NULL);
-          ctx->vertexBuffer = VK_NULL_HANDLE;
+      if (ctx->triVertexBuffer != VK_NULL_HANDLE) {
+          vkDestroyBuffer(ctx->device, ctx->triVertexBuffer, NULL);
+          ctx->triVertexBuffer = VK_NULL_HANDLE;
       }
-      if (ctx->graphicsPipeline != VK_NULL_HANDLE) {
-          vkDestroyPipeline(ctx->device, ctx->graphicsPipeline, NULL);
-          ctx->graphicsPipeline = VK_NULL_HANDLE;
+      if (ctx->triGraphicsPipeline != VK_NULL_HANDLE) {
+          vkDestroyPipeline(ctx->device, ctx->triGraphicsPipeline, NULL);
+          ctx->triGraphicsPipeline = VK_NULL_HANDLE;
       }
-      if (ctx->pipelineLayout != VK_NULL_HANDLE) { // Added
-          vkDestroyPipelineLayout(ctx->device, ctx->pipelineLayout, NULL);
-          ctx->pipelineLayout = VK_NULL_HANDLE;
+      if (ctx->triPipelineLayout != VK_NULL_HANDLE) { // Added
+          vkDestroyPipelineLayout(ctx->device, ctx->triPipelineLayout, NULL);
+          ctx->triPipelineLayout = VK_NULL_HANDLE;
       }
       if (ctx->renderPass != VK_NULL_HANDLE) {
           vkDestroyRenderPass(ctx->device, ctx->renderPass, NULL);
