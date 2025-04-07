@@ -228,18 +228,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 #     )
 # endif()
 
-# # Copy fonts folder to build output
-# set(FONTS_SRC_DIR ${CMAKE_SOURCE_DIR}/fonts)
-# set(FONTS_DEST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/fonts)
+# Copy entire assets folder (including subdirectories) to build output
+set(ASSETS_SRC_DIR "${CMAKE_SOURCE_DIR}/assets")  # Use quotes and forward slashes
+set(ASSETS_DEST_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/assets")
 
-# # Check if fonts directory exists
-# if(NOT EXISTS ${FONTS_SRC_DIR})
-#     message(WARNING "Fonts directory '${FONTS_SRC_DIR}' does not exist. Creating empty directory in build output.")
-# endif()
+# Check if assets directory exists
+if(NOT EXISTS "${ASSETS_SRC_DIR}")
+    message(WARNING "Assets directory '${ASSETS_SRC_DIR}' does not exist. Creating empty directory in build output.")
+endif()
 
-# # Add custom command to copy fonts directory
-# add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E make_directory ${FONTS_DEST_DIR}
-#     COMMAND ${CMAKE_COMMAND} -E copy_directory ${FONTS_SRC_DIR} ${FONTS_DEST_DIR}
-#     COMMENT "Copying fonts directory to ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/fonts"
-# )
+# Add custom command to copy entire assets directory
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${ASSETS_DEST_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${ASSETS_SRC_DIR}" "${ASSETS_DEST_DIR}"
+    COMMENT "Copying assets directory to ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/assets"
+)
