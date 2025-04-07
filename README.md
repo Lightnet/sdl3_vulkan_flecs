@@ -16,6 +16,7 @@
  * [Building](#building)
  * [Running](#running)
  * [Module Design](#module-design)
+ * [Vulkan Set Up and Render Flow:](#vulkan-set-up-and-render-flow)
  * [Dev Shader](#dev-shader)
  * [Notes](#notes)
  * [Planned Improvements](#planned-improvements)
@@ -158,6 +159,19 @@ The project uses a modular approach to simplify development:
 - ImGui Module: Manages UI setup and rendering.
 - Freetype for render text font.
 - Modules can be added or removed for debugging or feature testing.
+
+### Vulkan Set Up and Render Flow:
+- Setup (once):
+    
+    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> TriangleBufferSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> PipelineSetupSystem -> SyncSetupSystem -> SetUpLogicSystem (modules init)
+        
+- Runtime (per frame):
+    - LogicUpdatePhase: (empty for now)
+    - BeginRenderPhase: BeginRenderSystem (acquire image)
+    - BeginCMDBufferPhase: BeginCMDBufferSystem (start command buffer and render pass)
+    - CMDBufferPhase: TriangleRenderBufferSystem -> TextRenderSystem -> ImGuiRenderSystem
+    - EndCMDBufferPhase: EndCMDBufferSystem (end render pass and command buffer)
+    - EndRenderPhase: EndRenderSystem (submit and present)
 
 ## Shaders:
 - Shaders are written in GLSL and compiled to SPIR-V using the Vulkan SDK’s glslangValidator.
