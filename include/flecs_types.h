@@ -59,6 +59,7 @@ typedef struct {
   bool shouldQuit;                             // SDL quit flag
   bool hasError;                               // Error flag
   const char *errorMessage;                    // Error message
+  bool needsSwapchainRecreation;               // Flag to indicate swapchain needs recreation
 
   // Triangle Mesh
   VkBuffer triVertexBuffer;                    // Triangle vertex buffer

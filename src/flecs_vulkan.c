@@ -814,38 +814,33 @@ void SyncSetupSystem(ecs_iter_t *it) {
 // RENDER LOOP
 //=====================================
 
+
 void BeginRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  // ecs_print(1, "BeginRenderSystem starting...");
-  // ecs_print(1, "Context pointer: %p", (void*)ctx);
-  // ecs_print(1, "In-flight fence: %p", (void*)ctx->inFlightFence);
-
   if (ctx->inFlightFence == VK_NULL_HANDLE) {
-      ecs_err("In-flight fence is null, skipping render");
-      return;
+    ecs_err("In-flight fence is null, skipping render");
+    return;
   }
 
-  // Wait for the previous frame to finish
   vkWaitForFences(ctx->device, 1, &ctx->inFlightFence, VK_TRUE, UINT64_MAX);
   vkResetFences(ctx->device, 1, &ctx->inFlightFence);
 
-  // Acquire the next image
   VkResult result = vkAcquireNextImageKHR(ctx->device, ctx->swapchain, UINT64_MAX,
                                           ctx->imageAvailableSemaphore, VK_NULL_HANDLE, &ctx->imageIndex);
-  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-      ecs_print(1, "Swapchain out of date, skipping frame");
-      return;
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+    ecs_print(1, "Swapchain out of date or suboptimal, triggering recreation");
+    ctx->needsSwapchainRecreation = true;
+    return;
   } else if (result != VK_SUCCESS) {
-      ecs_err("Error: vkAcquireNextImageKHR failed (VkResult: %d)", result);
-      ctx->hasError = true;
-      ctx->errorMessage = "Failed to acquire next image";
-      return; // Don’t abort, just skip frame
+    ecs_err("Error: vkAcquireNextImageKHR failed (VkResult: %d)", result);
+    ctx->hasError = true;
+    ctx->errorMessage = "Failed to acquire next image";
+    return;
   }
-
-  // ecs_print(1, "BeginRenderSystem completed, imageIndex: %u", ctx->imageIndex);
 }
+
 
 
 void BeginCMDBufferSystem(ecs_iter_t *it) {
@@ -1062,6 +1057,173 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
 }
 
 
+static void cleanupSwapchain(WorldContext *ctx) {
+  vkDeviceWaitIdle(ctx->device);
+
+  // Destroy framebuffers
+  for (uint32_t i = 0; i < ctx->imageCount; i++) {
+    if (ctx->framebuffers[i] != VK_NULL_HANDLE) {
+      vkDestroyFramebuffer(ctx->device, ctx->framebuffers[i], NULL);
+      ctx->framebuffers[i] = VK_NULL_HANDLE;
+    }
+    if (ctx->swapchainImageViews[i] != VK_NULL_HANDLE) {
+      vkDestroyImageView(ctx->device, ctx->swapchainImageViews[i], NULL);
+      ctx->swapchainImageViews[i] = VK_NULL_HANDLE;
+    }
+  }
+  free(ctx->framebuffers);
+  free(ctx->swapchainImageViews);
+  free(ctx->swapchainImages);
+  vkDestroySwapchainKHR(ctx->device, ctx->swapchain, NULL);
+
+  ctx->framebuffers = NULL;
+  ctx->swapchainImageViews = NULL;
+  ctx->swapchainImages = NULL;
+  ctx->swapchain = VK_NULL_HANDLE;
+}
+
+static void recreateSwapchain(WorldContext *ctx) {
+  if (!ctx->device || !ctx->surface) return;
+
+  cleanupSwapchain(ctx);
+
+  // Query surface capabilities with updated window size
+  VkSurfaceCapabilitiesKHR capabilities;
+  if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(ctx->physicalDevice, ctx->surface, &capabilities) != VK_SUCCESS) {
+    ecs_err("Failed to query surface capabilities during resize");
+    ctx->hasError = true;
+    ctx->errorMessage = "Surface capabilities query failed";
+    return;
+  }
+
+  // Update swapchain extent based on new window size
+  ctx->swapchainExtent.width = ctx->width;
+  ctx->swapchainExtent.height = ctx->height;
+
+  // Clamp to min/max extents
+  if (ctx->swapchainExtent.width < capabilities.minImageExtent.width)
+    ctx->swapchainExtent.width = capabilities.minImageExtent.width;
+  if (ctx->swapchainExtent.width > capabilities.maxImageExtent.width)
+    ctx->swapchainExtent.width = capabilities.maxImageExtent.width;
+  if (ctx->swapchainExtent.height < capabilities.minImageExtent.height)
+    ctx->swapchainExtent.height = capabilities.minImageExtent.height;
+  if (ctx->swapchainExtent.height > capabilities.maxImageExtent.height)
+    ctx->swapchainExtent.height = capabilities.maxImageExtent.height;
+
+  // Recreate swapchain (similar to SwapchainSetupSystem)
+  uint32_t formatCount;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(ctx->physicalDevice, ctx->surface, &formatCount, NULL);
+  VkSurfaceFormatKHR* formats = malloc(sizeof(VkSurfaceFormatKHR) * formatCount);
+  vkGetPhysicalDeviceSurfaceFormatsKHR(ctx->physicalDevice, ctx->surface, &formatCount, formats);
+  VkSurfaceFormatKHR selectedFormat = formats[0];
+  for (uint32_t i = 0; i < formatCount; i++) {
+    if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB && 
+        formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+      selectedFormat = formats[i];
+      break;
+    }
+  }
+  free(formats);
+
+  uint32_t presentModeCount;
+  vkGetPhysicalDeviceSurfacePresentModesKHR(ctx->physicalDevice, ctx->surface, &presentModeCount, NULL);
+  VkPresentModeKHR* presentModes = malloc(sizeof(VkPresentModeKHR) * presentModeCount);
+  vkGetPhysicalDeviceSurfacePresentModesKHR(ctx->physicalDevice, ctx->surface, &presentModeCount, presentModes);
+  VkPresentModeKHR selectedPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+  for (uint32_t i = 0; i < presentModeCount; i++) {
+    if (presentModes[i] == VK_PRESENT_MODE_FIFO_KHR) {
+      selectedPresentMode = presentModes[i];
+      break;
+    }
+  }
+  free(presentModes);
+
+  VkSwapchainCreateInfoKHR swapchainCreateInfo = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+  swapchainCreateInfo.surface = ctx->surface;
+  swapchainCreateInfo.minImageCount = ctx->imageCount;
+  swapchainCreateInfo.imageFormat = selectedFormat.format;
+  swapchainCreateInfo.imageColorSpace = selectedFormat.colorSpace;
+  swapchainCreateInfo.imageExtent = ctx->swapchainExtent;
+  swapchainCreateInfo.imageArrayLayers = 1;
+  swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  swapchainCreateInfo.preTransform = capabilities.currentTransform;
+  swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  swapchainCreateInfo.presentMode = selectedPresentMode;
+  swapchainCreateInfo.clipped = VK_TRUE;
+
+  if (vkCreateSwapchainKHR(ctx->device, &swapchainCreateInfo, NULL, &ctx->swapchain) != VK_SUCCESS) {
+    ecs_err("Failed to recreate swapchain");
+    ctx->hasError = true;
+    ctx->errorMessage = "Swapchain recreation failed";
+    return;
+  }
+
+  // Get new swapchain images
+  vkGetSwapchainImagesKHR(ctx->device, ctx->swapchain, &ctx->imageCount, NULL);
+  ctx->swapchainImages = malloc(sizeof(VkImage) * ctx->imageCount);
+  vkGetSwapchainImagesKHR(ctx->device, ctx->swapchain, &ctx->imageCount, ctx->swapchainImages);
+
+  // Create new image views
+  ctx->swapchainImageViews = malloc(sizeof(VkImageView) * ctx->imageCount);
+  for (uint32_t i = 0; i < ctx->imageCount; i++) {
+    VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    viewInfo.image = ctx->swapchainImages[i];
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = selectedFormat.format;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.layerCount = 1;
+    if (vkCreateImageView(ctx->device, &viewInfo, NULL, &ctx->swapchainImageViews[i]) != VK_SUCCESS) {
+      ecs_err("Failed to recreate swapchain image view");
+      ctx->hasError = true;
+      ctx->errorMessage = "Swapchain image view recreation failed";
+      return;
+    }
+  }
+
+  // Recreate framebuffers
+  ctx->framebuffers = malloc(sizeof(VkFramebuffer) * ctx->imageCount);
+  for (uint32_t i = 0; i < ctx->imageCount; i++) {
+    VkFramebufferCreateInfo framebufferInfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+    framebufferInfo.renderPass = ctx->renderPass;
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = &ctx->swapchainImageViews[i];
+    framebufferInfo.width = ctx->swapchainExtent.width;
+    framebufferInfo.height = ctx->swapchainExtent.height;
+    framebufferInfo.layers = 1;
+
+    if (vkCreateFramebuffer(ctx->device, &framebufferInfo, NULL, &ctx->framebuffers[i]) != VK_SUCCESS) {
+      ecs_err("Failed to recreate framebuffer");
+      ctx->hasError = true;
+      ctx->errorMessage = "Framebuffer recreation failed";
+      return;
+    }
+  }
+
+  // Update ImGui display size
+  if (ctx->isImGuiInitialized) {
+    ImGuiIO* io = igGetIO();
+    io->DisplaySize.x = (float)ctx->width;
+    io->DisplaySize.y = (float)ctx->height;
+  }
+
+  ctx->needsSwapchainRecreation = false;
+  ecs_print(1, "Swapchain recreated successfully: %dx%d", ctx->width, ctx->height);
+}
+
+void SwapchainRecreationSystem(ecs_iter_t *it) {
+  WorldContext *ctx = ecs_get_ctx(it->world);
+  if (!ctx || ctx->hasError) return;
+
+  if (ctx->needsSwapchainRecreation) {
+    recreateSwapchain(ctx);
+  }
+}
+
+
+
+
 void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "init vulkan module");
 
@@ -1127,6 +1289,11 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   //=====================================
 
   // Runtime systems
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "SwapchainRecreationSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginRenderPhase)) }),
+    .callback = SwapchainRecreationSystem
+  });
 
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "BeginRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginRenderPhase)) }),

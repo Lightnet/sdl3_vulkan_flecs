@@ -14,12 +14,13 @@ void SDLInputSystem(ecs_iter_t *it) {
     if (event.type == SDL_EVENT_QUIT) {
       ecs_print(1, "Quit event received");
       ctx->shouldQuit = true;
-    }else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
+    } else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
       int newWidth = event.window.data1;
       int newHeight = event.window.data2;
-      ecs_print(1, "resize");
-      // Recreate swapchain (see below)
-      //recreateSwapchain(ctx);
+      ecs_print(1, "Window resized to %dx%d", newWidth, newHeight);
+      ctx->width = newWidth;
+      ctx->height = newHeight;
+      ctx->needsSwapchainRecreation = true; // Add this flag to WorldContext
     }
   }
 }

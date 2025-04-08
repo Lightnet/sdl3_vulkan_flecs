@@ -39,7 +39,9 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - Vulkan module for rendering and setup.
     - ImGui module for UI.
     - Easy addition/removal of modules for debugging and configuration.
-        
+
+- resize window and vulkan swap render resize
+
 - Simple Triangle:
     - made into command buffer triangle system to handle render vulkan
     - module set up and render

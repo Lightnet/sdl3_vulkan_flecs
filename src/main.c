@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
       return -1;
   }
   ctx->window = window;
+  ctx->needsSwapchainRecreation = false;
 
   ecs_print(1, "Setting world context...");
   ecs_set_ctx(world, ctx, NULL);
