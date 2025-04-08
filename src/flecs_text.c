@@ -311,7 +311,7 @@ void TextSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Failed to create text descriptor pool";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Text descriptor pool created");
+  //ecs_print(1, "Text descriptor pool created");
 
   // Create descriptor set layout
   VkDescriptorSetLayoutBinding samplerLayoutBinding = {0};
@@ -329,7 +329,7 @@ void TextSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Failed to create text descriptor set layout";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Text descriptor set layout created: %p", (void*)ctx->textDescriptorSetLayout);
+  //ecs_print(1, "Text descriptor set layout created: %p", (void*)ctx->textDescriptorSetLayout);
 
   // Allocate descriptor set
   VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
@@ -342,7 +342,7 @@ void TextSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Failed to allocate text descriptor set";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Text descriptor set allocated: %p", (void*)ctx->textDescriptorSet);
+  //ecs_print(1, "Text descriptor set allocated: %p", (void*)ctx->textDescriptorSet);
 
   // Create font atlas
   createFontAtlas(ctx);
@@ -352,7 +352,7 @@ void TextSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Font atlas creation failed";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Font atlas created: ImageView=%p, Sampler=%p", (void*)ctx->textFontImageView, (void*)ctx->textFontSampler);
+  //ecs_print(1, "Font atlas created: ImageView=%p, Sampler=%p", (void*)ctx->textFontImageView, (void*)ctx->textFontSampler);
 
   // Update descriptor set
   VkDescriptorImageInfo imageInfo = {0};
@@ -368,16 +368,16 @@ void TextSetupSystem(ecs_iter_t *it) {
   descriptorWrite.pImageInfo = &imageInfo;
 
   vkUpdateDescriptorSets(ctx->device, 1, &descriptorWrite, 0, NULL);
-  ecs_print(1, "Text descriptor set updated");
+  //ecs_print(1, "Text descriptor set updated");
 
   // Create buffers
   if (!ctx->textVertexBuffer) {
       createBuffer(ctx, 44 * sizeof(TextVertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &ctx->textVertexBuffer, &ctx->textVertexBufferMemory);
-      ecs_print(1, "Text vertex buffer created: %p", (void*)ctx->textVertexBuffer);
+      //ecs_print(1, "Text vertex buffer created: %p", (void*)ctx->textVertexBuffer);
   }
   if (!ctx->textIndexBuffer) {
       createBuffer(ctx, 66 * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &ctx->textIndexBuffer, &ctx->textIndexBufferMemory);
-      ecs_print(1, "Text index buffer created: %p", (void*)ctx->textIndexBuffer);
+      //ecs_print(1, "Text index buffer created: %p", (void*)ctx->textIndexBuffer);
   }
 
   // Shader and pipeline setup (reverted to your original style)
@@ -492,7 +492,7 @@ void TextSetupSystem(ecs_iter_t *it) {
       ctx->errorMessage = "Failed to create text graphics pipeline";
       ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
   }
-  ecs_print(1, "Text pipeline created: %p", (void*)ctx->textPipeline);
+  //ecs_print(1, "Text pipeline created: %p", (void*)ctx->textPipeline);
 
   vkDestroyShaderModule(ctx->device, fragShaderModule, NULL);
   vkDestroyShaderModule(ctx->device, vertShaderModule, NULL);

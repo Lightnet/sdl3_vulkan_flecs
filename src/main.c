@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "init main, flecs ...");
   WorldContext *ctx = calloc(1, sizeof(WorldContext));
   if (!ctx) {
-      printf("Failed to allocate WorldContext\n");
+      ecs_err("Failed to allocate WorldContext");
       return -1;
   }
   //this must be set for the window size
@@ -44,10 +44,8 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_text_module_init...");
   flecs_text_module_init(world, ctx);
 
-  
-
-  ecs_print(1, "Running setup phases...");
-  ecs_progress(world, 0);
+  // ecs_print(1, "Running setup phases...");
+  // ecs_progress(world, 0);
   // ecs_print(1, "Post-setup context: %p", (void*)ctx);
   // ecs_print(1, "Post-setup fence: %p", (void*)ctx->inFlightFence);
 
