@@ -1,6 +1,8 @@
 
 # sdl3_vulkan_flecs
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # Status:
  - Work in progress
  - Added feautures to get vulkan working for simple things to set up and render.
@@ -25,9 +27,10 @@
  * [License](#license)
  * [Contributing](#contributing)
 
+# Informtion:
+
 A simple Vulkan-based project using SDL3 and Flecs for modular 3D rendering experiments.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Overview:
 
@@ -40,7 +43,8 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - ImGui module for UI.
     - Easy addition/removal of modules for debugging and configuration.
 
-- resize window and vulkan swap render resize
+- Window 
+    - resize window and vulkan swap render resize
 
 - Simple Triangle:
     - made into command buffer triangle system to handle render vulkan
@@ -48,10 +52,10 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - hard code world context variable
         
 - ImGui Integration:
-    - made into command buffer imgui system to handle render vulkan
-    - Workaround for input handler crash by checking initialization in the main loop.
+    - made into command buffer imgui system to handle render vulkan.
+    - check for imgui initialization for input handler to prevent crashing.
     - This wrapper from imgui to cimgui for c++ wrapper to c.
-    - hard code world context variable
+    - hard code world context variable.
 
 - Freetype Render Text font "Hello World"
   - module for set up and render.
@@ -69,8 +73,9 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - Custom logging system using Flecs, still under development.
         
 - Planned Features:
-    - Cube rendering.
-    - Texture support.
+    - network
+    - luajit
+    - 
         
 # Requirements:
 - CMake: For building the project.
@@ -150,6 +155,7 @@ bash
 ```bash
 build.bat
 ```
+  This script handle config and compile application as well check if library for dll exist not to recompile dlls again. It reused dlls to save time compile the applicaiton.
 
 ## Running:
 
@@ -219,6 +225,7 @@ endlocal
   This is for shader header file load application instead load from current directory file.
 
 # Notes:
+- Resize window will error on zero either height or width for vulkan layers.
 - Hardcoding:
   - world context modules
 - ImGui elements work in progress for debug 

@@ -7,6 +7,12 @@
 # Design:
   To point out the area needed to setup.
 
+# CMakeLists build:
+  This script will handle config and build.
+
+  This will check if libaray dll exist to not rebuild dll. If not exist rebuild or compile new dll.
+
+
 # Flecs refs:
 * https://www.flecs.dev/flecs/log_8h_source.html#l00376
  * ECS_INTERNAL_ERROR 
