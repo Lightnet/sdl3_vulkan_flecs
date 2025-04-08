@@ -1,21 +1,27 @@
 
+
+# Main test
+
 ```c
   while (!ctx->shouldQuit) {
-      SDL_Event event;
-      while (SDL_PollEvent(&event)) {
-          if (ctx->isImGuiInitialized) {
-            //ecs_print(1,"imgui input");
-              ImGui_ImplSDL3_ProcessEvent(&event);
-          }
-          if (event.type == SDL_EVENT_QUIT) {
-              ecs_print(1, "Quit event received");
-              ctx->shouldQuit = true;
-          }
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (ctx->isImGuiInitialized) {
+        //ecs_print(1,"imgui input");
+        ImGui_ImplSDL3_ProcessEvent(&event);
       }
-      ecs_progress(world, 0);
+      if (event.type == SDL_EVENT_QUIT) {
+        ecs_print(1, "Quit event received");
+        ctx->shouldQuit = true;
+      }
+    }
+    ecs_progress(world, 0);
   }
 ```
+
+
  * https://www.flecs.dev/flecs/group__c__addons__pipeline.html#ga46f3f33d48f252fcc510450aebe8c187
+ 
 ```c
 #include <SDL3/SDL.h>
 #include <stdio.h>

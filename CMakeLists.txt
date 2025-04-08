@@ -55,8 +55,6 @@ if(WIN32)
   endif()
 endif()
 
-
-
 # CPMAddPackage(
 #     NAME VMA
 #     GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
@@ -74,7 +72,6 @@ CPMAddPackage(
     GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers
     GIT_TAG vulkan-sdk-1.4.304.1
 )
-
 
 if(WIN32)
   set(flecs_DLL_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/flecs.dll")
@@ -104,8 +101,6 @@ if(WIN32)
     )
   endif()
 endif()
-
-
 
 CPMAddPackage(
     NAME freetype
@@ -177,7 +172,6 @@ if (WIN32)
 else(WIN32)
     target_compile_definitions(cimgui_lib PUBLIC "-DIMGUI_IMPL_API=extern \"C\" ")
 endif(WIN32)
-
 
 # Define source and include directories
 set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)

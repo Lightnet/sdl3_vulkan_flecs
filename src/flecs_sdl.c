@@ -32,7 +32,6 @@ void SDLSetUpSystem(ecs_iter_t *it){
 
 }
 
-
 void SDLInputSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;

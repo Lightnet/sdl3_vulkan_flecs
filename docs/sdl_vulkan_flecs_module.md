@@ -1,52 +1,44 @@
 # module
   It would required context to set up the world.
 
-# flecs imgui module:
+# Flecs imgui module:
  * flecs_imgui_module_init
  * flecs_imgui_cleanup
  * ImGuiSetupSystem
- * ImGuiInputSystem
- * ImGuiBeginSystem
- * ImGuiUpdateSystem
- * ImGuiEndSystem
+ * ImGuiCMDBufferSystem
 
-# flecs sdl:
+# Flecs SDL:
  * flecs_sdl_module_init
  * SDLInputSystem
+ * flecs_sdl_cleanup
 
-# flecs types:
-  Most important area for flecs setup context variables
- * WIDTH
- * HEIGHT
- * WorldContext
- * Vertex ( 2D )
+# Flecs Types:
+  Most important area for Flecs setup context variables.
+ * WIDTH (never zero else layer error)
+ * HEIGHT (never zero else layer error)
+ * WorldContext (SDL and Vulkan Handle)
  * FlecsPhases (ecs phase)
- * GlobalPhases
- * flecs_phases_init
+ * GlobalPhases (Flecs handle setup and render phase for global variables.)
+ * flecs_phases_init (setup phase varaible)
 
 ## ECS Phase
   Note that phase need to be in order for setup once and loop.
 
 ### Render:
-```
+```c
 //..
 // Runtime phases (main loop, single flow)
-//phases->LogicUpdatePhase = ecs_new_w_id(world, EcsPhase);
+// phases->LogicUpdatePhase = ecs_new_w_id(world, EcsPhase);
 
 LogicUpdatePhase > EcsDependsOn > EcsPreUpdate
 BeginRenderPhase > EcsDependsOn > LogicUpdatePhase
-BeginGUIPhase > EcsDependsOn > BeginRenderPhase
-UpdateGUIPhase > EcsDependsOn > BeginGUIPhase
-EndGUIPhase > EcsDependsOn > UpdateGUIPhase
-RenderPhase > EcsDependsOn > EndGUIPhase
-BeginCMDBufferPhase > EcsDependsOn > RenderPhase
-EndCMDBufferPhase > EcsDependsOn > BeginCMDBufferPhase
+BeginCMDBufferPhase > EcsDependsOn > BeginRenderPhase
+CMDBufferPhase > EcsDependsOn > BeginCMDBufferPhase
+EndCMDBufferPhase > EcsDependsOn > CMDBufferPhase
 EndRenderPhase > EcsDependsOn > EndCMDBufferPhase
 ```
-  Note need to fixed GUI and CMDBuffer.
 ### On Start:
-  Note this need to start up once in order build for vulkan to work.
-  But there will be custom or triangle setup for need to diplay.
+  Note this need to start up once in order build for vulkan to work. After that done. Example set up triangle mesh by using depend on SetupModulePhase.
 ```
 // Setup phases (single flow, run once under EcsOnStart)
 //phases->InstanceSetupPhase = ecs_new_w_id(world, EcsPhase);
@@ -55,16 +47,15 @@ InstanceSetupPhase > EcsDependsOn > EcsOnStart
 SurfaceSetupPhase > EcsDependsOn > InstanceSetupPhase
 DeviceSetupPhase > EcsDependsOn > SurfaceSetupPhase
 SwapchainSetupPhase > EcsDependsOn > DeviceSetupPhase
-TriangleBufferSetupPhase > EcsDependsOn > SwapchainSetupPhase
-RenderPassSetupPhase > EcsDependsOn > TriangleBufferSetupPhase
+RenderPassSetupPhase > EcsDependsOn > SwapchainSetupPhase
 FramebufferSetupPhase > EcsDependsOn > RenderPassSetupPhase
 CommandPoolSetupPhase > EcsDependsOn > FramebufferSetupPhase
 CommandBufferSetupPhase > EcsDependsOn > CommandPoolSetupPhase
 PipelineSetupPhase > EcsDependsOn > CommandBufferSetupPhase
 SyncSetupPhase > EcsDependsOn > PipelineSetupPhase
-SetupLogicPhase > EcsDependsOn > SyncSetupPhase
+SetupModulePhase > EcsDependsOn > SyncSetupPhase
 ```
-SetupLogicPhase for user to setup like imgui
+SetupModulePhase for user to setup like imgui
 
 # flecs vulkan:
  * flecs_vulkan_module_init

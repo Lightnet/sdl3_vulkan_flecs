@@ -386,7 +386,7 @@ void Texture2DRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  ecs_print(1, "Rendering texture2d on left side");
+  //ecs_print(1, "Rendering texture2d on left side");
   vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->texture2dPipeline);
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->texture2dVertexBuffer, offsets);
