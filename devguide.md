@@ -12,7 +12,6 @@
 
   This will check if libaray dll exist to not rebuild dll. If not exist rebuild or compile new dll.
 
-
 # Flecs refs:
 * https://www.flecs.dev/flecs/log_8h_source.html#l00376
  * ECS_INTERNAL_ERROR 
@@ -40,10 +39,26 @@
 
   Work in progress.
 
-  There are still some hard code on world context variable. Reason is the flecs struct component has not been added to as entity yet. As there some need to correct way to handle entity id system.
+  There are still some hard code on world context variables. Reason is the vulkan needed to be test for setup and render correctly. Flecs struct component has not been added to as entity yet. As there some need to correct way to handle entity id system.
 
-  Vulkan and SDL setup variable. Flecs component is not added yet as to develop and test those shaders for mesh and texture needed to be tested.
+  Vulkan and SDL setup variable have world context for easy access from flecs without needs of component. It might change later depend on the way code correctly.
 
+  Flecs have predfine phase that being used for on Start and Pre Update phase.
+
+  The setup module phase is SetupModulePhase when vulkan graphic finished setup.
+
+```c
+ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { 
+        .name = "Name_SetupSystem", 
+        .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) 
+    }),
+    .callback = Name_SetupSystem
+});
+```
+
+## Module World Context:
+  Those are hard code and later remove for flecs component build.
 ```c
 // Vulkan Core
   SDL_Window *window;                          // SDL Window
@@ -114,10 +129,34 @@
   bool isImGuiInitialized;                     // ImGui initialization flag
 ```
 
-Note I missing some variable but it those ideas base on AI model build and refs. As it still need to use vulkan ref variable to access different area.
+Note missing some variables but it those ideas base on AI model build and refs. As it still need to use vulkan ref variables to access different area.
 
 # Set Up Phase:
   Note that it need to setup in order to on start and loop render.
+```c
+typedef struct {
+  // loop order render
+  ecs_entity_t LogicUpdatePhase;
+  ecs_entity_t BeginRenderPhase;
+  ecs_entity_t BeginCMDBufferPhase;
+  ecs_entity_t CMDBufferPhase;
+  ecs_entity_t EndCMDBufferPhase;
+  ecs_entity_t EndRenderPhase;
+  // setup once
+  ecs_entity_t SetupPhase;
+  ecs_entity_t InstanceSetupPhase;
+  ecs_entity_t SurfaceSetupPhase;
+  ecs_entity_t DeviceSetupPhase;
+  ecs_entity_t SwapchainSetupPhase;
+  ecs_entity_t RenderPassSetupPhase;    
+  ecs_entity_t FramebufferSetupPhase;   
+  ecs_entity_t CommandPoolSetupPhase;   
+  ecs_entity_t CommandBufferSetupPhase; 
+  ecs_entity_t PipelineSetupPhase;      
+  ecs_entity_t SyncSetupPhase;
+  ecs_entity_t SetupModulePhase;
+} FlecsPhases;
+```
 
 ## On Start Phase (Vulkan)
   It use EcsDependsOn on the call once start. Only use single EcsDependsOn.
