@@ -47,38 +47,38 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - ImGui module for UI.
     - Easy addition/removal of modules for debugging and configuration.
 
-- SDL 3.x
+- SDL 3.x (added)
     - resize window and vulkan swap render resize
     - need resize module call for event.
 
-- Vulkan
+- Vulkan (added)
     - resize viewport
     - 
 
-- Simple Triangle:
+- Simple Triangle: (added)
     - made into command buffer triangle system to handle render vulkan
     - module set up and render
     - hard code world context variable
     - resize not added
         
-- ImGui Integration:
+- ImGui Integration: (added)
     - made into command buffer imgui system to handle render vulkan.
     - check for imgui initialization for input handler to prevent crashing.
     - This wrapper from imgui to cimgui for c++ wrapper to c.
     - hard code world context variable.
     - resize added around ways
 
-- Freetype Render Text font "Hello World"
+- Freetype Render Text font "Hello World" (added)
   - module for set up and render.
   - hard code world context variable
   - resize added
 
-- Cube Mesh
+- Cube Mesh (not added)
   - module
-  - resize not added
+  - resize
   
-- Texture 2D
-  - module
+- Texture 2D (added)
+  - module (added)
   - resize not added
         
 - Flecs:
@@ -105,6 +105,7 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - [Flecs 4.0.5](https://github.com/SanderMertens/flecs): Entity Component System.
     - [cimgui](https://github.com/cimgui/cimgui) render graphic user interface.
     - [FreeType 2.13.3](https://github.com/freetype/freetype): Font rendering.
+    - [stb](https://github.com/nothings/stb): stb_image.h
         
 - Planned/Not Yet Added:
     - [VulkanMemoryAllocator 3.2.1](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Memory management.

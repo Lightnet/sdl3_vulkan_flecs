@@ -91,6 +91,22 @@ typedef struct {
   VkDescriptorPool imguiDescriptorPool;        // ImGui descriptor pool
   ImGuiContext* imguiContext;                  // ImGui context
   bool isImGuiInitialized;                     // ImGui initialization flag
+
+  // Texture2D
+  VkBuffer texture2dVertexBuffer;
+  VkDeviceMemory texture2dVertexBufferMemory;
+  VkBuffer texture2dIndexBuffer;
+  VkDeviceMemory texture2dIndexBufferMemory;
+  VkDescriptorPool texture2dDescriptorPool;
+  VkDescriptorSet texture2dDescriptorSet;
+  VkDescriptorSetLayout texture2dDescriptorSetLayout;
+  VkPipelineLayout texture2dPipelineLayout;
+  VkPipeline texture2dPipeline;
+  VkImage texture2dImage;
+  VkDeviceMemory texture2dImageMemory;
+  VkImageView texture2dImageView;
+  VkSampler texture2dSampler;
+
 } WorldContext;
 
 typedef struct {

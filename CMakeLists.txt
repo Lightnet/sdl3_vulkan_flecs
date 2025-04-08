@@ -126,6 +126,14 @@ CPMAddPackage(
     DOWNLOAD_ONLY TRUE
 )
 
+# Add stb_image using CPM
+CPMAddPackage(
+    NAME stb_image
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+    DOWNLOAD_ONLY YES
+)
+
 # Find Vulkan from the system
 find_package(Vulkan REQUIRED)
 
@@ -185,6 +193,7 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_vulkan.c
   ${SOURCE_DIR}/flecs_imgui.c
   ${SOURCE_DIR}/flecs_text.c
+  ${SOURCE_DIR}/flecs_texture2d.c
 )
 
 # Define the executable with all source files
@@ -218,6 +227,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${cimgui_SOURCE_DIR}/imgui/backends
     ${VulkanHeaders_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
+    ${stb_image_SOURCE_DIR}
 )
 
 # # Shader handling
