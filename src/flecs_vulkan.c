@@ -530,7 +530,6 @@ void TriangleBufferSetupSystem(ecs_iter_t *it) {
 }
 
 
-
 void RenderPassSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"RenderPassSetupSystem");
   WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);

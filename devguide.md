@@ -38,158 +38,132 @@ Work in progress.
 
   The reason to store flecs context for easy to access. Need to think different ways. One reason is the mesh data that has three them or more depend on the setup.
 
-vulkan and sdl setup variable.
-```
-SDL_Window *window;
-  VkInstance instance;
-  VkDebugUtilsMessengerEXT debugMessenger;
-  VkSurfaceKHR surface;
-  VkPhysicalDevice physicalDevice;
-  VkDevice device;
-  VkQueue graphicsQueue;
-  VkQueue presentQueue;
-  uint32_t graphicsFamily;            // Added: Graphics queue family index
-  uint32_t presentFamily;             // Added: Present queue family index
-  VkSwapchainKHR swapchain;
-  VkImage *swapchainImages;
-  VkImageView *swapchainImageViews;
-  uint32_t imageCount;
-  VkExtent2D swapchainExtent;
-  VkRenderPass renderPass;
-  VkDescriptorPool descriptorPool;  // New: For ImGui
-  VkPipelineLayout pipelineLayout;
-  VkPipeline graphicsPipeline;
-  VkFramebuffer *framebuffers;
-  VkCommandPool commandPool;
-  VkCommandBuffer commandBuffer;
-  VkSemaphore imageAvailableSemaphore;
-  VkSemaphore renderFinishedSemaphore;
-  VkFence renderFinishedFence;
-  uint32_t imageIndex;
-  VkFence inFlightFence;            
-```
-  flecs, sdl loop exit
-```
-bool shouldQuit;
-bool hasError;
-const char *errorMessage;
-```
+  Vulkan and SDL setup variable.
 
-  Triangle mesh data
 ```c
-VkBuffer vertexBuffer;
-VkDeviceMemory vertexBufferMemory;
-VkDeviceMemory indexBufferMemory;
-VkBuffer indexBuffer;
+// Vulkan Core
+  SDL_Window *window;                          // SDL Window
+  VkInstance instance;                         // Vulkan instance
+  VkDebugUtilsMessengerEXT debugMessenger;     // Vulkan debug messenger
+  VkSurfaceKHR surface;                        // Vulkan surface from SDL
+  VkPhysicalDevice physicalDevice;             // Vulkan physical device
+  VkDevice device;                             // Vulkan logical device
+  VkQueue graphicsQueue;                       // Vulkan graphics queue
+  VkQueue presentQueue;                        // Vulkan present queue
+  uint32_t graphicsFamily;                     // Graphics queue family index
+  uint32_t presentFamily;                      // Present queue family index
+  VkSwapchainKHR swapchain;                    // Vulkan swapchain
+  VkImage *swapchainImages;                    // Vulkan swapchain images
+  VkImageView *swapchainImageViews;            // Vulkan swapchain image views
+  uint32_t imageCount;                         // Number of swapchain images
+  VkExtent2D swapchainExtent;                  // Swapchain dimensions
+  VkRenderPass renderPass;                     // Vulkan render pass (shared)
+  VkFramebuffer *framebuffers;                 // Vulkan framebuffers
+  VkCommandPool commandPool;                   // Vulkan command pool
+  VkCommandBuffer commandBuffer;               // Vulkan command buffer
+  VkSemaphore imageAvailableSemaphore;         // Sync: acquire image
+  VkSemaphore renderFinishedSemaphore;         // Sync: rendering complete
+  VkFence renderFinishedFence;                 // Sync: fence for render completion
+  uint32_t imageIndex;                         // Current swapchain image index
+  VkFence inFlightFence;                       // Sync: fence for frame in flight
+  uint32_t width;                              // Window width (from swapchain)
+  uint32_t height;                             // Window height (from swapchain)
+  bool shouldQuit;                             // SDL quit flag
+  bool hasError;                               // Error flag
+  const char *errorMessage;                    // Error message    
 ```
-
-  Plane mesh data
+  
 ```c
-VkBuffer textVertexBuffer;     // New: For text vertices
-VkDeviceMemory textVertexBufferMemory;  // New: For text vertices
-VkBuffer textIndexBuffer;      // New: For text indices
-VkDeviceMemory textIndexBufferMemory;   // New: For text indices
-```
-Font data
-```c
-VkImage fontImage;                  // New: Font atlas texture
-VkDeviceMemory fontImageMemory;     // New: Font atlas memory
-VkImageView fontImageView;          // New: Font atlas image view
-VkSampler fontSampler;              // New: Sampler for font texture
-VkDescriptorSetLayout textDescriptorSetLayout; // New: For font texture binding
-VkPipelineLayout textPipelineLayout;  // New: Text pipeline layout
-VkPipeline textPipeline;             // New: Text pipeline
-void *glyphs;            // Metrics for ASCII 32-126 (95 characters)
-int atlasWidth, atlasHeight;   // Font atlas dimensions
-```
-imgui
-```
-  ImGuiContext* imguiContext;
-  bool isImGuiInitialized;
+  // Triangle Mesh
+  VkBuffer triVertexBuffer;                    // Triangle vertex buffer
+  VkDeviceMemory triVertexBufferMemory;        // Triangle vertex buffer memory
+  VkBuffer triIndexBuffer;                     // Triangle index buffer
+  VkDeviceMemory triIndexBufferMemory;         // Triangle index buffer memory
+  VkPipelineLayout triPipelineLayout;          // Triangle pipeline layout
+  VkPipeline triGraphicsPipeline;              // Triangle graphics pipeline
 ```
 
 ```c
-VkDescriptorPool descriptorPool;  // New: For ImGui
-VkDescriptorPool textDescriptorPool;     // New: For text system
+// Text Rendering
+  VkBuffer textVertexBuffer;                   // Text vertex buffer
+  VkDeviceMemory textVertexBufferMemory;       // Text vertex buffer memory
+  VkBuffer textIndexBuffer;                    // Text index buffer
+  VkDeviceMemory textIndexBufferMemory;        // Text index buffer memory
+  VkDescriptorPool textDescriptorPool;         // Text descriptor pool
+  VkDescriptorSet textDescriptorSet;           // Text descriptor set
+  VkDescriptorSetLayout textDescriptorSetLayout; // Text descriptor set layout
+  VkPipelineLayout textPipelineLayout;         // Text pipeline layout
+  VkPipeline textPipeline;                     // Text pipeline
+  VkImage textFontImage;                       // Font atlas texture
+  VkDeviceMemory textFontImageMemory;          // Font atlas memory
+  VkImageView textFontImageView;               // Font atlas image view
+  VkSampler textFontSampler;                   // Font texture sampler
+  void *textGlyphs;                            // Metrics for ASCII 32-126
+  int textAtlasWidth;                          // Font atlas width
+  int textAtlasHeight;                         // Font atlas height
 ```
 
-
+```c
+  // ImGui
+  VkDescriptorPool imguiDescriptorPool;        // ImGui descriptor pool
+  ImGuiContext* imguiContext;                  // ImGui context
+  bool isImGuiInitialized;                     // ImGui initialization flag
+```
 
 Note I missing some variable but it those ideas base on AI model build and refs. As it still need to use vulkan ref variable to access different area.
 
 # Font Text:
-  * Work in progres.
+  Work in progres.
 
-#  Set Up Phase:
+ * https://github.com/freetype/freetype
+ * https://freetype.org/freetype2/docs/tutorial/step1.html#section-7
+ 
+
+# Set Up Phase:
   Note that it need to setup in order to on start and loop render.
 
 ## On Start Phase (Vulkan)
   It use EcsDependsOn on the call once start. Only use single EcsDependsOn.
+
 ```
-InstanceSetupPhase
-SurfaceSetupPhase
-DeviceSetupPhase
-SwapchainSetupPhase
-TriangleBufferSetupPhase
-RenderPassSetupPhase
-FramebufferSetupPhase
-CommandPoolSetupPhase
-CommandBufferSetupPhase
-PipelineSetupPhase
-SyncSetupPhase
-SetupLogicPhase
+  - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> TriangleBufferSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> PipelineSetupSystem -> SyncSetupSystem -> SetUpLogicSystem (modules init)
 ```
 
-## loop phase (Vulkan)
-Only use single EcsDependsOn.
-```
-LogicUpdatePhase
-BeginRenderPhase
-BeginGUIPhase
-UpdateGUIPhase
-EndGUIPhase
-RenderPhase
-BeginCMDBufferPhase
-EndCMDBufferPhase
-EndRenderPhase
-```
-  Note the GUIPhase need rework later. Just testing.
-```
-BeginRenderPhase
-BeginCMDBufferPhase
-EndCMDBufferPhase
-```
-  Note this command buffer from begin to end to render.
+## Runtime (per frame)
 
-## triangle 2D mesh:
+```
+- LogicUpdatePhase: (empty for now)
+- BeginRenderPhase: BeginRenderSystem (acquire image)
+- BeginCMDBufferPhase: BeginCMDBufferSystem (start command buffer and render pass)
+- CMDBufferPhase: TriangleRenderBufferSystem -> TextRenderSystem -> ImGuiRenderSystem
+- EndCMDBufferPhase: EndCMDBufferSystem (end render pass and command buffer)
+- EndRenderPhase: EndRenderSystem (submit and present)
+```
 
-### on start
-```
-TriangleBufferSetupPhase
-```
-### render:
-```
-BeginCMDBufferSystem
-//...
-.add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase))
-//...
-```
-BeginCMDBufferSystem > ecs_dependson > BeginCMDBufferPhase
+# triangle 2D mesh:
 
+## On Start
+```
+TriangleBufferSetupSystem
+```
+## Render:
+```
+TriangleRenderBufferSystem > ecs_dependson > BeginCMDBufferPhase
+```
 Note it still need to setup shader as well. frag.spv.h and vert.spv.h
 
 Need to review code area.
 
-## imgui:
+# imgui:
   Note it use vulkan set up to warp into the imgui to create vulkan api.
 
-### on start:
+## On Start:
 ```
 ImGuiSetupSystem > ecs_dependson > SetupLogicPhase
 ```
 Vulkan setup every things when finish call the next SetupLogicPhase.
 
-### on render:
+## On Render:
 ```
 ImGuiCMDBufferSystem > ecs_dependson > BeginCMDBufferPhase
 ```
@@ -199,3 +173,4 @@ ImGuiCMDBufferSystem > ecs_dependson > BeginCMDBufferPhase
  * Grok 3 AI Model
  * SDL 3.x Github
  * Flecs 4.x Github
+
