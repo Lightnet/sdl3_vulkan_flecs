@@ -23,12 +23,39 @@ file(DOWNLOAD
 )
 include(${CMAKE_BINARY_DIR}/CPM_0.40.7.cmake)
 
-# Add dependencies with CPM
-CPMAddPackage(
-    NAME SDL3
-    GITHUB_REPOSITORY libsdl-org/SDL
-    GIT_TAG release-3.2.10
-)
+# SDL3 DLL handling for Windows
+if(WIN32)
+  set(SDL3_DLL_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/SDL3.dll")
+  set(SDL3_LIB_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/SDL3.lib")
+  set(SDL3_INCLUDE_DIR "${SDL3_SOURCE_DIR}/include")
+
+  message(status "SDL 3.x DIR: >> ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/SDL3.dll")
+  message(status "SDL 3.x INCLUDE: >> ${SDL3_SOURCE_DIR}/include")
+
+  # Check if SDL3.dll exists and include path is valid
+  if(EXISTS "${SDL3_DLL_DEST}")
+    message(status " FOUND >>> SDL 3.x ")
+    add_library(SDL3::SDL3 SHARED IMPORTED)
+    set_target_properties(SDL3::SDL3 PROPERTIES
+        IMPORTED_LOCATION "${SDL3_DLL_DEST}"
+        IMPORTED_IMPLIB "${SDL3_LIB_DEST}"
+        INTERFACE_INCLUDE_DIRECTORIES "${SDL3_INCLUDE_DIR}"
+    )
+  endif()
+  if(NOT EXISTS "${SDL3_INCLUDE_DIR}")
+    message(status " NOT FOUND >>> SDL 3.x ")
+    unset(SDL3_ADDED CACHE)  # Force CPM to re-evaluate SDL3
+    # Add dependencies with CPM
+    CPMAddPackage(
+      NAME SDL3
+      GITHUB_REPOSITORY libsdl-org/SDL
+      GIT_TAG release-3.2.10
+      FORCE TRUE
+    )
+  endif()
+endif()
+
+
 
 # CPMAddPackage(
 #     NAME VMA
@@ -48,15 +75,37 @@ CPMAddPackage(
     GIT_TAG vulkan-sdk-1.4.304.1
 )
 
-# flecs
-CPMAddPackage(
-    NAME flecs
-    GITHUB_REPOSITORY SanderMertens/flecs
-    GIT_TAG v4.0.5
-    OPTIONS
-        "FLECS_STATIC OFF"
-        "FLECS_SHARED ON"
-)
+
+if(WIN32)
+  set(flecs_DLL_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/flecs.dll")
+  set(flecs_LIB_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/flecs.lib")
+  set(flecs_INCLUDE_DIR "${flecs_SOURCE_DIR}/include")
+
+  # flecs
+  if(EXISTS "${flecs_DLL_DEST}")
+    message(status " FOUND >>> flecs 4.x ")
+    message(status " flecs include dir >> ${flecs_SOURCE_DIR}/include ")
+    add_library(flecs SHARED IMPORTED)
+    set_target_properties(flecs PROPERTIES
+        IMPORTED_LOCATION "${flecs_DLL_DEST}"
+        IMPORTED_IMPLIB "${flecs_LIB_DEST}"
+        INTERFACE_INCLUDE_DIRECTORIES "${flecs_INCLUDE_DIR}"
+    )
+  endif()
+  if(NOT EXISTS "${flecs_DLL_DEST}")
+    message(status " NOT FOUND >>> flecs 4.x ")
+    CPMAddPackage(
+        NAME flecs
+        GITHUB_REPOSITORY SanderMertens/flecs
+        GIT_TAG v4.0.5
+        OPTIONS
+            "FLECS_STATIC OFF"
+            "FLECS_SHARED ON"
+    )
+  endif()
+endif()
+
+
 
 CPMAddPackage(
     NAME freetype
@@ -126,29 +175,24 @@ endif(WIN32)
 set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 
-# set(SRC_FILES
-#   ${SOURCE_DIR}/vsdl_init.c
-#   ${SOURCE_DIR}/vsdl_renderer.c
-#   ${SOURCE_DIR}/vsdl_mesh.c
-#   ${SOURCE_DIR}/vsdl_pipeline.c
-#   ${SOURCE_DIR}/vsdl_cleanup.c
-#   ${SOURCE_DIR}/vsdl_cimgui.c
-#   ${SOURCE_DIR}/vsdl_text.c
-#   ${SOURCE_DIR}/vsdl_utils.c
-#   ${SOURCE_DIR}/vma_impl.cpp
-# )
+if(NOT EXISTS "${SOURCE_DIR}")
+    message(FATAL_ERROR "Source directory '${SOURCE_DIR}' does not exist. Please create it and add your source files.")
+endif()
 
-# Define the executable with all source files
-add_executable(${PROJECT_NAME}
-  ${SOURCE_DIR}/main.c
+set(SRC_FILES
   ${SOURCE_DIR}/flecs_types.c
   ${SOURCE_DIR}/flecs_sdl.c
   ${SOURCE_DIR}/flecs_vulkan.c
   ${SOURCE_DIR}/flecs_imgui.c
   ${SOURCE_DIR}/flecs_text.c
-  # ${SRC_FILES}
 )
 
+# Define the executable with all source files
+add_executable(${PROJECT_NAME}
+  ${SOURCE_DIR}/main.c
+  ${SRC_FILES}
+)
+# raylib config
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     -DCIMGUI_DEFINE_ENUMS_AND_STRUCTS
     -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS=1
@@ -159,7 +203,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     Vulkan::Vulkan
     flecs
-    # volk
     freetype
     # cimgui
     cimgui_lib
@@ -170,7 +213,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${INCLUDE_DIR}
     ${SDL3_SOURCE_DIR}/include
     # ${VMA_SOURCE_DIR}/include
-    # ${volk_SOURCE_DIR}
     ${cimgui_SOURCE_DIR}
     ${cimgui_SOURCE_DIR}/imgui
     ${cimgui_SOURCE_DIR}/imgui/backends
