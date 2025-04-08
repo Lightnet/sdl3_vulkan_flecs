@@ -258,6 +258,7 @@ endlocal
 # Images:
 
 ![Triangle Render](screenshots/image01.png)
+![Triangle Render](screenshots/image02.png)
 
 # Credits:
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
