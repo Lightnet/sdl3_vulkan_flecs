@@ -45,6 +45,7 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 
 - Window 
     - resize window and vulkan swap render resize
+    - need resize module call for event.
 
 - Simple Triangle:
     - made into command buffer triangle system to handle render vulkan
@@ -228,6 +229,8 @@ endlocal
 - Resize window will error on zero either height or width for vulkan layers.
 - Hardcoding:
   - world context modules
+  - resize for imgui
+  - ...
 - ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
 - Logging: Flecs-based logging is a work in progress and may be incomplete.

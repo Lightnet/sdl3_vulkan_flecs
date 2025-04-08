@@ -1,6 +1,5 @@
 ```c
 
-
 typedef struct {
   // Vulkan Core
   SDL_Window *window;                          // SDL Window
@@ -64,6 +63,4 @@ typedef struct {
   ImGuiContext* imguiContext;                  // ImGui context
   bool isImGuiInitialized;                     // ImGui initialization flag
 } WorldContext;
-
-
 ```

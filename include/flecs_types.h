@@ -107,6 +107,7 @@ typedef struct {
   ecs_entity_t EndCMDBufferPhase;
   ecs_entity_t EndRenderPhase;
   // setup once
+  ecs_entity_t SetupPhase;
   ecs_entity_t InstanceSetupPhase;
   ecs_entity_t SurfaceSetupPhase;
   ecs_entity_t DeviceSetupPhase;

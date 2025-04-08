@@ -24,8 +24,11 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   ecs_add_pair(world, phases->EndRenderPhase, EcsDependsOn, phases->EndCMDBufferPhase);
 
   // Setup phases (single flow, run once under EcsOnStart)
+  phases->SetupPhase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->SetupPhase, EcsDependsOn, EcsOnStart);  // Start of setup chain
+
   phases->InstanceSetupPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->InstanceSetupPhase, EcsDependsOn, EcsOnStart);  // Start of setup chain
+  ecs_add_pair(world, phases->InstanceSetupPhase, EcsDependsOn, phases->SetupPhase);
 
   phases->SurfaceSetupPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SurfaceSetupPhase, EcsDependsOn, phases->InstanceSetupPhase);

@@ -711,8 +711,10 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-  VkViewport viewport = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 1.0f};
-  VkRect2D scissor = {{0, 0}, {WIDTH, HEIGHT}};
+  // VkViewport viewport = {0.0f, 0.0f, (float)WIDTH, (float)HEIGHT, 0.0f, 1.0f};
+  // VkRect2D scissor = {{0, 0}, {WIDTH, HEIGHT}};
+  VkViewport viewport = {0.0f, 0.0f, (float)ctx->width, (float)ctx->height, 0.0f, 1.0f};
+  VkRect2D scissor = {{0, 0}, {ctx->width, ctx->height}};
   
   VkPipelineViewportStateCreateInfo viewportState = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
   viewportState.viewportCount = 1;
@@ -840,7 +842,6 @@ void BeginRenderSystem(ecs_iter_t *it) {
     return;
   }
 }
-
 
 
 void BeginCMDBufferSystem(ecs_iter_t *it) {
@@ -1056,7 +1057,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "Vulkan cleanup completed");
 }
 
-
+// resize window and vulkan destory image
 static void cleanupSwapchain(WorldContext *ctx) {
   vkDeviceWaitIdle(ctx->device);
 
@@ -1082,6 +1083,8 @@ static void cleanupSwapchain(WorldContext *ctx) {
   ctx->swapchain = VK_NULL_HANDLE;
 }
 
+// resize window and vulkan create image
+// imgui resize
 static void recreateSwapchain(WorldContext *ctx) {
   if (!ctx->device || !ctx->surface) return;
 
@@ -1212,6 +1215,7 @@ static void recreateSwapchain(WorldContext *ctx) {
   ecs_print(1, "Swapchain recreated successfully: %dx%d", ctx->width, ctx->height);
 }
 
+// resize window when SDL input handle
 void SwapchainRecreationSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
@@ -1222,8 +1226,6 @@ void SwapchainRecreationSystem(ecs_iter_t *it) {
 }
 
 
-
-
 void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "init vulkan module");
 
@@ -1231,7 +1233,7 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
   // VULKAN SETUP
   //=====================================
 
-  // Setup systems (unchanged)
+  // Setup systems (once start up)
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) }),
       .callback = InstanceSetupSystem

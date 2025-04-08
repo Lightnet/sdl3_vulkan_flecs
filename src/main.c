@@ -11,62 +11,55 @@
 
 
 int main(int argc, char *argv[]) {
-  printf("init main!\n");
-  fflush(stdout);
+  // printf("init main!\n");
+  // fflush(stdout);
 
-  if(!SDL_Init(SDL_INIT_VIDEO)){
-    SDL_Log( "SDL could not initialize! SDL error: %s\n", SDL_GetError() );
-    return -1;
-  }
+  // if(!SDL_Init(SDL_INIT_VIDEO)){
+  //   SDL_Log( "SDL could not initialize! SDL error: %s\n", SDL_GetError() );
+  //   return -1;
+  // }
 
-  SDL_Window *window = SDL_CreateWindow("Vulkan Triangle with ImGui",
-    WIDTH, 
-    HEIGHT, 
-    SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
-  );
+  // SDL_Window *window = SDL_CreateWindow("Vulkan Triangle with ImGui",
+  //   WIDTH, 
+  //   HEIGHT, 
+  //   SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
+  // );
 
-  if (!window){
-    printf("SDL_CreateWindow fail!\n");
-    SDL_Log( "Window could not be created! SDL error: %s\n", SDL_GetError() );
-    SDL_Quit();
-    return -1;
-  }
+  // if (!window){
+  //   printf("SDL_CreateWindow fail!\n");
+  //   SDL_Log( "Window could not be created! SDL error: %s\n", SDL_GetError() );
+  //   SDL_Quit();
+  //   return -1;
+  // }
   
   ecs_world_t *world = ecs_init();
+  ecs_print(1, "init flecs ...");
   WorldContext *ctx = calloc(1, sizeof(WorldContext));
   if (!ctx) {
       printf("Failed to allocate WorldContext\n");
-      SDL_Quit();
       return -1;
   }
-  ctx->window = window;
-  ctx->needsSwapchainRecreation = false;
-
+  //this must be set for the window size
+  ctx->width = 800;
+  ctx->height = 600;
+  //this need to be load first
   ecs_print(1, "Setting world context...");
   ecs_set_ctx(world, ctx, NULL);
-
+  //this need to be load second for phase for setup and runtime render
   ecs_print(1, "Initializing GlobalPhases...");
   flecs_phases_init(world, &GlobalPhases);
-
   ecs_print(1, "Calling flecs_sdl_module_init...");
-  //SDL Input event
+  // SDL window and Input event 
   flecs_sdl_module_init(world, ctx);
-
+  // Vulkan graphic
   ecs_print(1, "Calling flecs_vulkan_module_init...");
   flecs_vulkan_module_init(world, ctx);
 
   ecs_print(1, "Calling flecs_imgui_module_init...");
   flecs_imgui_module_init(world, ctx);
 
+  ecs_print(1, "Calling flecs_text_module_init...");
   flecs_text_module_init(world, ctx);
-
-  // Add a text entity
-  // ecs_entity_t textEntity = ecs_new(world);
-  // ecs_set(world, textEntity, TextComponent, {
-  //     .text = "Hello, Vulkan!",
-  //     .x = 50.0f,  // Screen space position
-  //     .y = 50.0f
-  // });
 
   ecs_print(1, "Running setup phases...");
   ecs_progress(world, 0);
