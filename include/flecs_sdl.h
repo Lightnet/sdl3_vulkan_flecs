@@ -3,13 +3,12 @@
 
 #include "flecs.h"
 #include "flecs_types.h"
-//#include <SDL3/SDL.h>
-//#include "cimgui.h"         // C ImGui wrapper
-//#include "cimgui_impl.h"    // Implementation helpers
 
+// module
 void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx);
 
 // Systems for SDL
-void SDLInputSystem(ecs_iter_t *it);
+// void SDLInputSystem(ecs_iter_t *it);
+void flecs_sdl_cleanup(WorldContext *ctx);
 
 #endif

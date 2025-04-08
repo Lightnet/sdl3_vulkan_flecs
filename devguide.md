@@ -172,9 +172,9 @@ Need to review code area.
 
 ## On Start:
 ```
-ImGuiSetupSystem > ecs_dependson > SetupLogicPhase
+ImGuiSetupSystem > ecs_dependson > SetupModulePhase
 ```
-Vulkan setup every things when finish call the next SetupLogicPhase.
+Vulkan setup every things when finish call the next SetupModulePhase.
 
 ## On Render:
 ```

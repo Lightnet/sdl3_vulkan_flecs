@@ -56,6 +56,11 @@ void SDLInputSystem(ecs_iter_t *it) {
   }
 }
 
+void flecs_sdl_cleanup(WorldContext *ctx){
+  SDL_DestroyWindow(ctx->window);
+  SDL_Quit();
+}
+
 void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "Initializing SDL module...");
 

@@ -118,7 +118,7 @@ typedef struct {
   ecs_entity_t CommandBufferSetupPhase; 
   ecs_entity_t PipelineSetupPhase;      
   ecs_entity_t SyncSetupPhase;
-  ecs_entity_t SetupLogicPhase;
+  ecs_entity_t SetupModulePhase;
 } FlecsPhases;
 
 extern FlecsPhases GlobalPhases;

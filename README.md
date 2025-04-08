@@ -1,14 +1,9 @@
 
 # sdl3_vulkan_flecs
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-# Status:
- - Work in progress
- - Added feautures to get vulkan working for simple things to set up and render.
- - No entity added yet need to check set up and render.
-
 # Table of Contents:
+ * [License](#license)
+ * [Status](#status)
  * [Overview](#overview)
  * [Features](#features)
  * [Requirements](#requirements)
@@ -24,13 +19,22 @@
  * [Planned Improvements](#planned-improvements)
  * [Images](#images)
  * [Credits](#credits)
- * [License](#license)
  * [Contributing](#contributing)
+
+# License:
+
+This project is licensed under the MIT License. See LICENSE for details.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+# Status:
+ - Work in progress
+ - Added feautures to get vulkan working for simple things to set up and render.
+ - No entity added yet need to check set up and render.
 
 # Informtion:
 
 A simple Vulkan-based project using SDL3 and Flecs for modular 3D rendering experiments.
-
 
 # Overview:
 
@@ -43,39 +47,49 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - ImGui module for UI.
     - Easy addition/removal of modules for debugging and configuration.
 
-- Window 
+- SDL 3.x
     - resize window and vulkan swap render resize
     - need resize module call for event.
+
+- Vulkan
+    - resize viewport
+    - 
 
 - Simple Triangle:
     - made into command buffer triangle system to handle render vulkan
     - module set up and render
     - hard code world context variable
+    - resize not added
         
 - ImGui Integration:
     - made into command buffer imgui system to handle render vulkan.
     - check for imgui initialization for input handler to prevent crashing.
     - This wrapper from imgui to cimgui for c++ wrapper to c.
     - hard code world context variable.
+    - resize added around ways
 
 - Freetype Render Text font "Hello World"
   - module for set up and render.
   - hard code world context variable
+  - resize added
 
 - Cube Mesh
   - module
-  - 
+  - resize not added
   
 - Texture 2D
   - module
-  - 
+  - resize not added
         
-- Flecs Logging (WIP):
+- Flecs:
     - Custom logging system using Flecs, still under development.
+    - add and remove entity not added for vulkan mesh or vertex buffer
+    - module setup and render are added for SDL and Vulkan as those main build area.
+    - 
         
 - Planned Features:
-    - network
-    - luajit
+    - network libs researching
+    - luajit for entity handle script for off load?
     - 
         
 # Requirements:
@@ -248,10 +262,7 @@ endlocal
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
 - [Kenney Fonts](https://kenney.nl/assets/kenney-fonts): Potential font assets (not yet integrated).
 - https://x.com/i/grok (free tier, help setup build and readme docs)
-
-# License:
-
-This project is licensed under the MIT License. See LICENSE for details.
+- https://bevyengine.org everything into components. Base on how module for window setup idea. 
 
 # Contributing:
 

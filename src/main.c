@@ -11,29 +11,9 @@
 
 
 int main(int argc, char *argv[]) {
-  // printf("init main!\n");
-  // fflush(stdout);
 
-  // if(!SDL_Init(SDL_INIT_VIDEO)){
-  //   SDL_Log( "SDL could not initialize! SDL error: %s\n", SDL_GetError() );
-  //   return -1;
-  // }
-
-  // SDL_Window *window = SDL_CreateWindow("Vulkan Triangle with ImGui",
-  //   WIDTH, 
-  //   HEIGHT, 
-  //   SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
-  // );
-
-  // if (!window){
-  //   printf("SDL_CreateWindow fail!\n");
-  //   SDL_Log( "Window could not be created! SDL error: %s\n", SDL_GetError() );
-  //   SDL_Quit();
-  //   return -1;
-  // }
-  
   ecs_world_t *world = ecs_init();
-  ecs_print(1, "init flecs ...");
+  ecs_print(1, "init main, flecs ...");
   WorldContext *ctx = calloc(1, sizeof(WorldContext));
   if (!ctx) {
       printf("Failed to allocate WorldContext\n");
@@ -49,9 +29,9 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Initializing GlobalPhases...");
   flecs_phases_init(world, &GlobalPhases);
   ecs_print(1, "Calling flecs_sdl_module_init...");
-  // SDL window and Input event 
+  // setup SDL 3.x window and Input event 
   flecs_sdl_module_init(world, ctx);
-  // Vulkan graphic
+  // setup Vulkan graphic
   ecs_print(1, "Calling flecs_vulkan_module_init...");
   flecs_vulkan_module_init(world, ctx);
 
@@ -90,8 +70,7 @@ int main(int argc, char *argv[]) {
   flecs_text_cleanup(ctx); 
   flecs_vulkan_cleanup(world, ctx);
   ecs_fini(world);
-  SDL_DestroyWindow(ctx->window);
-  SDL_Quit();
+  flecs_sdl_cleanup(ctx);
   free(ctx);
   ecs_print(1, "Program exiting");
   return 0;

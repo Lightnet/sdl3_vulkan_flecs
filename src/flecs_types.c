@@ -58,8 +58,8 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   ecs_add_pair(world, phases->SyncSetupPhase, EcsDependsOn, phases->PipelineSetupPhase);
 
   //set up module init atfter.
-  phases->SetupLogicPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->SetupLogicPhase, EcsDependsOn, phases->SyncSetupPhase);
+  phases->SetupModulePhase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->SetupModulePhase, EcsDependsOn, phases->SyncSetupPhase);
 
 }
 

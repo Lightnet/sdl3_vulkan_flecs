@@ -219,7 +219,7 @@ void flecs_imgui_module_init(ecs_world_t *world, WorldContext *ctx) {
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { 
             .name = "ImGui_SetupSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.SetupLogicPhase)) 
+            .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) 
         }),
         .callback = ImGuiSetupSystem
     });
