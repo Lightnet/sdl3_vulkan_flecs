@@ -3,12 +3,11 @@
 #include "flecs_vulkan.h"
 #include "flecs.h"
 
-#include "vert.spv.h"
-#include "frag.spv.h"
+#include "shaders/shader2d_vert.spv.h"
+#include "shaders/shader2d_frag.spv.h"
 
-#define WIDTH 800
-#define HEIGHT 600
-
+// #define WIDTH 800
+// #define HEIGHT 600
 
 VkShaderModule createShaderModule(VkDevice device, const uint32_t* code, size_t codeSize) {
   VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
@@ -662,11 +661,11 @@ void PipelineSetupSystem(ecs_iter_t *it) {
   }
 
   // Calculate the number of uint32_t elements in each array
-  size_t vertSpvSize = sizeof(vert_spv) / sizeof(vert_spv[0]);
-  size_t fragSpvSize = sizeof(frag_spv) / sizeof(frag_spv[0]);
+  size_t vertSpvSize = sizeof(shader2d_vert_spv) / sizeof(shader2d_vert_spv[0]);
+  size_t fragSpvSize = sizeof(shader2d_frag_spv) / sizeof(shader2d_frag_spv[0]);
 
-  VkShaderModule vertShaderModule = createShaderModule(ctx->device, vert_spv, vertSpvSize);
-  VkShaderModule fragShaderModule = createShaderModule(ctx->device, frag_spv, fragSpvSize);
+  VkShaderModule vertShaderModule = createShaderModule(ctx->device, shader2d_vert_spv, vertSpvSize);
+  VkShaderModule fragShaderModule = createShaderModule(ctx->device, shader2d_frag_spv, fragSpvSize);
   if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
       ecs_err("Failed to create shader modules");
       ctx->hasError = true;

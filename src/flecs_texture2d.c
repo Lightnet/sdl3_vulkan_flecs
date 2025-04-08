@@ -2,8 +2,8 @@
 #include <flecs.h>
 #include <vulkan/vulkan.h>
 #include <string.h>
-#include "texture2d_vert.spv.h"
-#include "texture2d_frag.spv.h"
+#include "shaders/texture2d_vert.spv.h"
+#include "shaders/texture2d_frag.spv.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"

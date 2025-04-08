@@ -1,8 +1,8 @@
 #include "flecs_text.h"
 #include <flecs.h>
 #include <string.h>
-#include "text_vert.spv.h"
-#include "text_frag.spv.h"
+#include "shaders/text_vert.spv.h"
+#include "shaders/text_frag.spv.h"
 
 typedef struct {
     float pos[2];    // 2D position
