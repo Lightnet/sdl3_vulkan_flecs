@@ -35,14 +35,16 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_vulkan_module_init...");
   flecs_vulkan_module_init(world, ctx);
 
+  ecs_print(1, "Calling flecs_texture2d_module_init...");
+  flecs_texture2d_module_init(world, ctx);
+
   ecs_print(1, "Calling flecs_imgui_module_init...");
   flecs_imgui_module_init(world, ctx);
 
   ecs_print(1, "Calling flecs_text_module_init...");
   flecs_text_module_init(world, ctx);
 
-  ecs_print(1, "Calling flecs_texture2d_module_init...");
-  flecs_texture2d_module_init(world, ctx);
+  
 
   ecs_print(1, "Running setup phases...");
   ecs_progress(world, 0);
