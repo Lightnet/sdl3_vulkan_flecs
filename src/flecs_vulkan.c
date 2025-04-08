@@ -1086,10 +1086,17 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
       .entity = ecs_entity(world, { .name = "SwapchainSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SwapchainSetupPhase)) }),
       .callback = SwapchainSetupSystem
   });
+
+  //tri mesh setup
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "TriangleBufferSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.TriangleBufferSetupPhase)) }),
+      .entity = ecs_entity(world, { 
+        .name = "TriangleBufferSetupSystem",
+        .add = ecs_ids(ecs_dependson(GlobalPhases.SetupLogicPhase)) 
+      }),
       .callback = TriangleBufferSetupSystem
   });
+
+
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "RenderPassSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.RenderPassSetupPhase)) }),
       .callback = RenderPassSetupSystem

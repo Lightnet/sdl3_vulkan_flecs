@@ -36,11 +36,8 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   phases->SwapchainSetupPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SwapchainSetupPhase, EcsDependsOn, phases->DeviceSetupPhase);
 
-  phases->TriangleBufferSetupPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->TriangleBufferSetupPhase, EcsDependsOn, phases->SwapchainSetupPhase);
-
   phases->RenderPassSetupPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->RenderPassSetupPhase, EcsDependsOn, phases->TriangleBufferSetupPhase);
+  ecs_add_pair(world, phases->RenderPassSetupPhase, EcsDependsOn, phases->SwapchainSetupPhase);
 
   phases->FramebufferSetupPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->FramebufferSetupPhase, EcsDependsOn, phases->RenderPassSetupPhase);  // Single dependency
@@ -57,9 +54,9 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   phases->SyncSetupPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SyncSetupPhase, EcsDependsOn, phases->PipelineSetupPhase);
 
+  //set up module init atfter.
   phases->SetupLogicPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SetupLogicPhase, EcsDependsOn, phases->SyncSetupPhase);
 
 }
-
 

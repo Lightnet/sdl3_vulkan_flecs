@@ -54,6 +54,14 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 - Freetype Render Text font "Hello World"
   - module for set up and render.
   - hard code world context variable
+
+- Cube Mesh
+  - module
+  - 
+  
+- Texture 2D
+  - module
+  - 
         
 - Flecs Logging (WIP):
     - Custom logging system using Flecs, still under development.
@@ -85,7 +93,7 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 - Removed:
     - [Volk 1.4.304](https://github.com/zeux/volk): Replaced with direct Vulkan headers.
 
-## Project Structure:
+# Project Structure:
 
 ```text
 sdl3_vulkan_flecs/
@@ -163,7 +171,7 @@ The project uses a modular approach to simplify development:
 ### Vulkan Set Up and Render Flow:
 - Setup (once):
     
-    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> TriangleBufferSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> PipelineSetupSystem -> SyncSetupSystem -> SetUpLogicSystem (modules init)
+    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> PipelineSetupSystem -> SyncSetupSystem -> SetUpLogicSystem (modules init)
         
 - Runtime (per frame):
     - LogicUpdatePhase: (empty for now)
@@ -208,31 +216,31 @@ endlocal
 ```
   This is for shader header file load application instead load from current directory file.
 
-## Notes:
+# Notes:
 - Hardcoding:
   - world context modules
 - ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
 - Logging: Flecs-based logging is a work in progress and may be incomplete.
 
-## Planned Improvements:
+# Planned Improvements:
 - Replace hardcoded elements with dynamic systems.
 - Add VulkanMemoryAllocator for better memory management.
 - Implement cube rendering and textures
 
-## Images:
+# Images:
 
 ![Triangle Render](screenshots/image01.png)
 
-## Credits:
+# Credits:
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
 - [Kenney Fonts](https://kenney.nl/assets/kenney-fonts): Potential font assets (not yet integrated).
 - https://x.com/i/grok (free tier, help setup build and readme docs)
 
-## License:
+# License:
 
 This project is licensed under the MIT License. See LICENSE for details.
 
-## Contributing:
+# Contributing:
 
 Feel free to fork, submit issues, or send pull requests! This is an experimental project, and contributions are welcome.

@@ -110,7 +110,6 @@ typedef struct {
   ecs_entity_t SurfaceSetupPhase;
   ecs_entity_t DeviceSetupPhase;
   ecs_entity_t SwapchainSetupPhase;
-  ecs_entity_t TriangleBufferSetupPhase;
   ecs_entity_t RenderPassSetupPhase;    
   ecs_entity_t FramebufferSetupPhase;   
   ecs_entity_t CommandPoolSetupPhase;   
