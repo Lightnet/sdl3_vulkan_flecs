@@ -3,25 +3,6 @@
 #include "flecs_vulkan.h"
 #include "flecs.h"
 
-// #include "shaders/shader2d_vert.spv.h"
-// #include "shaders/shader2d_frag.spv.h"
-
-// #define WIDTH 800
-// #define HEIGHT 600
-
-// VkShaderModule createShaderModule(VkDevice device, const uint32_t* code, size_t codeSize) {
-//   VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-//   createInfo.codeSize = codeSize * sizeof(uint32_t);  // Size in bytes (uint32_t is 4 bytes)
-//   createInfo.pCode = code;
-//   VkShaderModule module;
-//   if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-//       ecs_err("Failed to create shader module");
-//       return VK_NULL_HANDLE;
-//   }
-//   return module;
-// }
-
-
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   VkDebugUtilsMessageSeverityFlagBitsEXT severity,
   VkDebugUtilsMessageTypeFlagsEXT type,
@@ -689,7 +670,6 @@ void EndRenderSystem(ecs_iter_t *it) {
 
   // ecs_print(1, "EndRenderSystem completed");
 }
-
 
 
 void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx) {

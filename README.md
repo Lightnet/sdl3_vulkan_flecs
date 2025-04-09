@@ -50,18 +50,37 @@ This project is a testbed for building a modular 3D rendering system using Vulka
 - SDL 3.x (added)
     - resize window and vulkan swap render resize
     - need resize module call for event.
+    - input system
 
-- Vulkan (added)
-    - resize viewport (wip)
-    - 
+- Vulkan Module (added)
+    - Note there still some code example resize window is not reworked.
+    - phase setup required for on start setup and run time order phase.
+    - debugCallback
+    - VK_LAYER_KHRONOS_validation
+    - set up:
+      - InstanceSetupSystem
+      - SurfaceSetupSystem
+      - DeviceSetupSystem
+      - SwapchainSetupSystem
+      - RenderPassSetupSystem
+      - FramebufferSetupSystem
+      - CommandPoolSetupSystem
+      - CommandBufferSetupSystem
+      - SyncSetupSystem
+    - run time render:
+      - BeginRenderSystem
+      - BeginCMDBufferSystem
+      - place holder for module render command buffer
+      - EndCMDBufferSystem
+      - EndRenderSystem
 
 - Simple Triangle: (added)
     - module design
-    - Setup
+    - Setup system
       - Vertex Buffer 
       - VkPipelineShader setup
       - VkPipeline setup
-    - buffer
+    - buffer system
       - commandBuffer render for triangle 2d
     - hard code world context variable
     - resize not added
@@ -200,8 +219,8 @@ The project uses a modular approach to simplify development:
 ### Vulkan Set Up and Render Flow:
 - Setup (once):
     
-    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> PipelineSetupSystem -> SyncSetupSystem -> SetUpLogicSystem (modules init)
-        
+    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> [Pipeline Empty] -> SyncSetupSystem -> SetUpLogicSystem (modules init)
+
 - Runtime (per frame):
     - LogicUpdatePhase: (empty for now)
     - BeginRenderPhase: BeginRenderSystem (acquire image)
@@ -209,6 +228,8 @@ The project uses a modular approach to simplify development:
     - CMDBufferPhase: TriangleRenderBufferSystem -> TextRenderSystem -> ImGuiRenderSystem
     - EndCMDBufferPhase: EndCMDBufferSystem (end render pass and command buffer)
     - EndRenderPhase: EndRenderSystem (submit and present)
+
+  This is minimal setup for vulkan to run correctly.
 
 ## Shaders:
 - Shaders are written in GLSL and compiled to SPIR-V using the Vulkan SDK’s glslangValidator.
@@ -220,30 +241,9 @@ The project uses a modular approach to simplify development:
 
   Note that space in batch script is sensitive. 
 
-shader.bat
-```
-@echo off 
-set VULKAN_VERSION=1.4.304.1
-set VULKAN_Path=C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe
-echo path "%VULKAN_Path%"
-%VULKAN_Path% -V shaders/shader.vert -o shaders/vert.spv
-%VULKAN_Path% -V shaders/shader.frag -o shaders/frag.spv
-```
-
-shaderh.bat
-```
-@echo off 
-SetLocal
-set VULKAN_VERSION=1.4.304.1
-set VULKAN_Path=C:\VulkanSDK\%VULKAN_VERSION%\Bin\glslangValidator.exe
-echo path "%VULKAN_Path%"
-%VULKAN_Path% -V --vn vert_spv shaders/shader.vert -o shaders/vert.spv.h
-%VULKAN_Path% -V --vn frag_spv shaders/shader.frag -o shaders/frag.spv.h
-%VULKAN_Path% -V --vn text_vert_spv shaders/text.vert -o shaders/text_vert.spv.h
-%VULKAN_Path% -V --vn text_frag_spv shaders/text.frag -o shaders/text_frag.spv.h
-endlocal
-```
-  This is for shader header file load application instead load from current directory file.
+ - shader.bat
+ - shaderh.bat
+    - This is for shader header file load application instead load from current directory file.
 
 # Notes:
 - Resize window will error on zero either height or width for vulkan layers.
