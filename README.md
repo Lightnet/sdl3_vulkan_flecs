@@ -73,13 +73,13 @@ This project is a testbed for building a modular 3D rendering system using Vulka
   - hard code world context variable
   - resize added
 
-- Cube Mesh (not added)
-  - module
-  - resize
+- Cube Mesh (added)
+  - module (added)
+  - resize (not added)
   
 - Texture 2D (added)
   - module (added)
-  - resize not added
+  - resize (not added)
         
 - Flecs:
     - Custom logging system using Flecs, still under development.
@@ -259,6 +259,7 @@ endlocal
 
 ![Triangle Render](screenshots/image01.png)
 ![Triangle Render](screenshots/image02.png)
+![Triangle Render](screenshots/image03.png)
 
 # Credits:
 - [Vulkan Tutorial](https://vulkan-tutorial.com): Inspiration and guidance for Vulkan setup.
