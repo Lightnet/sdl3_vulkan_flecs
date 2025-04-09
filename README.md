@@ -52,12 +52,17 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - need resize module call for event.
 
 - Vulkan (added)
-    - resize viewport
+    - resize viewport (wip)
     - 
 
 - Simple Triangle: (added)
-    - made into command buffer triangle system to handle render vulkan
-    - module set up and render
+    - module design
+    - Setup
+      - Vertex Buffer 
+      - VkPipelineShader setup
+      - VkPipeline setup
+    - buffer
+      - commandBuffer render for triangle 2d
     - hard code world context variable
     - resize not added
         

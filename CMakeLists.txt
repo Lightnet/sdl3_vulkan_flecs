@@ -204,6 +204,7 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_text.c
   ${SOURCE_DIR}/flecs_texture2d.c
   ${SOURCE_DIR}/flecs_cube3d.c
+  ${SOURCE_DIR}/flecs_triangle2d.c
 )
 
 # Define the executable with all source files
