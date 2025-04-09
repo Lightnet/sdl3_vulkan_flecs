@@ -208,6 +208,7 @@ void Cube3DSetupSystem(ecs_iter_t *it) {
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+  // rasterizer.cullMode = VK_CULL_MODE_NONE;
   rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
   VkPipelineMultisampleStateCreateInfo multisampling = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
@@ -270,59 +271,39 @@ void Cube3DRenderSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
 
-  // Update uniform buffer with spinning cube
-  static float angleX = 0.0f; // Rotation around X-axis (tilts top/bottom)
-  static float angleY = 0.0f; // Rotation around Y-axis (spins left/right)
-  angleX += 0.01f; // Adjust speed as needed
-  angleY += 0.02f; // Different speed for variety
+  // Update uniform buffer with rightward spin
+  static float angleY = 0.0f; // Rotation around Y-axis (spins right)
+  angleY += 0.02f; // Positive increment for clockwise spin (rightward)
 
   UniformBufferObject ubo = {0};
 
-  // Model matrix: Combine X and Y rotations
-  float cosX = cosf(angleX), sinX = sinf(angleX);
+  // Model matrix: Rotate around Y-axis only
   float cosY = cosf(angleY), sinY = sinf(angleY);
+  ubo.model[0] = cosY;   // X-axis component
+  ubo.model[2] = sinY;   // Z-axis component (rightward motion)
+  ubo.model[5] = 1.0f;   // Y-axis unchanged
+  ubo.model[8] = -sinY;  // Z-axis component (opposite for clockwise)
+  ubo.model[10] = cosY;  // Z-axis component
+  ubo.model[15] = 1.0f;  // W component
 
-  // Rotation around X-axis (tilts top/bottom)
-  float rotX[16] = {
-      1.0f, 0.0f, 0.0f, 0.0f,
-      0.0f, cosX, -sinX, 0.0f,
-      0.0f, sinX, cosX, 0.0f,
-      0.0f, 0.0f, 0.0f, 1.0f
-  };
-
-  // Rotation around Y-axis (spins left/right)
-  float rotY[16] = {
-      cosY, 0.0f, sinY, 0.0f,
-      0.0f, 1.0f, 0.0f, 0.0f,
-      -sinY, 0.0f, cosY, 0.0f,
-      0.0f, 0.0f, 0.0f, 1.0f
-  };
-
-  // Multiply rotY * rotX to get combined rotation
-  for (int i = 0; i < 4; i++) {
-      for (int j = 0; j < 4; j++) {
-          ubo.model[i * 4 + j] = 0.0f;
-          for (int k = 0; k < 4; k++) {
-              ubo.model[i * 4 + j] += rotY[i * 4 + k] * rotX[k * 4 + j];
-          }
-      }
-  }
-
-  // View matrix (camera at (0, 0, -5) looking at origin)
-  ubo.view[0] = 1.0f; ubo.view[5] = 1.0f; ubo.view[10] = 1.0f;
-  ubo.view[14] = -5.0f; // Move camera back to z = -5 (was -2)
+  // View matrix: Camera at (0, 0, -5) looking at (0, 0, 0), up is (0, 1, 0)
+  ubo.view[0] = 1.0f;  // Right: (1, 0, 0)
+  ubo.view[5] = 1.0f;  // Up: (0, 1, 0)
+  ubo.view[10] = 1.0f; // Forward: (0, 0, 1)
+  ubo.view[14] = -5.0f; // Translation: Move back 5 units along Z
   ubo.view[15] = 1.0f;
 
-  // Projection matrix
+  // Projection matrix (adjusted for Vulkan: flip Y to make up positive)
   float aspect = (float)ctx->width / (float)ctx->height;
   float fov = 45.0f * 3.14159f / 180.0f;
   float near = 0.1f, far = 100.0f;
   float tanHalfFov = tanf(fov / 2.0f);
-  ubo.proj[0] = 1.0f / (aspect * tanHalfFov);
-  ubo.proj[5] = 1.0f / tanHalfFov;
-  ubo.proj[10] = -(far + near) / (far - near);
-  ubo.proj[11] = -1.0f;
-  ubo.proj[14] = -(2.0f * far * near) / (far - near);
+  ubo.proj[0] = 1.0f / (aspect * tanHalfFov); // X scaling
+  ubo.proj[5] = -1.0f / tanHalfFov; // Y scaling (flipped for Vulkan)
+  ubo.proj[10] = -(far + near) / (far - near); // Z scaling
+  ubo.proj[11] = -1.0f; // W component for perspective divide
+  ubo.proj[14] = -(2.0f * far * near) / (far - near); // Z translation
+  ubo.proj[15] = 0.0f;
 
   updateBuffer(ctx, ctx->cubeUniformBufferMemory, sizeof(ubo), &ubo);
 
@@ -333,21 +314,24 @@ void Cube3DRenderSystem(ecs_iter_t *it) {
   vkCmdBindIndexBuffer(ctx->commandBuffer, ctx->cubeIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
   vkCmdBindDescriptorSets(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->cubePipelineLayout, 0, 1, &ctx->cubeDescriptorSet, 0, NULL);
 
-  // Full cube rendering (all faces working, no debug needed unless issues persist)
-  vkCmdDrawIndexed(ctx->commandBuffer, 36, 1, 0, 0, 0);
+  vkCmdDrawIndexed(ctx->commandBuffer, 36, 1, 0, 0, 0); // Full cube
 
-  // Debug face rendering (commented out, uncomment if needed)
-  /*
-  vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 0, 0, 0);   // Front
-  vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 6, 0, 0);   // Back
-  vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 12, 0, 0);  // Right
-  vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 18, 0, 0);  // Left
-  vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 24, 0, 0);  // Top
-  vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 30, 0, 0);  // Bottom
-  */
+  // vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 0, 0, 0);   // Front
+  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 6, 0, 0);   // Back
+  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 12, 0, 0);  // Right
+  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 18, 0, 0);  // Left
+  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 24, 0, 0);  // Top
+  // vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 30, 0, 0);  // Bottom
 }
 
 
+
+//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 0, 0, 0);   // Front
+//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 6, 0, 0);   // Back
+//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 12, 0, 0);  // Right
+//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 18, 0, 0);  // Left
+//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 24, 0, 0);  // Top
+//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 30, 0, 0);  // Bottom
 
 
 void flecs_cube3d_cleanup(WorldContext *ctx) {
