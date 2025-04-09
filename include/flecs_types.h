@@ -107,6 +107,19 @@ typedef struct {
   VkImageView texture2dImageView;
   VkSampler texture2dSampler;
 
+   // Cube3D
+   VkBuffer cubeVertexBuffer;
+   VkDeviceMemory cubeVertexBufferMemory;
+   VkBuffer cubeIndexBuffer;
+   VkDeviceMemory cubeIndexBufferMemory;
+   VkBuffer cubeUniformBuffer;
+   VkDeviceMemory cubeUniformBufferMemory;
+   VkDescriptorPool cubeDescriptorPool;
+   VkDescriptorSet cubeDescriptorSet;
+   VkDescriptorSetLayout cubeDescriptorSetLayout;
+   VkPipelineLayout cubePipelineLayout;
+   VkPipeline cubePipeline;
+   
 } WorldContext;
 
 typedef struct {

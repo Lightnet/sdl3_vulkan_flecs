@@ -115,6 +115,21 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
+    NAME mimalloc
+    GITHUB_REPOSITORY microsoft/mimalloc
+    GIT_TAG v2.2.3
+    OPTIONS
+      "MI_BUILD_TESTS OFF"
+      ""
+)
+
+CPMAddPackage(
+    NAME cglm
+    GITHUB_REPOSITORY recp/cglm
+    GIT_TAG v0.9.6
+)
+
+CPMAddPackage(
     NAME cimgui
     GITHUB_REPOSITORY cimgui/cimgui
     GIT_TAG 1.91.9
@@ -188,12 +203,14 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_imgui.c
   ${SOURCE_DIR}/flecs_text.c
   ${SOURCE_DIR}/flecs_texture2d.c
+  ${SOURCE_DIR}/flecs_cube3d.c
 )
 
 # Define the executable with all source files
 add_executable(${PROJECT_NAME}
   ${SOURCE_DIR}/main.c
   ${SRC_FILES}
+  # ${SOURCE_DIR}/test.c
 )
 # raylib config
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -209,6 +226,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     freetype
     # cimgui
     cimgui_lib
+    cglm
+    mimalloc
 )
 
 # Include directories with proper path validation
@@ -222,6 +241,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VulkanHeaders_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
     ${stb_image_SOURCE_DIR}
+
+    ${cglm_SOURCE_DIR}/include
+    ${mimalloc_SOURCE_DIR}/include
 )
 
 # # Shader handling
