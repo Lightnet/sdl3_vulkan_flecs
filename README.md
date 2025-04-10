@@ -303,13 +303,16 @@ ecs_singleton_set(world, Gravity, {.x=0.0f,.y=0.0f});
   To edit or update the varaible there are two ways. One is query and other is ecs_singleton_ensure(world, name id)
 
 ```c
+void TestSystem(ecs_iter_t *it){
 Gravity *g = ecs_singleton_ensure(it->world, Gravity);
 ```
   This will update the variable
 
   Another way is query. Required some more setup.
 ```c
+void TestSystem(ecs_iter_t *it){
 Gravity *g = ecs_field(it, Gravity, 0); // zero index in .query.terms
+//...
 ```
 ```c
 ecs_system(world, {
