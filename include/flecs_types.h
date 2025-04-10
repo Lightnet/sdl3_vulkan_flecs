@@ -1,14 +1,14 @@
 #ifndef FLECS_TYPES_H
 #define FLECS_TYPES_H
 
-#include <SDL3/SDL.h>       //SDL 3.x
-#include <SDL3/SDL_vulkan.h>//SDL 3.x
+#include <SDL3/SDL.h>           //SDL 3.x
+#include <SDL3/SDL_vulkan.h>    //SDL 3.x
 #include <vulkan/vulkan.h>
-#include "flecs.h"          // flecs v4.x
-#include "cimgui.h"         // C ImGui wrapper
-#include "cimgui_impl.h"    // Implementation helpers
-#include <ft2build.h>       // freetype
-#include FT_FREETYPE_H      // freetype
+#include "flecs.h"              // flecs v4.x
+#include "cimgui.h"             // C ImGui wrapper
+#include "cimgui_impl.h"        // Implementation helpers
+#include <ft2build.h>           // freetype
+#include FT_FREETYPE_H          // freetype
 
 #define WIDTH 800
 #define HEIGHT 600
@@ -119,6 +119,23 @@ typedef struct {
   VkDescriptorSetLayout cubeDescriptorSetLayout;
   VkPipelineLayout cubePipelineLayout;
   VkPipeline cubePipeline;
+
+  // CubeTexture3D
+  VkBuffer cubetexture3dVertexBuffer;
+  VkDeviceMemory cubetexture3dVertexBufferMemory;
+  VkBuffer cubetexture3dIndexBuffer;
+  VkDeviceMemory cubetexture3dIndexBufferMemory;
+  VkBuffer cubetexture3dUniformBuffer;
+  VkDeviceMemory cubetexture3dUniformBufferMemory;
+  VkDescriptorPool cubetexture3dDescriptorPool;
+  VkDescriptorSet cubetexture3dDescriptorSet;
+  VkDescriptorSetLayout cubetexture3dDescriptorSetLayout;
+  VkPipelineLayout cubetexture3dPipelineLayout;
+  VkPipeline cubetexture3dPipeline;
+  VkImage cubetexture3dImage;
+  VkDeviceMemory cubetexture3dImageMemory;
+  VkImageView cubetexture3dImageView;
+  VkSampler cubetexture3dSampler;
    
 } WorldContext;
 

@@ -419,7 +419,6 @@ void flecs_texture2d_cleanup(WorldContext *ctx) {
 }
 
 
-
 void flecs_texture2d_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "Initializing texture2d module...");
 
