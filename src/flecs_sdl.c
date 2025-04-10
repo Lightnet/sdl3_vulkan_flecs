@@ -40,6 +40,9 @@ void SDLInputSystem(ecs_iter_t *it) {
   ECS_SDL_INPUT_T *input = ecs_singleton_get(it->world, ECS_SDL_INPUT_T);
   if (!input) return; // Safety check
 
+  bool isMotion = false;
+  bool isWheel = false;
+
   SDL_Event event;
   //for (int i = 0; i < it->count; i ++) {
     while (SDL_PollEvent(&event)) {
@@ -57,8 +60,7 @@ void SDLInputSystem(ecs_iter_t *it) {
         ctx->height = newHeight;
         ctx->needsSwapchainRecreation = true; // Add this flag to WorldContext
       }else if (event.type == SDL_EVENT_KEY_DOWN){
-        if (event.key.key < 128) { // Ensure index is within bounds
-          //input->keys[event.key.key].pressed = true;
+        if (event.key.key < SDL_KEYS_MAX) { // Ensure index is within bounds
           input->keys[event.key.key].pressed = true;
           input->keys[event.key.key].state = true;
           input->keys[event.key.key].current = true;
@@ -69,7 +71,7 @@ void SDLInputSystem(ecs_iter_t *it) {
           ecs_print(1,"KEY A");
         }
       }else if (event.type == SDL_EVENT_KEY_UP){
-        if (event.key.key < 128) { // Ensure index is within bounds
+        if (event.key.key < SDL_KEYS_MAX) { // Ensure index is within bounds
           input->keys[event.key.key].pressed = false;
           input->keys[event.key.key].state = false;
           input->keys[event.key.key].current = false;
@@ -80,14 +82,39 @@ void SDLInputSystem(ecs_iter_t *it) {
           ecs_print(1,"KEY A");
         }
       }else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-        // input->mouse.left.pressed = true;
-        // input->mouse.left.state = true;
-        // input->mouse.left.current = true;
+        input->mouse.left.pressed = true;
+        input->mouse.left.state = true;
+        input->mouse.left.current = true;
       }else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP){
-        // input->mouse.left.pressed = false;
-        // input->mouse.left.state = false;
-        // input->mouse.left.current = false;
+        input->mouse.left.pressed = false;
+        input->mouse.left.state = false;
+        input->mouse.left.current = false;
+      } else if (event.type == SDL_EVENT_MOUSE_MOTION){
+        //https://github.com/libsdl-org/SDL/blob/main/include/SDL3/SDL_events.h
+        ecs_print(1,"event x:%f, y:%f ", event.motion.x, event.motion.y);
+        isMotion = true;
+        input->mouse.rel.pressed = true;
+        input->mouse.rel.state = true;
+        input->mouse.rel.current = true;
+      }else if (event.type == SDL_EVENT_MOUSE_WHEEL){
+        ecs_print(1,"event x:%f, y:%f ", event.wheel.x, event.wheel.y);
+        isWheel = true;
+        input->mouse.scroll.pressed = true;
+        input->mouse.scroll.state = true;
+        input->mouse.scroll.current = true;
       }
+    }
+    // check for mouse motion if not move
+    if(isMotion == false){
+      input->mouse.rel.pressed = false;
+      input->mouse.rel.state = false;
+      input->mouse.rel.current = false;
+    }
+    // wheel scroll if not scroll set to false
+    if(isWheel == false){
+      input->mouse.scroll.pressed = false;
+      input->mouse.scroll.state = false;
+      input->mouse.scroll.current = false;
     }
     ecs_singleton_modified(it->world, ECS_SDL_INPUT_T);
 
@@ -105,8 +132,29 @@ void DebugInputSystem(ecs_iter_t *it) {
   const ECS_SDL_INPUT_T *input = ecs_singleton_get(it->world, ECS_SDL_INPUT_T);
   if (!input) return; // Safety check
 
+  if (input->keys[SDLK_W].state) {
+    ecs_print(1, "W key is held down!");
+  }
+
   if (input->keys[SDLK_A].state) {
     ecs_print(1, "A key is held down!");
+  }
+
+  if (input->keys[SDLK_S].state) {
+    ecs_print(1, "S key is held down!");
+  }
+
+  if (input->keys[SDLK_D].state) {
+    ecs_print(1, "D key is held down!");
+  }
+
+  //move state when in window
+  if (input->mouse.rel.state) {
+    ecs_print(1, "Move State!");
+  }
+
+  if (input->mouse.scroll.state) {
+    ecs_print(1, "Wheel State!");
   }
   // for (int i = 0; i < it->count; i ++) {
   //   if (input[i].keys[SDLK_A].state) {

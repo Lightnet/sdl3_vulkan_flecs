@@ -48,9 +48,20 @@ This project is a testbed for building a modular 3D rendering system using Vulka
     - Easy addition/removal of modules for debugging and configuration.
 
 - SDL 3.x (added)
-    - resize window and vulkan swap render resize
-    - need resize module call for event.
-    - input system
+    - resize window and vulkan swap render resize (work in progress)
+    - need resize module call for event. (work in progress)
+    - clean up call for SDL
+    - input system (work in progress)
+      - keyboard (work in progress)
+        - 278 keys code range max.
+      - mouse
+        - motion state (added)
+          - check if mouse is move state bool (added)
+          - postion
+        - wheel state (added)
+          - check if the wheel is move state bool (added)
+          - x (not added)
+          - y (not added)
 
 - Vulkan Module (added)
     - Note there still some code example resize window is not reworked.
@@ -272,6 +283,3 @@ The project uses a modular approach to simplify development:
 - https://x.com/i/grok (free tier, help setup build and readme docs)
 - https://bevyengine.org everything into components. Base on how module for window setup idea. 
 
-# Contributing:
-
-Feel free to fork, submit issues, or send pull requests! This is an experimental project, and contributions are welcome.

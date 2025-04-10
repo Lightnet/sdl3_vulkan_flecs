@@ -10,6 +10,9 @@
 //   bool current;
 // });
 
+// https://github.com/libsdl-org/SDL/blob/main/include/SDL3/SDL_keycode.h  277
+#define SDL_KEYS_MAX 278
+
 typedef struct {
   bool pressed;
   bool state;
