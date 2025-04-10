@@ -21,12 +21,12 @@
 //   float uvWidth, uvHeight; // UV dimensions
 // } GlyphMetrics;
 
-typedef struct {
-  char *text;           // Text to render
-  float x, y;           // Position in screen space
-} TextComponent;
+// typedef struct {
+//   char *text;           // Text to render
+//   float x, y;           // Position in screen space
+// } TextComponent;
 
-ECS_COMPONENT_DECLARE(TextComponent);
+// ECS_COMPONENT_DECLARE(TextComponent);
 
 typedef struct {
   // Vulkan Core

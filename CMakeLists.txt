@@ -205,13 +205,15 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_texture2d.c
   ${SOURCE_DIR}/flecs_cube3d.c
   ${SOURCE_DIR}/flecs_triangle2d.c
+  ${SOURCE_DIR}/flecs_cubetexture3d.c
 )
 
 # Define the executable with all source files
 add_executable(${PROJECT_NAME}
   ${SOURCE_DIR}/main.c
   ${SRC_FILES}
-  # ${SOURCE_DIR}/test.c
+  # ${CMAKE_SOURCE_DIR}/examples/test.c
+  # ${CMAKE_SOURCE_DIR}/examples/flecs_test.c
 )
 # raylib config
 target_compile_definitions(${PROJECT_NAME} PUBLIC

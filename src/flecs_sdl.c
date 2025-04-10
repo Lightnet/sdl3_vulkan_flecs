@@ -210,7 +210,6 @@ void register_componets(ecs_world_t *world){
   ECS_COMPONENT_DEFINE(world, ECS_SDL_MOUSE_T);
   ECS_COMPONENT_DEFINE(world, ECS_SDL_INPUT_T);
 
-
 }
 
 void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
@@ -219,14 +218,10 @@ void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
   register_componets(world);
 
   // ecs_entity_t sdl_input_entity = ecs_entity(world, { .name = "SDL_INPUT" });
-
   // printf("Entity name: %s\n", ecs_get_name(world, sdl_input_entity));
   // ecs_add(world, sdl_input_entity, ECS_SDL_INPUT_T);
   // ecs_set(world, sdl_input_entity, ECS_SDL_INPUT_T, {0}); // Initialize with zeros
-
-
   ecs_singleton_set(world, ECS_SDL_INPUT_T, {0});
-
 
   ecs_system_init(world, &(ecs_system_desc_t){
     .entity = ecs_entity(world, { 
@@ -250,17 +245,17 @@ void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
   });
 
 
-  ecs_print(1, "DebugInputSystem");
-  ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { 
-          .name = "DebugInputSystem", 
-          .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) 
-      }),
-      // .query.terms = {
-      //   { ecs_id(ECS_SDL_INPUT_T) },
-      // },
-      .callback = DebugInputSystem
-  });
+  // ecs_print(1, "DebugInputSystem");
+  // ecs_system_init(world, &(ecs_system_desc_t){
+  //     .entity = ecs_entity(world, { 
+  //         .name = "DebugInputSystem", 
+  //         .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) 
+  //     }),
+  //     // .query.terms = {
+  //     //   { ecs_id(ECS_SDL_INPUT_T) },
+  //     // },
+  //     .callback = DebugInputSystem
+  // });
 
   ecs_print(1, "SDL module initialized");
 }

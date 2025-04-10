@@ -554,4 +554,3 @@ void flecs_cubetexture3d_module_init(ecs_world_t *world, WorldContext *ctx) {
     ecs_print(1, "CubeTexture3d module initialized");
 }
 
-

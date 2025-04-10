@@ -11,4 +11,7 @@ echo path "%VULKAN_Path%"
 %VULKAN_Path% -V --vn texture2d_frag_spv shaders/texture2d.frag -o include/shaders/texture2d_frag.spv.h
 @REM %VULKAN_Path% -V --vn cube3d_vert_spv shaders/cube3d.vert -o include/shaders/cube3d_vert.spv.h
 @REM %VULKAN_Path% -V --vn cube3d_frag_spv shaders/cube3d.frag -o include/shaders/cube3d_frag.spv.h
+
+@REM %VULKAN_Path% -V --vn cubetexture3d_vert_spv shaders/cubetexture3d.vert -o include/shaders/cubetexture3d_vert.spv.h
+@REM %VULKAN_Path% -V --vn cubetexture3d_frag_spv shaders/cubetexture3d.frag -o include/shaders/cubetexture3d_frag.spv.h
 endlocal

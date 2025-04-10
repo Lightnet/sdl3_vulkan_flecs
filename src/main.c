@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
       ecs_err("Failed to allocate WorldContext");
       return -1;
   }
+
   //this must be set for the window size
   ctx->width = 800;
   ctx->height = 600;
