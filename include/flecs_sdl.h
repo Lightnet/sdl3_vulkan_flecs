@@ -22,6 +22,21 @@ typedef struct {
 //extern ECS_COMPONENT_DECLARE(ECS_SDL_KEY_STATE_T);
 ECS_COMPONENT_DECLARE(ECS_SDL_KEY_STATE_T);
 
+//mouse motion from SDL
+typedef struct {
+  float x;
+  float y;
+  float xrel;
+  float yrel;
+} ECS_SDL_MOTION_T;
+
+//wheel scroll from SDL
+typedef struct {
+  float x;
+  float y;
+} ECS_SDL_WHEEL_T;
+
+
 typedef struct {
   ECS_SDL_KEY_STATE_T left;
   ECS_SDL_KEY_STATE_T right;
@@ -29,6 +44,8 @@ typedef struct {
   ECS_SDL_KEY_STATE_T rel;
   ECS_SDL_KEY_STATE_T view;
   ECS_SDL_KEY_STATE_T scroll;
+  ECS_SDL_WHEEL_T wheel;
+  ECS_SDL_MOTION_T motion;
 } ECS_SDL_MOUSE_T;
 
 ECS_COMPONENT_DECLARE(ECS_SDL_MOUSE_T);

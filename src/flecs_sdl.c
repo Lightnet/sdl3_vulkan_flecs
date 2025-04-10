@@ -82,26 +82,52 @@ void SDLInputSystem(ecs_iter_t *it) {
           ecs_print(1,"KEY A");
         }
       }else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-        input->mouse.left.pressed = true;
-        input->mouse.left.state = true;
-        input->mouse.left.current = true;
+        if (event.button.button == SDL_BUTTON_LEFT){
+          // ecs_print(1,"MOUSE PRESS LEFT");
+          input->mouse.left.pressed = true;
+          input->mouse.left.state = true;
+          input->mouse.left.current = true;
+        }
+        if (event.button.button == SDL_BUTTON_RIGHT){
+          // ecs_print(1,"MOUSE PRESS RIGHT");
+          input->mouse.right.pressed = true;
+          input->mouse.right.state = true;
+          input->mouse.right.current = true;
+        }
+        
       }else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP){
-        input->mouse.left.pressed = false;
-        input->mouse.left.state = false;
-        input->mouse.left.current = false;
+        if (event.button.button == SDL_BUTTON_LEFT){
+          // ecs_print(1,"MOUSE RELEASE LEFT");
+          input->mouse.left.pressed = false;
+          input->mouse.left.state = false;
+          input->mouse.left.current = false;
+        }
+        if (event.button.button == SDL_BUTTON_RIGHT){
+          // ecs_print(1,"MOUSE RELEASE RIGHT");
+          input->mouse.right.pressed = false;
+          input->mouse.right.state = false;
+          input->mouse.right.current = false;
+        }
       } else if (event.type == SDL_EVENT_MOUSE_MOTION){
         //https://github.com/libsdl-org/SDL/blob/main/include/SDL3/SDL_events.h
-        ecs_print(1,"event x:%f, y:%f ", event.motion.x, event.motion.y);
+        // ecs_print(1,"event x:%f, y:%f ", event.motion.x, event.motion.y);
         isMotion = true;
         input->mouse.rel.pressed = true;
         input->mouse.rel.state = true;
         input->mouse.rel.current = true;
+        input->mouse.motion.x = event.motion.x;
+        input->mouse.motion.y = event.motion.y;
+        input->mouse.motion.xrel = event.motion.xrel;
+        input->mouse.motion.yrel = event.motion.yrel;
       }else if (event.type == SDL_EVENT_MOUSE_WHEEL){
-        ecs_print(1,"event x:%f, y:%f ", event.wheel.x, event.wheel.y);
+        // ecs_print(1,"event x:%f, y:%f ", event.wheel.x, event.wheel.y);
         isWheel = true;
         input->mouse.scroll.pressed = true;
         input->mouse.scroll.state = true;
         input->mouse.scroll.current = true;
+
+        input->mouse.wheel.x = event.wheel.x;
+        input->mouse.wheel.y = event.wheel.y;
       }
     }
     // check for mouse motion if not move
@@ -115,6 +141,8 @@ void SDLInputSystem(ecs_iter_t *it) {
       input->mouse.scroll.pressed = false;
       input->mouse.scroll.state = false;
       input->mouse.scroll.current = false;
+      input->mouse.wheel.x = 0; //if not wheel reset to 0
+      input->mouse.wheel.y = 0; //if not wheel reset to 0
     }
     ecs_singleton_modified(it->world, ECS_SDL_INPUT_T);
 
@@ -148,13 +176,21 @@ void DebugInputSystem(ecs_iter_t *it) {
     ecs_print(1, "D key is held down!");
   }
 
+  if (input->mouse.left.state) {
+    ecs_print(1, "Button Left");
+  }
+
+  if (input->mouse.right.state) {
+    ecs_print(1, "Button Right");
+  }
+
   //move state when in window
   if (input->mouse.rel.state) {
-    ecs_print(1, "Move State!");
+    ecs_print(1, "Move State x:%f, y:%f", input->mouse.motion.x, input->mouse.motion.y);
   }
 
   if (input->mouse.scroll.state) {
-    ecs_print(1, "Wheel State!");
+    ecs_print(1, "Wheel State! x:%f, y:%f", input->mouse.wheel.x, input->mouse.wheel.y);
   }
   // for (int i = 0; i < it->count; i ++) {
   //   if (input[i].keys[SDLK_A].state) {

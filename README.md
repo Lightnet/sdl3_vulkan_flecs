@@ -55,13 +55,15 @@ This project is a testbed for building a modular 3D rendering system using Vulka
       - keyboard (work in progress)
         - 278 keys code range max.
       - mouse
+        - button right (added)
+        - button left (added)
         - motion state (added)
           - check if mouse is move state bool (added)
-          - postion
+          - motion postion (added)
         - wheel state (added)
           - check if the wheel is move state bool (added)
-          - x (not added)
-          - y (not added)
+          - x (added)
+          - y (added)
 
 - Vulkan Module (added)
     - Note there still some code example resize window is not reworked.
