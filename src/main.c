@@ -6,7 +6,7 @@
 #include "flecs_types.h"
 #include "flecs_vulkan.h"
 #include "flecs_imgui.h"
-// #include "flecs_text.h"
+#include "flecs_text.h"
 #include "flecs_sdl.h"
 #include "flecs_texture2d.h"
 #include "flecs_triangle2d.h"
@@ -51,8 +51,8 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_imgui_module_init...");
   flecs_imgui_module_init(world);
 
-  // ecs_print(1, "Calling flecs_text_module_init...");
-  // flecs_text_module_init(world, ctx);
+  ecs_print(1, "Calling flecs_text_module_init...");
+  flecs_text_module_init(world);
 
   ecs_print(1, "Calling flecs_cube3d_module_init...");
   flecs_cube3d_module_init(world);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
   flecs_imgui_cleanup(world);
   
   // flecs_cubetexture3d_cleanup(ctx);
-  // flecs_text_cleanup(ctx);
+  flecs_text_cleanup(world);
   flecs_triangle2d_cleanup(world);
   flecs_texture2d_cleanup(world);
   flecs_cube3d_cleanup(world);
