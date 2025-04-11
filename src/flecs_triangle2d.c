@@ -319,9 +319,8 @@ void triangle_register_components(ecs_world_t *world){
   ECS_COMPONENT_DEFINE(world, TriangleContext);
 }
 
-void flecs_triangle2d_module_init(ecs_world_t *world, WorldContext *ctx) {
+void flecs_triangle2d_module_init(ecs_world_t *world) {
     ecs_print(1, "Initializing triangle2d module...");
-
 
     triangle_register_components(world);
 

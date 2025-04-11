@@ -50,6 +50,7 @@ void SDLInputSystem(ecs_iter_t *it) {
   SDL_Event event;
   //for (int i = 0; i < it->count; i ++) {
     while (SDL_PollEvent(&event)) {
+      input->event = event;
       // if (ctx->isImGuiInitialized) {
       //   ImGui_ImplSDL3_ProcessEvent(&event);
       // }
@@ -229,8 +230,6 @@ void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
     .shouldQuit=false,
     .hasError=false
   });
-
-
 
   // ecs_entity_t sdl_input_entity = ecs_entity(world, { .name = "SDL_INPUT" });
   // printf("Entity name: %s\n", ecs_get_name(world, sdl_input_entity));

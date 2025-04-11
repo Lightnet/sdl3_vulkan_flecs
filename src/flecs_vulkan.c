@@ -766,8 +766,6 @@ void EndRenderSystem(ecs_iter_t *it) {
 }
 
 
-
-
 void flecs_vulkan_cleanup(ecs_world_t *world) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
