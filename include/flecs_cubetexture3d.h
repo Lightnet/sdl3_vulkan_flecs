@@ -25,6 +25,6 @@ typedef struct {
 ECS_COMPONENT_DECLARE(CubeText3DContext);
 
 void flecs_cubetexture3d_module_init(ecs_world_t *world);
-// void flecs_cubetexture3d_cleanup(cs_world_t *world);
+void flecs_cubetexture3d_cleanup(ecs_world_t *world);
 
 #endif

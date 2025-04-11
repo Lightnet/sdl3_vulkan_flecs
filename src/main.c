@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 
   flecs_imgui_cleanup(world);
   
-  // flecs_cubetexture3d_cleanup(world);
+  flecs_cubetexture3d_cleanup(world);
   flecs_text_cleanup(world);
   // flecs_triangle2d_cleanup(world);
   // flecs_texture2d_cleanup(world);

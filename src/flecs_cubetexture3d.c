@@ -32,7 +32,6 @@ static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, 
     return module;
 }
 
-
 static void createBuffer(VulkanContext *v_ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory) {
   VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   bufferInfo.size = size;
@@ -68,8 +67,6 @@ static void createBuffer(VulkanContext *v_ctx, VkDeviceSize size, VkBufferUsageF
   vkBindBufferMemory(v_ctx->device, *buffer, *memory, 0);
 }
 
-
-
 static void updateBuffer(VulkanContext *v_ctx, VkDeviceMemory memory, VkDeviceSize size, void *data) {
   void *mapped;
   if (vkMapMemory(v_ctx->device, memory, 0, size, 0, &mapped) != VK_SUCCESS) {
@@ -80,8 +77,6 @@ static void updateBuffer(VulkanContext *v_ctx, VkDeviceMemory memory, VkDeviceSi
   memcpy(mapped, data, (size_t)size);
   vkUnmapMemory(v_ctx->device, memory);
 }
-
-
 
 static void createTextureImage(VulkanContext *v_ctx, CubeText3DContext *cubetext3d_ctx) {
   int width, height, channels;
@@ -219,15 +214,12 @@ static void createTextureImage(VulkanContext *v_ctx, CubeText3DContext *cubetext
   }
 }
 
-
-
 static void createUniformBuffer(VulkanContext *v_ctx, CubeText3DContext *cubetext3d_ctx) {
   VkDeviceSize bufferSize = sizeof(UniformBufferObject);
   createBuffer(v_ctx, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                &cubetext3d_ctx->cubetexture3dUniformBuffer, &cubetext3d_ctx->cubetexture3dUniformBufferMemory);
 }
-
 
 void CubeTexture3DSetupSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
@@ -482,7 +474,6 @@ void CubeTexture3DSetupSystem(ecs_iter_t *it) {
   ecs_print(1, "CubeTexture3DSetupSystem completed");
 }
 
-
 void CubeTexture3DRenderSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) {
@@ -568,41 +559,39 @@ void CubeTexture3DRenderSystem(ecs_iter_t *it) {
   vkCmdDrawIndexed(v_ctx->commandBuffer, 36, 1, 0, 0, 0);
 }
 
-
 void flecs_cubetexture3d_cleanup(ecs_world_t *world) {
-  VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
-  if (!v_ctx || !v_ctx->device) {
-      ecs_err("VulkanContext not available for cleanup");
-      return;
-  }
+    VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
+    if (!v_ctx || !v_ctx->device) {
+        ecs_err("VulkanContext not available for cleanup");
+        return;
+    }
 
-  CubeText3DContext *cubetext3d_ctx = ecs_singleton_ensure(world, CubeText3DContext);
-  if (!cubetext3d_ctx) {
-      ecs_err("CubeText3DContext not available for cleanup");
-      return;
-  }
+    CubeText3DContext *cubetext3d_ctx = ecs_singleton_ensure(world, CubeText3DContext);
+    if (!cubetext3d_ctx) {
+        ecs_err("CubeText3DContext not available for cleanup");
+        return;
+    }
 
-  ecs_print(1, "CubeTexture3D cleanup starting...");
-  vkDeviceWaitIdle(v_ctx->device);
+    ecs_print(1, "CubeTexture3D cleanup starting...");
+    vkDeviceWaitIdle(v_ctx->device);
 
-  if (cubetext3d_ctx->cubetexture3dPipeline != VK_NULL_HANDLE) vkDestroyPipeline(v_ctx->device, cubetext3d_ctx->cubetexture3dPipeline, NULL);
-  if (cubetext3d_ctx->cubetexture3dPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(v_ctx->device, cubetext3d_ctx->cubetexture3dPipelineLayout, NULL);
-  if (cubetext3d_ctx->cubetexture3dDescriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(v_ctx->device, cubetext3d_ctx->cubetexture3dDescriptorSetLayout, NULL);
-  if (cubetext3d_ctx->cubetexture3dDescriptorPool != VK_NULL_HANDLE) vkDestroyDescriptorPool(v_ctx->device, cubetext3d_ctx->cubetexture3dDescriptorPool, NULL);
-  if (cubetext3d_ctx->cubetexture3dSampler != VK_NULL_HANDLE) vkDestroySampler(v_ctx->device, cubetext3d_ctx->cubetexture3dSampler, NULL);
-  if (cubetext3d_ctx->cubetexture3dImageView != VK_NULL_HANDLE) vkDestroyImageView(v_ctx->device, cubetext3d_ctx->cubetexture3dImageView, NULL);
-  if (cubetext3d_ctx->cubetexture3dImageMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dImageMemory, NULL);
-  if (cubetext3d_ctx->cubetexture3dImage != VK_NULL_HANDLE) vkDestroyImage(v_ctx->device, cubetext3d_ctx->cubetexture3dImage, NULL);
-  if (cubetext3d_ctx->cubetexture3dVertexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dVertexBufferMemory, NULL);
-  if (cubetext3d_ctx->cubetexture3dVertexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dVertexBuffer, NULL);
-  if (cubetext3d_ctx->cubetexture3dIndexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dIndexBufferMemory, NULL);
-  if (cubetext3d_ctx->cubetexture3dIndexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dIndexBuffer, NULL);
-  if (cubetext3d_ctx->cubetexture3dUniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dUniformBufferMemory, NULL);
-  if (cubetext3d_ctx->cubetexture3dUniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dUniformBuffer, NULL);
+    if (cubetext3d_ctx->cubetexture3dPipeline != VK_NULL_HANDLE) vkDestroyPipeline(v_ctx->device, cubetext3d_ctx->cubetexture3dPipeline, NULL);
+    if (cubetext3d_ctx->cubetexture3dPipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(v_ctx->device, cubetext3d_ctx->cubetexture3dPipelineLayout, NULL);
+    if (cubetext3d_ctx->cubetexture3dDescriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(v_ctx->device, cubetext3d_ctx->cubetexture3dDescriptorSetLayout, NULL);
+    if (cubetext3d_ctx->cubetexture3dDescriptorPool != VK_NULL_HANDLE) vkDestroyDescriptorPool(v_ctx->device, cubetext3d_ctx->cubetexture3dDescriptorPool, NULL);
+    if (cubetext3d_ctx->cubetexture3dSampler != VK_NULL_HANDLE) vkDestroySampler(v_ctx->device, cubetext3d_ctx->cubetexture3dSampler, NULL);
+    if (cubetext3d_ctx->cubetexture3dImageView != VK_NULL_HANDLE) vkDestroyImageView(v_ctx->device, cubetext3d_ctx->cubetexture3dImageView, NULL);
+    if (cubetext3d_ctx->cubetexture3dImageMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dImageMemory, NULL);
+    if (cubetext3d_ctx->cubetexture3dImage != VK_NULL_HANDLE) vkDestroyImage(v_ctx->device, cubetext3d_ctx->cubetexture3dImage, NULL);
+    if (cubetext3d_ctx->cubetexture3dVertexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dVertexBufferMemory, NULL);
+    if (cubetext3d_ctx->cubetexture3dVertexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dVertexBuffer, NULL);
+    if (cubetext3d_ctx->cubetexture3dIndexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dIndexBufferMemory, NULL);
+    if (cubetext3d_ctx->cubetexture3dIndexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dIndexBuffer, NULL);
+    if (cubetext3d_ctx->cubetexture3dUniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dUniformBufferMemory, NULL);
+    if (cubetext3d_ctx->cubetexture3dUniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dUniformBuffer, NULL);
 
-  ecs_print(1, "CubeTexture3D cleanup completed");
+    ecs_print(1, "CubeTexture3D cleanup completed");
 }
-
 
 // CubeText3DContext
 void cubetext3d_register_components(ecs_world_t *world){
