@@ -60,6 +60,6 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   //set up module init atfter.
   phases->SetupModulePhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->SetupModulePhase, EcsDependsOn, phases->SyncSetupPhase);
-
+  
 }
 

@@ -5,7 +5,6 @@
 #include "flecs_sdl.h"
 
 // note bug input? reason pass to sdl input component
-
 // Helper function to create ImGui descriptor pool
 static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
   VkDescriptorPoolSize poolSizes[] = {
@@ -36,14 +35,12 @@ static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
   return imguiDescriptorPool;
 }
 
-
 // Optional: Vulkan result checker
 static void check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
       ecs_err("Vulkan error: %d", err);
   }
 }
-
 
 void ImGuiSetupSystem(ecs_iter_t *it) {
   // WorldContext *ctx = ecs_get_ctx(it->world);
@@ -116,13 +113,28 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
 }
 
 void ImguiInputSystem(ecs_iter_t *it){
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world,SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
   const ECS_SDL_INPUT_T *input = ecs_singleton_get(it->world, ECS_SDL_INPUT_T);
   if(!input)return;
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
   if (!imgui_ctx) return;
   if (imgui_ctx->isImGuiInitialized) {
     ImGui_ImplSDL3_ProcessEvent(&input->event);
+    // ImGuiIO* io = igGetIO();
+    // ecs_print(1,"imgui resize x:%0.0f, y:%0.0f", io->DisplaySize.x, io->DisplaySize.y);
   }
+  // Update ImGui display size ???
+  // if (imgui_ctx->isImGuiInitialized) {
+  //   ImGuiIO* io = igGetIO();
+  //   ecs_print(1,"imgui resize x:%0.0f, y:%0.0f", io->DisplaySize.x, io->DisplaySize.y);
+  //   if(sdl_ctx->needsSwapchainRecreation){
+  //     ecs_print(1,"imgui resize");
+  //     //ImGuiIO* io = igGetIO();
+  //     io->DisplaySize.x = (float)sdl_ctx->width;
+  //     io->DisplaySize.y = (float)sdl_ctx->height;
+  //   }
+  // }
 }
 
 void ImGuiCMDBufferSystem(ecs_iter_t *it){

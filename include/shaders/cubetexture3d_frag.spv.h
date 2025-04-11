@@ -21,4 +21,4 @@ const uint32_t cubetexture3d_frag_spv[] = {
 	0x00000012,0x0003003e,0x00000009,0x00000013,0x000100fd,0x00010038
 };
 
-const size_t cubetexture3d_frag_spv_size = sizeof(cubetexture3d_frag_spv);
+//const size_t cubetexture3d_frag_spv_size = sizeof(cubetexture3d_frag_spv);

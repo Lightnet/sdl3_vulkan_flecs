@@ -3,6 +3,7 @@
 #include "flecs_vulkan.h"
 #include "flecs.h"
 #include "flecs_sdl.h"
+#include "flecs_utils.h" // report_sdl_error
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -20,16 +21,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 void InstanceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"InstanceSetupSystem started");
-  //WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
+  
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
-
-  // if (!ctx || ctx->hasError) {
-  //   ecs_err("Error: ctx is NULL or has error");
-  //   return;
-  // }
 
   VkApplicationInfo appInfo = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
   appInfo.pApplicationName = "Vulkan Triangle";
@@ -42,20 +38,14 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   uint32_t sdlExtensionCount = 0;
   const char *const *sdlExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlExtensionCount);
   if (!sdlExtensions || sdlExtensionCount == 0) {
-    ecs_err("Error: Failed to get Vulkan instance extensions from SDL");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Failed to get Vulkan instance extensions from SDL";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "Failed to get Vulkan instance extensions from SDL");
   }
 
   // Add VK_EXT_debug_utils
   uint32_t totalExtensionCount = sdlExtensionCount + 1;
   const char **extensions = malloc(sizeof(const char *) * totalExtensionCount);
   if (!extensions) {
-    ecs_err("Error: Failed to allocate memory for extensions");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Memory allocation failed";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "Error: Failed to allocate memory for extensions");
   }
   for (uint32_t i = 0; i < sdlExtensionCount; i++) {
     extensions[i] = sdlExtensions[i];
@@ -82,9 +72,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   free(extensions);
   if (result != VK_SUCCESS) {
     ecs_err("Error: Failed to create Vulkan instance (VkResult: %d)", result);
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Failed to create Vulkan instance";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "Failed to create Vulkan instance");
   }
 
   // Setup debug messenger
@@ -115,92 +103,59 @@ void InstanceSetupSystem(ecs_iter_t *it) {
   ecs_log(1, "Instance setup completed");
 }
 
-
 void SurfaceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"SurfaceSetupSystem started");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) {
-  //   ecs_err("Error: ctx is NULL or has error");
-  //   return;
-  // }
+
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
   if (!sdl_ctx->window) {
-    ecs_err("Error: window is NULL");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "SDL window not initialized";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] SDL window not initialized");
   }
   if (!v_ctx->instance) {
-    ecs_err("Error: instance is NULL");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Vulkan instance not initialized";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] Vulkan instance not initialized");
   }
 
   if (!SDL_Vulkan_CreateSurface(sdl_ctx->window, v_ctx->instance, NULL, &sdl_ctx->surface)) {
     ecs_err("Error: Failed to create Vulkan surface - %s", SDL_GetError());
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Failed to create Vulkan surface";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] Failed to create Vulkan surface");
   }
 
   uint32_t deviceCount = 0;
   VkResult result = vkEnumeratePhysicalDevices(v_ctx->instance, &deviceCount, NULL);
   if (result != VK_SUCCESS) {
     ecs_err("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)", result);
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Failed to enumerate physical devices (first call)";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] Failed to enumerate physical devices (first call)");
   }
-  ecs_print(1,"vkEnumeratePhysicalDevices");
   
   if (deviceCount == 0) {
     ecs_err("Error: No physical devices found");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "No Vulkan physical devices found";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] No Vulkan physical devices found");
   }
 
   VkPhysicalDevice* devices = malloc(sizeof(VkPhysicalDevice) * deviceCount);
   if (!devices) {
     ecs_err("Error: Failed to allocate memory for devices");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Memory allocation failed";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] Memory allocation failed");
   }
   
   result = vkEnumeratePhysicalDevices(v_ctx->instance, &deviceCount, devices);
   if (result != VK_SUCCESS) {
     ecs_err("Error: vkEnumeratePhysicalDevices failed (VkResult: %d)", result);
     free(devices);
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Failed to enumerate physical devices (second call)";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SurfaceSetupSystem] Failed to enumerate physical devices (second call)");
   }
 
   v_ctx->physicalDevice = devices[0];  // Pick first device for now
   free(devices);
   
-  ecs_print(1, "Surface setup completed");
   ecs_log(1, "Surface setup completed");
 }
 
-
 void DeviceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"DeviceSetupSystem started");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx) {
-  //   ecs_err("Error: ctx is NULL");
-  //   return;
-  // }
-  // if (ctx->hasError) {
-  //   ecs_err("Error: ctx has error state");
-  //   return;
-  // }
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -209,15 +164,11 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   if (v_ctx->physicalDevice == VK_NULL_HANDLE) {
     ecs_err("Error: physicalDevice is NULL");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Physical device not initialized";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[DeviceSetupSystem] Physical device not initialized");
   }
   if (sdl_ctx->surface == VK_NULL_HANDLE) {
     ecs_err("Error: surface is NULL");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Surface not initialized";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[DeviceSetupSystem] Surface not initialized");
   }
 
   uint32_t queueFamilyCount = 0;
@@ -225,17 +176,13 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"Queue family count: %u", queueFamilyCount);
   if (queueFamilyCount == 0) {
     ecs_err("Error: No queue families found");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "No queue families available";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[DeviceSetupSystem] No queue families available");
   }
 
   VkQueueFamilyProperties* queueFamilies = malloc(sizeof(VkQueueFamilyProperties) * queueFamilyCount);
   if (!queueFamilies) {
     ecs_err("Error: Failed to allocate queueFamilies");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Memory allocation failed";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[DeviceSetupSystem] Memory allocation failed");
   }
   vkGetPhysicalDeviceQueueFamilyProperties(v_ctx->physicalDevice, &queueFamilyCount, queueFamilies);
 
@@ -253,9 +200,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   if (v_ctx->graphicsFamily == UINT32_MAX || v_ctx->presentFamily == UINT32_MAX) {
     ecs_err("Error: Failed to find required queue families");
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "No graphics or present queue family found";
-    ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[DeviceSetupSystem] No graphics or present queue family found");
   }
 
   VkDeviceQueueCreateInfo queueCreateInfos[2] = {{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO}};
@@ -281,22 +226,16 @@ void DeviceSetupSystem(ecs_iter_t *it) {
   //ecs_err("vkCreateDevice");
   if (vkCreateDevice(v_ctx->physicalDevice, &deviceCreateInfo, NULL, &v_ctx->device) != VK_SUCCESS) {
       ecs_err("Error: vkCreateDevice failed");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Failed to create logical device";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[DeviceSetupSystem] Failed to create logical device");
   }
 
   vkGetDeviceQueue(v_ctx->device, v_ctx->graphicsFamily, 0, &v_ctx->graphicsQueue);
   vkGetDeviceQueue(v_ctx->device, v_ctx->presentFamily, 0, &v_ctx->presentQueue);
   ecs_log(1, "Logical device and queues created successfully");
-  ecs_print(1, "Logical device and queues created successfully");
 }
-
 
 void SwapchainSetupSystem(ecs_iter_t *it) {
   ecs_print(1, "SwapchainSetupSystem ");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) return;
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -306,9 +245,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   // Query surface capabilities
   VkSurfaceCapabilitiesKHR capabilities;
   if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(v_ctx->physicalDevice, sdl_ctx->surface, &capabilities) != VK_SUCCESS) {
-    sdl_ctx->hasError = true;
-    sdl_ctx->errorMessage = "Failed to query surface capabilities";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    report_sdl_error(sdl_ctx, "[SwapchainSetupSystem] Failed to query surface capabilities");
   }
 
   ecs_print(1, "Set swapchain extent ");
@@ -318,16 +255,12 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   sdl_ctx->height = v_ctx->swapchainExtent.height; // Store height
   ecs_print(1, "Swapchain extent set - WIDTH: %d, HEIGHT: %d", sdl_ctx->width, sdl_ctx->height);
 
-  ecs_print(1, "Ensure valid dimensions");
   // Ensure valid dimensions (from my suggestion)
   if (sdl_ctx->width == 0 || sdl_ctx->height == 0) {
       ecs_err("Invalid swapchain dimensions: WIDTH=%d, HEIGHT=%d", sdl_ctx->width, sdl_ctx->height);
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Invalid swapchain dimensions";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[SwapchainSetupSystem] Invalid swapchain dimensions");
   }
 
-  ecs_print(1, "imageCount");
   // Adjust image count
   v_ctx->imageCount = 2;  // Desired number
   if (v_ctx->imageCount < capabilities.minImageCount) {
@@ -336,7 +269,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   if (capabilities.maxImageCount > 0 && v_ctx->imageCount > capabilities.maxImageCount) {
     v_ctx->imageCount = capabilities.maxImageCount;
   }
-  ecs_print(1, "Query supported formats");
+
   // Query supported formats
   uint32_t formatCount;
   vkGetPhysicalDeviceSurfaceFormatsKHR(v_ctx->physicalDevice, sdl_ctx->surface, &formatCount, NULL);
@@ -386,12 +319,9 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   if (result != VK_SUCCESS) {
       char errorMsg[64];
       ecs_err(errorMsg, "Failed to create swapchain (VkResult: %d)", result);
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = errorMsg;
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[SwapchainSetupSystem] Failed to create swapchain");
   }
 
-  ecs_print(1, "vkGetSwapchainImagesKHR");
   // Get swapchain images
   vkGetSwapchainImagesKHR(v_ctx->device, v_ctx->swapchain, &v_ctx->imageCount, NULL);
   v_ctx->swapchainImages = malloc(sizeof(VkImage) * v_ctx->imageCount);
@@ -408,33 +338,24 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
       viewInfo.subresourceRange.levelCount = 1;
       viewInfo.subresourceRange.layerCount = 1;
       if (vkCreateImageView(v_ctx->device, &viewInfo, NULL, &v_ctx->swapchainImageViews[i]) != VK_SUCCESS) {
-        sdl_ctx->hasError = true;
-        sdl_ctx->errorMessage = "Failed to create swapchain image view";
-          ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+          report_sdl_error(sdl_ctx, "[SwapchainSetupSystem] Failed to create swapchain image view");
       }
   }
 
   ecs_log(1, "Swapchain setup completed with %u images", v_ctx->imageCount);
-  ecs_print(1, "Swapchain setup completed with %u images", v_ctx->imageCount);
 }
-
 
 void RenderPassSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"RenderPassSetupSystem");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) return;
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
-  
   if (!v_ctx->device) {
-      ecs_err("Device is null in RenderPassSetupSystem");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Device is null in RenderPassSetupSystem";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+    ecs_err("Device is null in RenderPassSetupSystem");
+    report_sdl_error(sdl_ctx, "[RenderPassSetupSystem] Device is null in RenderPassSetupSystem");
   }
 
   VkAttachmentDescription colorAttachment = {0};
@@ -464,24 +385,19 @@ void RenderPassSetupSystem(ecs_iter_t *it) {
 
   if (vkCreateRenderPass(v_ctx->device, &renderPassInfo, NULL, &v_ctx->renderPass) != VK_SUCCESS) {
       ecs_err("Failed to create render pass");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Failed to create render pass";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[RenderPassSetupSystem] Failed to create render pass");
   }
 
-  //ecs_log(1, "Render pass setup completed");
-  ecs_print(1, "Render pass setup completed");
+  ecs_log(1, "Render pass setup completed");
 }
 
 void FramebufferSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"FramebufferSetupSystem");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) return;
+
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
-
 
   v_ctx->framebuffers = malloc(sizeof(VkFramebuffer) * v_ctx->imageCount);
   for (uint32_t i = 0; i < v_ctx->imageCount; i++) {
@@ -495,21 +411,15 @@ void FramebufferSetupSystem(ecs_iter_t *it) {
 
       if (vkCreateFramebuffer(v_ctx->device, &framebufferInfo, NULL, &v_ctx->framebuffers[i]) != VK_SUCCESS) {
           ecs_err("Failed to create framebuffer");
-          sdl_ctx->hasError = true;
-          sdl_ctx->errorMessage = "Failed to create framebuffer";
-          ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+          report_sdl_error(sdl_ctx, "[FramebufferSetupSystem] Failed to create framebuffer");
       }
   }
 
-  // ecs_log(1, "Framebuffer setup completed");
-  ecs_print(1, "Framebuffer setup completed");
+  ecs_log(1, "Framebuffer setup completed");
 }
-
 
 void CommandPoolSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"CommandPoolSetupSystem");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) return;
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -522,32 +432,19 @@ void CommandPoolSetupSystem(ecs_iter_t *it) {
 
   if (vkCreateCommandPool(v_ctx->device, &poolInfo, NULL, &v_ctx->commandPool) != VK_SUCCESS) {
       ecs_err("Failed to create command pool");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Failed to create command pool";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[CommandPoolSetupSystem] Failed to create command pool");
   }
 
-  // ecs_log(1, "Command pool setup completed");
-  ecs_print(1, "Command pool setup completed");
+  ecs_log(1, "Command pool setup completed");
 }
-
 
 void CommandBufferSetupSystem(ecs_iter_t *it) {
   ecs_print(1,"CommandBufferSetupSystem");
-  // WorldContext *ctx = (WorldContext *)ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) return;
-  // if (!ctx->device || !ctx->commandPool) {
-  //     ecs_err("Required resources null in CommandBufferSetupSystem");
-  //     ctx->hasError = true;
-  //     ctx->errorMessage = "Required resources null in CommandBufferSetupSystem";
-  //     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-  // }
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
-
 
   VkCommandBufferAllocateInfo cmdAllocInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   cmdAllocInfo.commandPool = v_ctx->commandPool;
@@ -555,64 +452,46 @@ void CommandBufferSetupSystem(ecs_iter_t *it) {
   cmdAllocInfo.commandBufferCount = 1;
   if (vkAllocateCommandBuffers(v_ctx->device, &cmdAllocInfo, &v_ctx->commandBuffer) != VK_SUCCESS) {
       ecs_err("Failed to allocate command buffer");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Failed to allocate command buffer";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[CommandBufferSetupSystem] Failed to allocate command buffer");
   }
 
-  // ecs_log(1, "Command buffer setup completed");
-  ecs_print(1, "Command buffer setup completed");
+  ecs_log(1, "Command buffer setup completed");
 }
 
-// PipelineSetupSystem //from triangle 2d setup
-
 void SyncSetupSystem(ecs_iter_t *it) {
-  // WorldContext *ctx = ecs_get_ctx(it->world);
-  // if (!ctx || ctx->hasError) return;
-
+  ecs_print(1, "SyncSetupSystem starting...");
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
-
-  // ecs_print(1, "SyncSetupSystem starting...");
-  // ecs_print(1, "Context pointer: %p", (void*)ctx);
-
+  
   VkSemaphoreCreateInfo semaphoreInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
   if (vkCreateSemaphore(v_ctx->device, &semaphoreInfo, NULL, &v_ctx->imageAvailableSemaphore) != VK_SUCCESS) {
       ecs_err("Failed to create image available semaphore");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Semaphore creation failed";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[SyncSetupSystem] Semaphore creation failed");
   }
-  // ecs_print(1, "Image available semaphore created: %p", (void*)ctx->imageAvailableSemaphore);
+  ecs_log(1, "Image available semaphore created: %p", (void*)v_ctx->imageAvailableSemaphore);
 
   if (vkCreateSemaphore(v_ctx->device, &semaphoreInfo, NULL, &v_ctx->renderFinishedSemaphore) != VK_SUCCESS) {
       ecs_err("Failed to create render finished semaphore");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Semaphore creation failed";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[SyncSetupSystem] Semaphore creation failed");
   }
-  // ecs_print(1, "Render finished semaphore created: %p", (void*)ctx->renderFinishedSemaphore);
+  ecs_log(1, "Render finished semaphore created: %p", (void*)v_ctx->renderFinishedSemaphore);
 
   VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
   if (vkCreateFence(v_ctx->device, &fenceInfo, NULL, &v_ctx->inFlightFence) != VK_SUCCESS) {
       ecs_err("Failed to create in-flight fence");
-      sdl_ctx->hasError = true;
-      sdl_ctx->errorMessage = "Fence creation failed";
-      ecs_abort(ECS_INTERNAL_ERROR, sdl_ctx->errorMessage);
+      report_sdl_error(sdl_ctx, "[SyncSetupSystem] Fence creation failed");
   }
-  // ecs_print(1, "In-flight fence created: %p", (void*)ctx->inFlightFence);
+  ecs_log(1, "In-flight fence created: %p", (void*)v_ctx->inFlightFence);
 
-  ecs_print(1, "SyncSetupSystem completed");
+  ecs_log(1, "SyncSetupSystem completed");
 }
 
 //=====================================
 // RENDER LOOP
 //=====================================
-
-
 void BeginRenderSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -653,7 +532,6 @@ void BeginRenderSystem(ecs_iter_t *it) {
   v_ctx->skipRender = false; // Rendering can proceed
 }
 
-
 void BeginCMDBufferSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -693,8 +571,6 @@ void BeginCMDBufferSystem(ecs_iter_t *it) {
   vkCmdBeginRenderPass(v_ctx->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-
-
 void EndCMDBufferSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -714,7 +590,6 @@ void EndCMDBufferSystem(ecs_iter_t *it) {
     return;
   }
 }
-
 
 void EndRenderSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
@@ -764,7 +639,6 @@ void EndRenderSystem(ecs_iter_t *it) {
     sdl_ctx->errorMessage = "Failed to present queue";
   }
 }
-
 
 void flecs_vulkan_cleanup(ecs_world_t *world) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(world, SDLContext);
@@ -849,14 +723,12 @@ void flecs_vulkan_cleanup(ecs_world_t *world) {
   ecs_print(1, "Vulkan cleanup completed");
 }
 
-
 // resize window and vulkan destory image
 static void cleanupSwapchain(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
-
 
   vkDeviceWaitIdle(v_ctx->device);
 
@@ -882,7 +754,6 @@ static void cleanupSwapchain(ecs_iter_t *it) {
   v_ctx->swapchain = VK_NULL_HANDLE;
 }
 
-
 // resize window and vulkan create image
 // imgui resize
 static void recreateSwapchain(ecs_iter_t *it) {
@@ -891,7 +762,6 @@ static void recreateSwapchain(ecs_iter_t *it) {
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
-
 
   if (!v_ctx->device || !sdl_ctx->surface) return;
 
@@ -1039,13 +909,11 @@ void SwapchainRecreationSystem(ecs_iter_t *it) {
   }
 }
 
-
 void vulkan_register_components(ecs_world_t *world){
-  //VulkanContext
 
   ECS_COMPONENT_DEFINE(world, VulkanContext);
-}
 
+}
 
 void flecs_vulkan_module_init(ecs_world_t *world) {
   ecs_print(1, "init vulkan module");
@@ -1102,7 +970,6 @@ void flecs_vulkan_module_init(ecs_world_t *world) {
   //=====================================
   // VULKAN LOOP
   //=====================================
-
   // Runtime systems
 
   ecs_system_init(world, &(ecs_system_desc_t){

@@ -28,9 +28,9 @@
 
 // ECS_COMPONENT_DECLARE(TextComponent);
 
-typedef struct {
+// typedef struct {
   // // Vulkan Core
-  SDL_Window *window;                          // SDL Window
+  // SDL_Window *window;                          // SDL Window
   // VkInstance instance;                         // Vulkan instance
   // VkDebugUtilsMessengerEXT debugMessenger;     // Vulkan debug messenger
   // VkSurfaceKHR surface;                        // Vulkan surface from SDL
@@ -137,7 +137,7 @@ typedef struct {
   // VkImageView cubetexture3dImageView;
   // VkSampler cubetexture3dSampler;
    
-} WorldContext;
+// } WorldContext;
 
 typedef struct {
     float pos[2];

@@ -4,6 +4,7 @@
 #include <string.h>
 #include "shaders/texture2d_vert.spv.h"
 #include "shaders/texture2d_frag.spv.h"
+// #include "flecs_utils.h" // createShaderModule(v_ctx->device, text_vert_spv)
 #include "flecs_vulkan.h"
 #include "flecs_sdl.h"
 

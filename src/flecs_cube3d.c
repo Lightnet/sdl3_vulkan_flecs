@@ -4,6 +4,7 @@
 #include <string.h>
 #include "shaders/cube3d_vert.spv.h"
 #include "shaders/cube3d_frag.spv.h"
+// #include "flecs_utils.h" // createShaderModuleLen(v_ctx->device, text_vert_spv)
 #include "flecs_vulkan.h"
 #include "flecs_sdl.h"
 
@@ -174,9 +175,8 @@ void Cube3DSetupSystem(ecs_iter_t *it) {
 
     vkUpdateDescriptorSets(v_ctx->device, 1, &descriptorWrite, 0, NULL);
 
-    // Pipeline Setup
-    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cube3d_vert_spv, cube3d_vert_spv_size);
-    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cube3d_frag_spv, cube3d_frag_spv_size);
+    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cube3d_vert_spv, sizeof(cube3d_vert_spv));
+    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cube3d_frag_spv, sizeof(cube3d_frag_spv));
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, "main", NULL},

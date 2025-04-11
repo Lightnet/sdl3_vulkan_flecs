@@ -19,4 +19,4 @@ const uint32_t cube3d_frag_spv[] = {
 	0x0003003e,0x00000009,0x00000012,0x000100fd,0x00010038
 };
 
-const size_t cube3d_frag_spv_size = sizeof(cube3d_frag_spv);
+//const size_t cube3d_frag_spv_size = sizeof(cube3d_frag_spv);

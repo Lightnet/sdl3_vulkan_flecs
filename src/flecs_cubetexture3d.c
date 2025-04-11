@@ -2,7 +2,7 @@
 #include <string.h>
 #include "shaders/cubetexture3d_vert.spv.h" // You'll need to create this
 #include "shaders/cubetexture3d_frag.spv.h" // You'll need to create this
-
+#include "flecs_utils.h" // createShaderModuleLen(v_ctx->device, text_vert_spv)
 #include "flecs_sdl.h"
 #include "flecs_vulkan.h"
 
@@ -380,9 +380,9 @@ void CubeTexture3DSetupSystem(ecs_iter_t *it) {
 
   vkUpdateDescriptorSets(v_ctx->device, 2, descriptorWrites, 0, NULL);
 
-  // Pipeline Setup
-  VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cubetexture3d_vert_spv, cubetexture3d_vert_spv_size);
-  VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cubetexture3d_frag_spv, cubetexture3d_frag_spv_size);
+  VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cubetexture3d_vert_spv, sizeof(cubetexture3d_vert_spv));
+  VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cubetexture3d_frag_spv, sizeof(cubetexture3d_frag_spv));
+  
   if (!vertShaderModule || !fragShaderModule) {
       ecs_err("Failed to create shader modules");
       sdl_ctx->hasError = true;

@@ -3,39 +3,31 @@
 #include "flecs_triangle2d.h"
 #include "shaders/shader2d_vert.spv.h"
 #include "shaders/shader2d_frag.spv.h"
-
+//#include "flecs_utils.h" // createShaderModule(v_ctx->device, text_vert_spv)
 #include "flecs_sdl.h"
 #include "flecs_vulkan.h"
 
 static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
-    VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    createInfo.codeSize = codeSize * sizeof(uint32_t); // Size in bytes
-    createInfo.pCode = code;
-    VkShaderModule module;
-    if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-        ecs_err("Failed to create shader module");
-        return VK_NULL_HANDLE;
-    }
-    return module;
+  VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+  createInfo.codeSize = codeSize;
+  createInfo.pCode = code;
+  VkShaderModule module;
+  if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+      ecs_err("Failed to create shader module");
+      return VK_NULL_HANDLE;
+  }
+  return module;
 }
 
 void TriangleModuleSetupSystem(ecs_iter_t *it) {
     ecs_print(1, "TrianglePipelineSetupSystem");
-    // WorldContext *ctx = ecs_get_ctx(it->world);
-    // if (!ctx || ctx->hasError) return;
-    // if (!ctx->device || !ctx->renderPass) {
-    //     ecs_err("Required resources null in TrianglePipelineSetupSystem");
-    //     ctx->hasError = true;
-    //     ctx->errorMessage = "Required resources null in TrianglePipelineSetupSystem";
-    //     ecs_abort(ECS_INTERNAL_ERROR, ctx->errorMessage);
-    // }
+
     SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
     if (!sdl_ctx || sdl_ctx->hasError) return;
     VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
     if (!v_ctx) return;
     TriangleContext *tri_ctx = ecs_singleton_ensure(it->world, TriangleContext);
     if (!tri_ctx) return;
-
 
     // Vertex Buffer Setup
     Vertex vertices[] = {
@@ -151,12 +143,9 @@ void TriangleModuleSetupSystem(ecs_iter_t *it) {
 
     ecs_log(1, "Triangle buffer setup completed");
 
+    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, shader2d_vert_spv, sizeof(shader2d_vert_spv));
+    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, shader2d_frag_spv, sizeof(shader2d_frag_spv));
 
-    size_t vertSpvSize = sizeof(shader2d_vert_spv) / sizeof(shader2d_vert_spv[0]);
-    size_t fragSpvSize = sizeof(shader2d_frag_spv) / sizeof(shader2d_frag_spv[0]);
-
-    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, shader2d_vert_spv, vertSpvSize);
-    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, shader2d_frag_spv, fragSpvSize);
     if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
         ecs_err("Failed to create shader modules");
         sdl_ctx->hasError = true;

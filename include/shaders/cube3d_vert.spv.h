@@ -53,4 +53,4 @@ const uint32_t cube3d_vert_spv[] = {
 	0x000100fd,0x00010038
 };
 
-const size_t cube3d_vert_spv_size = sizeof(cube3d_vert_spv);
+//const size_t cube3d_vert_spv_size = sizeof(cube3d_vert_spv);
