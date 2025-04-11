@@ -113,21 +113,61 @@ CPMAddPackage(
       "FT_DISABLE_HARFBUZZ TRUE"
       "FT_DISABLE_BROTLI TRUE"
 )
+if(WIN32)
+  set(mimalloc_DLL_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/mimalloc-debug.dll")
+  set(mimalloc_LIB_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/mimalloc-debug.lib")
+  
+  if(EXISTS "${mimalloc_DLL_DEST}")
+    if(NOT EXISTS "${mimalloc_SOURCE_DIR}")
+      set(mimalloc_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/mimalloc-src")
+    endif()
+    set(mimalloc_INCLUDE_DIR "${mimalloc_SOURCE_DIR}/include")
+    message(status " FOUND >>> mimalloc 2.x ")
+    message(status " mimalloc include dir >> ${mimalloc_SOURCE_DIR}/include ")
+    add_library(mimalloc SHARED IMPORTED)
+    set_target_properties(mimalloc PROPERTIES
+        IMPORTED_LOCATION "${mimalloc_DLL_DEST}"
+        IMPORTED_IMPLIB "${mimalloc_LIB_DEST}"
+        INTERFACE_INCLUDE_DIRECTORIES "${mimalloc_SOURCE_DIR}/include"
+    )
+  endif()
+  if(NOT EXISTS "${mimalloc_DLL_DEST}")
+    CPMAddPackage(
+        NAME mimalloc
+        GITHUB_REPOSITORY microsoft/mimalloc
+        GIT_TAG v2.2.3
+        OPTIONS
+          "MI_BUILD_TESTS OFF"
+    )
+  endif()
+endif()
 
-CPMAddPackage(
-    NAME mimalloc
-    GITHUB_REPOSITORY microsoft/mimalloc
-    GIT_TAG v2.2.3
-    OPTIONS
-      "MI_BUILD_TESTS OFF"
-      ""
-)
-
-CPMAddPackage(
-    NAME cglm
-    GITHUB_REPOSITORY recp/cglm
-    GIT_TAG v0.9.6
-)
+if(WIN32)
+  set(cglm_DLL_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/cglm-0.dll")
+  set(cglm_LIB_DEST "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/cglm.lib")
+  
+  if(EXISTS "${cglm_DLL_DEST}")
+    if(NOT EXISTS "${cglm_SOURCE_DIR}")
+      set(cglm_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/_deps/cglm-src")
+    endif()
+    set(cglm_INCLUDE_DIR "${cglm_SOURCE_DIR}/include")
+    message(status " FOUND >>> cglm 0.9.6")
+    message(status " cglm include dir >> ${cglm_SOURCE_DIR}/include ")
+    add_library(cglm SHARED IMPORTED)
+    set_target_properties(cglm PROPERTIES
+        IMPORTED_LOCATION "${cglm_DLL_DEST}"
+        IMPORTED_IMPLIB "${cglm_LIB_DEST}"
+        INTERFACE_INCLUDE_DIRECTORIES "${cglm_INCLUDE_DIR}"
+    )
+  endif()
+  if(NOT EXISTS "${mimalloc_DLL_DEST}")
+    CPMAddPackage(
+      NAME cglm
+      GITHUB_REPOSITORY recp/cglm
+      GIT_TAG v0.9.6
+    )
+  endif()
+endif()
 
 CPMAddPackage(
     NAME cimgui
