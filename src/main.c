@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
   // ecs_print(1, "Calling flecs_cubetexture3d_module_init...");
   // flecs_cubetexture3d_module_init(world, ctx);
 
-  // ecs_print(1, "Calling flecs_triangle2d_module_init...");
-  // flecs_triangle2d_module_init(world, ctx);
+  ecs_print(1, "Calling flecs_triangle2d_module_init...");
+  flecs_triangle2d_module_init(world, ctx);
 
   // ecs_print(1, "Calling flecs_texture2d_module_init...");
   // flecs_texture2d_module_init(world, ctx);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
   // }
   // flecs_cubetexture3d_cleanup(ctx);
   // flecs_text_cleanup(ctx);
-  // flecs_triangle2d_cleanup(ctx);
+  flecs_triangle2d_cleanup(world);
   // flecs_texture2d_cleanup(ctx);
   // flecs_cube3d_cleanup(ctx);
   flecs_vulkan_cleanup(world);
