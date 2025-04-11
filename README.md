@@ -54,10 +54,11 @@ The aim to expand into a flexible module-based design for 3D world-building expe
     - Easy addition/removal of modules for debugging and configuration.
 
 - SDL 3.x (added)
-    - resize window and vulkan swap render resize (work in progress)
-    - need resize module call for event. (work in progress)
+    - resize window (event from update resize window)
     - clean up call for SDL
+    - component context variable access
     - input system (work in progress)
+      - close event for window
       - keyboard (work in progress)
         - 278 keys code range max.
       - mouse
@@ -72,11 +73,13 @@ The aim to expand into a flexible module-based design for 3D world-building expe
           - y (added)
 
 - Vulkan Module (added)
-    - Note there still some code example resize window is not reworked.
-    - phase setup required for on start setup and run time order phase.
-    - debugCallback
-    - VK_LAYER_KHRONOS_validation
-    - set up:
+    - resize window swap (added)
+    - phase setup required for on start setup and run time order phase. (added)
+    - clean up (added)
+    - debugCallback (added)
+    - VK_LAYER_KHRONOS_validation (added)
+    - component context variable access
+    - set up: (added)
       - InstanceSetupSystem
       - SurfaceSetupSystem
       - DeviceSetupSystem
@@ -86,46 +89,49 @@ The aim to expand into a flexible module-based design for 3D world-building expe
       - CommandPoolSetupSystem
       - CommandBufferSetupSystem
       - SyncSetupSystem
-    - run time render:
+    - run time render: (added)
       - BeginRenderSystem
       - BeginCMDBufferSystem
-      - place holder for module render command buffer
+      - 'Place Holder Name System' > dependon > CMDBufferPhase
       - EndCMDBufferSystem
       - EndRenderSystem
 
 - Simple Triangle: (added)
     - module design
+    - component context variable access
     - Setup system
       - Vertex Buffer 
       - VkPipelineShader setup
       - VkPipeline setup
     - buffer system
       - commandBuffer render for triangle 2d
-    - hard code world context variable
     - resize not added
         
 - ImGui Integration: (added)
-    - made into command buffer imgui system to handle render vulkan.
-    - check for imgui initialization for input handler to prevent crashing.
     - This wrapper from imgui to cimgui for c++ wrapper to c.
-    - hard code world context variable.
-    - resize added around ways
+    - command buffer imgui system to handle render vulkan. (added)
+    - input handler system. (added)
+    - component context variable access (added)
+    - resize added around ways (not added)
 
 - Freetype Render Text font "Hello World" (added)
-  - module for set up and render.
-  - hard code world context variable
-  - resize added
+  - module for set up and render. (added)
+  - component context variable access (added)
+  - resize added ?
 
 - Cube 3D Mesh (added)
   - module (added)
+  - component context variable access (added)
   - resize (not added)
   
 - Texture 2D (added)
   - module (added)
+  - component context variable access (added)
   - resize (not added)
 
 - Cube Texture 3D Mesh (added)
   - module (added)
+  - component context variable access (added)
   - resize (not added)
         
 - Flecs:
@@ -253,7 +259,7 @@ The project uses a modular approach to simplify development:
 ### Vulkan Set Up and Render Flow:
 - Setup (once):
     
-    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> [Pipeline Empty] -> SyncSetupSystem -> SetUpLogicSystem (modules init)
+    - InstanceSetupSystem -> SurfaceSetupSystem -> DeviceSetupSystem -> SwapchainSetupSystem -> RenderPassSetupSystem -> FramebufferSetupSystem -> CommandPoolSetupSystem -> CommandBufferSetupSystem -> SyncSetupSystem -> SetUpLogicSystem (modules init)
 
 - Runtime (per frame):
     - LogicUpdatePhase: (empty for now)
@@ -360,12 +366,9 @@ int main(){
 }
 ```
 
-
-
 # Notes:
 - Resize window will error on zero either height or width for vulkan layers.
 - Hardcoding:
-  - world context modules
   - resize for imgui
   - ...
 - ImGui elements work in progress for debug 
@@ -375,7 +378,6 @@ int main(){
 # Planned Improvements:
 - Replace hardcoded elements with dynamic systems.
 - Add VulkanMemoryAllocator for better memory management.
-- Implement cube rendering and textures
 
 # Images:
 

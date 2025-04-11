@@ -45,7 +45,7 @@ typedef struct {
 ECS_COMPONENT_DECLARE(VulkanContext);
 
 
-void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx);
+void flecs_vulkan_module_init(ecs_world_t *world);
 
 // void InstanceSetupSystem(ecs_iter_t *it);
 // void SurfaceSetupSystem(ecs_iter_t *it);

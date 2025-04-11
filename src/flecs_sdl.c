@@ -35,8 +35,8 @@ void SDLSetUpSystem(ecs_iter_t *it){
 }
 
 void SDLInputSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+  // WorldContext *ctx = ecs_get_ctx(it->world);
+  // if (!ctx) return;
   //ECS_SDL_INPUT_T *input = ecs_field(it, ECS_SDL_INPUT_T, 0);
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -204,8 +204,11 @@ void DebugInputSystem(ecs_iter_t *it) {
   // }
 }
 
-void flecs_sdl_cleanup(WorldContext *ctx){
-  SDL_DestroyWindow(ctx->window);
+void flecs_sdl_cleanup(ecs_world_t *world){
+  SDLContext *sdl_ctx = ecs_singleton_ensure(world, SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
+
+  SDL_DestroyWindow(sdl_ctx->window);
   SDL_Quit();
 }
 
@@ -219,7 +222,7 @@ void sdl_register_components(ecs_world_t *world){
 
 }
 
-void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
+void flecs_sdl_module_init(ecs_world_t *world) {
   ecs_print(1, "Initializing SDL module...");
 
   sdl_register_components(world);
@@ -251,10 +254,6 @@ void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
           .name = "SDLInputSystem", 
           .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) 
       }),
-      // .query.terms = {
-        // A singleton is a component matched on itself
-        // { ecs_id(ECS_SDL_INPUT_T), .src.id = ecs_id(ECS_SDL_INPUT_T) }
-      // },
       .callback = SDLInputSystem
   });
 

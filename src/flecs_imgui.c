@@ -155,8 +155,8 @@ void ImGuiCMDBufferSystem(ecs_iter_t *it){
 }
 
 void ImGuiBeginSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
 
   // ecs_print(1, "ImGuiBeginSystem starting...");
   // ecs_print(1, "Context pointer: %p", (void*)ctx);
@@ -170,8 +170,10 @@ void ImGuiBeginSystem(ecs_iter_t *it) {
 }
 
 void ImGuiUpdateSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+  // WorldContext *ctx = ecs_get_ctx(it->world);
+  // if (!ctx || ctx->hasError) return;
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
 
   // ecs_print(1, "ImGuiUpdateSystem starting...");
   // ecs_print(1, "Context pointer: %p", (void*)ctx);
@@ -188,8 +190,10 @@ void ImGuiUpdateSystem(ecs_iter_t *it) {
 }
 
 void ImGuiEndSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+  // WorldContext *ctx = ecs_get_ctx(it->world);
+  // if (!ctx || ctx->hasError) return;
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
 
   // ecs_print(1, "ImGuiEndSystem starting...");
   // ecs_print(1, "Context pointer: %p", (void*)ctx);

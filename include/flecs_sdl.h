@@ -82,10 +82,10 @@ ECS_COMPONENT_DECLARE(ECS_SDL_INPUT_T);
 
 
 // module
-void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx);
+void flecs_sdl_module_init(ecs_world_t *world);
 
 // Systems for SDL
 // void SDLInputSystem(ecs_iter_t *it);
-void flecs_sdl_cleanup(WorldContext *ctx);
+void flecs_sdl_cleanup(ecs_world_t *world);
 
 #endif

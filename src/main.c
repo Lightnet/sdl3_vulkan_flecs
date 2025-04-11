@@ -23,21 +23,18 @@ int main(int argc, char *argv[]) {
       return -1;
   }
 
-  //this must be set for the window size
-  ctx->width = 800;
-  ctx->height = 600;
   //this need to be load first
-  ecs_print(1, "Setting world context...");
-  ecs_set_ctx(world, ctx, NULL);
+  // ecs_print(1, "Setting world context...");
+  // ecs_set_ctx(world, ctx, NULL);
   //this need to be load second for phase for setup and runtime render
   ecs_print(1, "Initializing GlobalPhases...");
   flecs_phases_init(world, &GlobalPhases);
   ecs_print(1, "Calling flecs_sdl_module_init...");
   // setup SDL 3.x window and Input event 
-  flecs_sdl_module_init(world, ctx);
+  flecs_sdl_module_init(world);
   // setup Vulkan graphic
   ecs_print(1, "Calling flecs_vulkan_module_init...");
-  flecs_vulkan_module_init(world, ctx);
+  flecs_vulkan_module_init(world);
 
   ecs_print(1, "Calling flecs_cubetexture3d_module_init...");
   flecs_cubetexture3d_module_init(world);
@@ -97,7 +94,7 @@ int main(int argc, char *argv[]) {
   // flecs_cube3d_cleanup(world);
   flecs_vulkan_cleanup(world);
   
-  flecs_sdl_cleanup(ctx);
+  flecs_sdl_cleanup(world);
 
   ecs_fini(world);
   free(ctx);

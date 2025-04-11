@@ -1047,7 +1047,7 @@ void vulkan_register_components(ecs_world_t *world){
 }
 
 
-void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx) {
+void flecs_vulkan_module_init(ecs_world_t *world) {
   ecs_print(1, "init vulkan module");
 
   vulkan_register_components(world);
