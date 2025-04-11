@@ -5,7 +5,23 @@
 #include <vulkan/vulkan.h>
 #include "flecs_types.h"
 
-void flecs_cube3d_module_init(ecs_world_t *world, WorldContext *ctx);
-void flecs_cube3d_cleanup(WorldContext *ctx);
+typedef struct {
+  // Cube3D
+  VkBuffer cubeVertexBuffer;
+  VkDeviceMemory cubeVertexBufferMemory;
+  VkBuffer cubeIndexBuffer;
+  VkDeviceMemory cubeIndexBufferMemory;
+  VkBuffer cubeUniformBuffer;
+  VkDeviceMemory cubeUniformBufferMemory;
+  VkDescriptorPool cubeDescriptorPool;
+  VkDescriptorSet cubeDescriptorSet;
+  VkDescriptorSetLayout cubeDescriptorSetLayout;
+  VkPipelineLayout cubePipelineLayout;
+  VkPipeline cubePipeline;
+} Cube3DContext;
+ECS_COMPONENT_DECLARE(Cube3DContext);
+
+void flecs_cube3d_module_init(ecs_world_t *world);
+void flecs_cube3d_cleanup(ecs_world_t *world);
 
 #endif

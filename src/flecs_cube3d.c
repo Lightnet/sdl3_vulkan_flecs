@@ -4,6 +4,8 @@
 #include <string.h>
 #include "shaders/cube3d_vert.spv.h"
 #include "shaders/cube3d_frag.spv.h"
+#include "flecs_vulkan.h"
+#include "flecs_sdl.h"
 
 typedef struct {
     float pos[3];    // 3D position
@@ -28,23 +30,23 @@ static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, 
     return module;
 }
 
-static void createBuffer(WorldContext *ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory) {
+static void createBuffer(VulkanContext *v_ctx, SDLContext *sdl_ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory) {
     VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     bufferInfo.size = size;
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(ctx->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(v_ctx->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
         ecs_err("Failed to create buffer");
-        ctx->hasError = true;
+        sdl_ctx->hasError = true;
         return;
     }
 
     VkMemoryRequirements memReqs;
-    vkGetBufferMemoryRequirements(ctx->device, *buffer, &memReqs);
+    vkGetBufferMemoryRequirements(v_ctx->device, *buffer, &memReqs);
 
     VkPhysicalDeviceMemoryProperties memProps;
-    vkGetPhysicalDeviceMemoryProperties(ctx->physicalDevice, &memProps);
+    vkGetPhysicalDeviceMemoryProperties(v_ctx->physicalDevice, &memProps);
     VkMemoryAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
     allocInfo.allocationSize = memReqs.size;
     for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
@@ -54,308 +56,299 @@ static void createBuffer(WorldContext *ctx, VkDeviceSize size, VkBufferUsageFlag
         }
     }
 
-    if (vkAllocateMemory(ctx->device, &allocInfo, NULL, memory) != VK_SUCCESS) {
+    if (vkAllocateMemory(v_ctx->device, &allocInfo, NULL, memory) != VK_SUCCESS) {
         ecs_err("Failed to allocate buffer memory");
-        ctx->hasError = true;
+        sdl_ctx->hasError = true;
         return;
     }
 
-    vkBindBufferMemory(ctx->device, *buffer, *memory, 0);
+    vkBindBufferMemory(v_ctx->device, *buffer, *memory, 0);
 }
 
-static void updateBuffer(WorldContext *ctx, VkDeviceMemory memory, VkDeviceSize size, void *data) {
+static void updateBuffer(VulkanContext *v_ctx, VkDeviceMemory memory, VkDeviceSize size, void *data) {
     void *mapped;
-    vkMapMemory(ctx->device, memory, 0, size, 0, &mapped);
+    vkMapMemory(v_ctx->device, memory, 0, size, 0, &mapped);
     memcpy(mapped, data, (size_t)size);
-    vkUnmapMemory(ctx->device, memory);
+    vkUnmapMemory(v_ctx->device, memory);
 }
 
-static void createUniformBuffer(WorldContext *ctx) {
+static void createUniformBuffer(VulkanContext *v_ctx, SDLContext *sdl_ctx, Cube3DContext *cube_ctx) {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-    createBuffer(ctx, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+    createBuffer(v_ctx, sdl_ctx, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                 &ctx->cubeUniformBuffer, &ctx->cubeUniformBufferMemory);
+                 &cube_ctx->cubeUniformBuffer, &cube_ctx->cubeUniformBufferMemory);
 }
-
-
 
 void Cube3DSetupSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+    VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
+    if (!v_ctx) return;
+    SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+    if (!sdl_ctx || sdl_ctx->hasError) return;
+    Cube3DContext *cube_ctx = ecs_singleton_ensure(it->world, Cube3DContext);
+    if (!cube_ctx) return;
 
-  ecs_print(1, "Cube3DSetupSystem starting...");
+    ecs_print(1, "Cube3DSetupSystem starting...");
 
-  // Descriptor Pool
-  VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1};
-  VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-  poolInfo.maxSets = 1;
-  poolInfo.poolSizeCount = 1;
-  poolInfo.pPoolSizes = &poolSize;
-  if (vkCreateDescriptorPool(ctx->device, &poolInfo, NULL, &ctx->cubeDescriptorPool) != VK_SUCCESS) {
-      ecs_err("Failed to create cube descriptor pool");
-      ctx->hasError = true;
-      return;
-  }
+    // Descriptor Pool
+    VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1};
+    VkDescriptorPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+    poolInfo.maxSets = 1;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+    if (vkCreateDescriptorPool(v_ctx->device, &poolInfo, NULL, &cube_ctx->cubeDescriptorPool) != VK_SUCCESS) {
+        ecs_err("Failed to create cube descriptor pool");
+        sdl_ctx->hasError = true;
+        return;
+    }
 
-  // Descriptor Set Layout
-  VkDescriptorSetLayoutBinding uboLayoutBinding = {0};
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    // Descriptor Set Layout
+    VkDescriptorSetLayoutBinding uboLayoutBinding = {0};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-  VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-  layoutInfo.bindingCount = 1;
-  layoutInfo.pBindings = &uboLayoutBinding;
-  if (vkCreateDescriptorSetLayout(ctx->device, &layoutInfo, NULL, &ctx->cubeDescriptorSetLayout) != VK_SUCCESS) {
-      ecs_err("Failed to create cube descriptor set layout");
-      ctx->hasError = true;
-      return;
-  }
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &uboLayoutBinding;
+    if (vkCreateDescriptorSetLayout(v_ctx->device, &layoutInfo, NULL, &cube_ctx->cubeDescriptorSetLayout) != VK_SUCCESS) {
+        ecs_err("Failed to create cube descriptor set layout");
+        sdl_ctx->hasError = true;
+        return;
+    }
 
-  // Allocate Descriptor Set
-  VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-  allocInfo.descriptorPool = ctx->cubeDescriptorPool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &ctx->cubeDescriptorSetLayout;
-  if (vkAllocateDescriptorSets(ctx->device, &allocInfo, &ctx->cubeDescriptorSet) != VK_SUCCESS) {
-      ecs_err("Failed to allocate cube descriptor set");
-      ctx->hasError = true;
-      return;
-  }
+    // Allocate Descriptor Set
+    VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+    allocInfo.descriptorPool = cube_ctx->cubeDescriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &cube_ctx->cubeDescriptorSetLayout;
+    if (vkAllocateDescriptorSets(v_ctx->device, &allocInfo, &cube_ctx->cubeDescriptorSet) != VK_SUCCESS) {
+        ecs_err("Failed to allocate cube descriptor set");
+        sdl_ctx->hasError = true;
+        return;
+    }
 
-  // Create Buffers
-  CubeVertex vertices[] = {
-      // Front face
-      {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}}, // Bottom-left
-      {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}}, // Bottom-right
-      {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}, // Top-right
-      {{-0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}}, // Top-left
-      // Back face
-      {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f}},
-      {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
-      {{ 0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-      {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}}
-  };
-  uint32_t indices[] = {
-      0, 3, 2, 2, 1, 0,  // Front (counterclockwise)
-      4, 5, 6, 6, 7, 4,  // Back (counterclockwise)
-      1, 2, 6, 6, 5, 1,  // Right (counterclockwise)
-      0, 4, 7, 7, 3, 0,  // Left (counterclockwise)
-      3, 7, 6, 6, 2, 3,  // Top (counterclockwise)
-      0, 1, 5, 5, 4, 0   // Bottom (counterclockwise)
-  };
+    // Create Buffers
+    CubeVertex vertices[] = {
+        {{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f}},
+        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+        {{ 0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}}
+    };
+    uint32_t indices[] = {
+        0, 3, 2, 2, 1, 0,
+        4, 5, 6, 6, 7, 4,
+        1, 2, 6, 6, 5, 1,
+        0, 4, 7, 7, 3, 0,
+        3, 7, 6, 6, 2, 3,
+        0, 1, 5, 5, 4, 0
+    };
 
-  createBuffer(ctx, sizeof(vertices), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-               &ctx->cubeVertexBuffer, &ctx->cubeVertexBufferMemory);
-  createBuffer(ctx, sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-               &ctx->cubeIndexBuffer, &ctx->cubeIndexBufferMemory);
-  createUniformBuffer(ctx);
+    createBuffer(v_ctx, sdl_ctx, sizeof(vertices), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 &cube_ctx->cubeVertexBuffer, &cube_ctx->cubeVertexBufferMemory);
+    createBuffer(v_ctx, sdl_ctx, sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 &cube_ctx->cubeIndexBuffer, &cube_ctx->cubeIndexBufferMemory);
+    createUniformBuffer(v_ctx, sdl_ctx, cube_ctx);
 
-  updateBuffer(ctx, ctx->cubeVertexBufferMemory, sizeof(vertices), vertices);
-  updateBuffer(ctx, ctx->cubeIndexBufferMemory, sizeof(indices), indices);
+    updateBuffer(v_ctx, cube_ctx->cubeVertexBufferMemory, sizeof(vertices), vertices);
+    updateBuffer(v_ctx, cube_ctx->cubeIndexBufferMemory, sizeof(indices), indices);
 
-  // Update Descriptor Set
-  VkDescriptorBufferInfo bufferInfo = {0};
-  bufferInfo.buffer = ctx->cubeUniformBuffer;
-  bufferInfo.offset = 0;
-  bufferInfo.range = sizeof(UniformBufferObject);
+    // Update Descriptor Set
+    VkDescriptorBufferInfo bufferInfo = {0};
+    bufferInfo.buffer = cube_ctx->cubeUniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
 
-  VkWriteDescriptorSet descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-  descriptorWrite.dstSet = ctx->cubeDescriptorSet;
-  descriptorWrite.dstBinding = 0;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  descriptorWrite.pBufferInfo = &bufferInfo;
+    VkWriteDescriptorSet descriptorWrite = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    descriptorWrite.dstSet = cube_ctx->cubeDescriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.pBufferInfo = &bufferInfo;
 
-  vkUpdateDescriptorSets(ctx->device, 1, &descriptorWrite, 0, NULL);
+    vkUpdateDescriptorSets(v_ctx->device, 1, &descriptorWrite, 0, NULL);
 
-  // Pipeline Setup
-  VkShaderModule vertShaderModule = createShaderModule(ctx->device, cube3d_vert_spv, cube3d_vert_spv_size);
-  VkShaderModule fragShaderModule = createShaderModule(ctx->device, cube3d_frag_spv, cube3d_frag_spv_size);
+    // Pipeline Setup
+    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cube3d_vert_spv, cube3d_vert_spv_size);
+    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cube3d_frag_spv, cube3d_frag_spv_size);
 
-  VkPipelineShaderStageCreateInfo shaderStages[] = {
-      {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, "main", NULL},
-      {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, "main", NULL}
-  };
+    VkPipelineShaderStageCreateInfo shaderStages[] = {
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, "main", NULL},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderModule, "main", NULL}
+    };
 
-  VkVertexInputBindingDescription bindingDesc = {0, sizeof(CubeVertex), VK_VERTEX_INPUT_RATE_VERTEX};
-  VkVertexInputAttributeDescription attributeDescs[] = {
-      {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CubeVertex, pos)},
-      {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CubeVertex, color)}
-  };
+    VkVertexInputBindingDescription bindingDesc = {0, sizeof(CubeVertex), VK_VERTEX_INPUT_RATE_VERTEX};
+    VkVertexInputAttributeDescription attributeDescs[] = {
+        {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CubeVertex, pos)},
+        {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CubeVertex, color)}
+    };
 
-  VkPipelineVertexInputStateCreateInfo vertexInputInfo = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
-  vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
-  vertexInputInfo.vertexAttributeDescriptionCount = 2;
-  vertexInputInfo.pVertexAttributeDescriptions = attributeDescs;
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+    vertexInputInfo.vertexAttributeDescriptionCount = 2;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescs;
 
-  VkPipelineInputAssemblyStateCreateInfo inputAssembly = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
-  inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-  VkViewport viewport = {0.0f, 0.0f, (float)ctx->width, (float)ctx->height, 0.0f, 1.0f};
-  VkRect2D scissor = {{0, 0}, {ctx->width, ctx->height}};
-  VkPipelineViewportStateCreateInfo viewportState = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
-  viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
-  viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
+    VkViewport viewport = {0.0f, 0.0f, (float)sdl_ctx->width, (float)sdl_ctx->height, 0.0f, 1.0f};
+    VkRect2D scissor = {{0, 0}, {sdl_ctx->width, sdl_ctx->height}};
+    VkPipelineViewportStateCreateInfo viewportState = {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
 
-  VkPipelineRasterizationStateCreateInfo rasterizer = {VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
-  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-  rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-  // rasterizer.cullMode = VK_CULL_MODE_NONE;
-  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    VkPipelineRasterizationStateCreateInfo rasterizer = {VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-  VkPipelineMultisampleStateCreateInfo multisampling = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
-  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkPipelineMultisampleStateCreateInfo multisampling = {VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-  VkPipelineDepthStencilStateCreateInfo depthStencil = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-  depthStencil.depthTestEnable = VK_TRUE;
-  depthStencil.depthWriteEnable = VK_TRUE;
-  depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-  depthStencil.depthBoundsTestEnable = VK_FALSE;
-  depthStencil.stencilTestEnable = VK_FALSE;
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
 
-  VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
-  colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  colorBlendAttachment.blendEnable = VK_FALSE;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = {0};
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
 
-  VkPipelineColorBlendStateCreateInfo colorBlending = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
-  colorBlending.attachmentCount = 1;
-  colorBlending.pAttachments = &colorBlendAttachment;
+    VkPipelineColorBlendStateCreateInfo colorBlending = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-  pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &ctx->cubeDescriptorSetLayout;
-  if (vkCreatePipelineLayout(ctx->device, &pipelineLayoutInfo, NULL, &ctx->cubePipelineLayout) != VK_SUCCESS) {
-      ecs_err("Failed to create cube pipeline layout");
-      ctx->hasError = true;
-      return;
-  }
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &cube_ctx->cubeDescriptorSetLayout;
+    if (vkCreatePipelineLayout(v_ctx->device, &pipelineLayoutInfo, NULL, &cube_ctx->cubePipelineLayout) != VK_SUCCESS) {
+        ecs_err("Failed to create cube pipeline layout");
+        sdl_ctx->hasError = true;
+        return;
+    }
 
-  VkGraphicsPipelineCreateInfo pipelineInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-  pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = shaderStages;
-  pipelineInfo.pVertexInputState = &vertexInputInfo;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = &depthStencil;
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.layout = ctx->cubePipelineLayout;
-  pipelineInfo.renderPass = ctx->renderPass;
-  pipelineInfo.subpass = 0;
+    VkGraphicsPipelineCreateInfo pipelineInfo = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.layout = cube_ctx->cubePipelineLayout;
+    pipelineInfo.renderPass = v_ctx->renderPass;
+    pipelineInfo.subpass = 0;
 
-  if (vkCreateGraphicsPipelines(ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &ctx->cubePipeline) != VK_SUCCESS) {
-      ecs_err("Failed to create cube graphics pipeline");
-      ctx->hasError = true;
-      return;
-  }
+    if (vkCreateGraphicsPipelines(v_ctx->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &cube_ctx->cubePipeline) != VK_SUCCESS) {
+        ecs_err("Failed to create cube graphics pipeline");
+        sdl_ctx->hasError = true;
+        return;
+    }
 
-  vkDestroyShaderModule(ctx->device, fragShaderModule, NULL);
-  vkDestroyShaderModule(ctx->device, vertShaderModule, NULL);
+    vkDestroyShaderModule(v_ctx->device, fragShaderModule, NULL);
+    vkDestroyShaderModule(v_ctx->device, vertShaderModule, NULL);
 
-  ecs_print(1, "Cube3DSetupSystem completed");
+    ecs_print(1, "Cube3DSetupSystem completed");
 }
-
-
-
 
 void Cube3DRenderSystem(ecs_iter_t *it) {
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+    VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
+    if (!v_ctx) return;
+    SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+    if (!sdl_ctx || sdl_ctx->hasError) return;
+    Cube3DContext *cube_ctx = ecs_singleton_ensure(it->world, Cube3DContext);
+    if (!cube_ctx) return;
 
-  // Update uniform buffer with rightward spin
-  static float angleY = 0.0f; // Rotation around Y-axis (spins right)
-  angleY += 0.02f; // Positive increment for clockwise spin (rightward)
+    // Update uniform buffer with rightward spin
+    static float angleY = 0.0f;
+    angleY += 0.02f;
 
-  UniformBufferObject ubo = {0};
+    UniformBufferObject ubo = {0};
 
-  // Model matrix: Rotate around Y-axis only
-  float cosY = cosf(angleY), sinY = sinf(angleY);
-  ubo.model[0] = cosY;   // X-axis component
-  ubo.model[2] = sinY;   // Z-axis component (rightward motion)
-  ubo.model[5] = 1.0f;   // Y-axis unchanged
-  ubo.model[8] = -sinY;  // Z-axis component (opposite for clockwise)
-  ubo.model[10] = cosY;  // Z-axis component
-  ubo.model[15] = 1.0f;  // W component
+    float cosY = cosf(angleY), sinY = sinf(angleY);
+    ubo.model[0] = cosY;
+    ubo.model[2] = sinY;
+    ubo.model[5] = 1.0f;
+    ubo.model[8] = -sinY;
+    ubo.model[10] = cosY;
+    ubo.model[15] = 1.0f;
 
-  // View matrix: Camera at (0, 0, -5) looking at (0, 0, 0), up is (0, 1, 0)
-  ubo.view[0] = 1.0f;  // Right: (1, 0, 0)
-  ubo.view[5] = 1.0f;  // Up: (0, 1, 0)
-  ubo.view[10] = 1.0f; // Forward: (0, 0, 1)
-  ubo.view[14] = -5.0f; // Translation: Move back 5 units along Z
-  ubo.view[15] = 1.0f;
+    ubo.view[0] = 1.0f;
+    ubo.view[5] = 1.0f;
+    ubo.view[10] = 1.0f;
+    ubo.view[14] = -5.0f;
+    ubo.view[15] = 1.0f;
 
-  // Projection matrix (adjusted for Vulkan: flip Y to make up positive)
-  float aspect = (float)ctx->width / (float)ctx->height;
-  float fov = 45.0f * 3.14159f / 180.0f;
-  float near = 0.1f, far = 100.0f;
-  float tanHalfFov = tanf(fov / 2.0f);
-  ubo.proj[0] = 1.0f / (aspect * tanHalfFov); // X scaling
-  ubo.proj[5] = -1.0f / tanHalfFov; // Y scaling (flipped for Vulkan)
-  ubo.proj[10] = -(far + near) / (far - near); // Z scaling
-  ubo.proj[11] = -1.0f; // W component for perspective divide
-  ubo.proj[14] = -(2.0f * far * near) / (far - near); // Z translation
-  ubo.proj[15] = 0.0f;
+    float aspect = (float)sdl_ctx->width / (float)sdl_ctx->height;
+    float fov = 45.0f * 3.14159f / 180.0f;
+    float near = 0.1f, far = 100.0f;
+    float tanHalfFov = tanf(fov / 2.0f);
+    ubo.proj[0] = 1.0f / (aspect * tanHalfFov);
+    ubo.proj[5] = -1.0f / tanHalfFov;
+    ubo.proj[10] = -(far + near) / (far - near);
+    ubo.proj[11] = -1.0f;
+    ubo.proj[14] = -(2.0f * far * near) / (far - near);
+    ubo.proj[15] = 0.0f;
 
-  updateBuffer(ctx, ctx->cubeUniformBufferMemory, sizeof(ubo), &ubo);
+    updateBuffer(v_ctx, cube_ctx->cubeUniformBufferMemory, sizeof(ubo), &ubo);
 
-  // Render commands
-  vkCmdBindPipeline(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->cubePipeline);
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(ctx->commandBuffer, 0, 1, &ctx->cubeVertexBuffer, offsets);
-  vkCmdBindIndexBuffer(ctx->commandBuffer, ctx->cubeIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-  vkCmdBindDescriptorSets(ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, ctx->cubePipelineLayout, 0, 1, &ctx->cubeDescriptorSet, 0, NULL);
+    // Render commands
+    vkCmdBindPipeline(v_ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cube_ctx->cubePipeline);
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(v_ctx->commandBuffer, 0, 1, &cube_ctx->cubeVertexBuffer, offsets);
+    vkCmdBindIndexBuffer(v_ctx->commandBuffer, cube_ctx->cubeIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindDescriptorSets(v_ctx->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cube_ctx->cubePipelineLayout, 0, 1, &cube_ctx->cubeDescriptorSet, 0, NULL);
 
-  vkCmdDrawIndexed(ctx->commandBuffer, 36, 1, 0, 0, 0); // Full cube
-
-  // vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 0, 0, 0);   // Front
-  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 6, 0, 0);   // Back
-  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 12, 0, 0);  // Right
-  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 18, 0, 0);  // Left
-  //vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 24, 0, 0);  // Top
-  // vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 30, 0, 0);  // Bottom
+    vkCmdDrawIndexed(v_ctx->commandBuffer, 36, 1, 0, 0, 0);
 }
 
-
-
-//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 0, 0, 0);   // Front
-//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 6, 0, 0);   // Back
-//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 12, 0, 0);  // Right
-//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 18, 0, 0);  // Left
-//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 24, 0, 0);  // Top
-//vkCmdDrawIndexed(ctx->commandBuffer, 6, 1, 30, 0, 0);  // Bottom
-
-
-void flecs_cube3d_cleanup(WorldContext *ctx) {
-    if (!ctx || !ctx->device) return;
+void flecs_cube3d_cleanup(ecs_world_t *world) {
+    VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
+    if (!v_ctx) return;
+    Cube3DContext *cube_ctx = ecs_singleton_ensure(world, Cube3DContext);
+    if (!cube_ctx) return;
 
     ecs_print(1, "Cube3D cleanup starting...");
-    vkDeviceWaitIdle(ctx->device);
+    vkDeviceWaitIdle(v_ctx->device);
 
-    if (ctx->cubePipeline != VK_NULL_HANDLE) vkDestroyPipeline(ctx->device, ctx->cubePipeline, NULL);
-    if (ctx->cubePipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(ctx->device, ctx->cubePipelineLayout, NULL);
-    if (ctx->cubeDescriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(ctx->device, ctx->cubeDescriptorSetLayout, NULL);
-    if (ctx->cubeDescriptorPool != VK_NULL_HANDLE) vkDestroyDescriptorPool(ctx->device, ctx->cubeDescriptorPool, NULL);
-    if (ctx->cubeVertexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(ctx->device, ctx->cubeVertexBufferMemory, NULL);
-    if (ctx->cubeVertexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(ctx->device, ctx->cubeVertexBuffer, NULL);
-    if (ctx->cubeIndexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(ctx->device, ctx->cubeIndexBufferMemory, NULL);
-    if (ctx->cubeIndexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(ctx->device, ctx->cubeIndexBuffer, NULL);
-    if (ctx->cubeUniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(ctx->device, ctx->cubeUniformBufferMemory, NULL);
-    if (ctx->cubeUniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(ctx->device, ctx->cubeUniformBuffer, NULL);
+    if (cube_ctx->cubePipeline != VK_NULL_HANDLE) vkDestroyPipeline(v_ctx->device, cube_ctx->cubePipeline, NULL);
+    if (cube_ctx->cubePipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(v_ctx->device, cube_ctx->cubePipelineLayout, NULL);
+    if (cube_ctx->cubeDescriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(v_ctx->device, cube_ctx->cubeDescriptorSetLayout, NULL);
+    if (cube_ctx->cubeDescriptorPool != VK_NULL_HANDLE) vkDestroyDescriptorPool(v_ctx->device, cube_ctx->cubeDescriptorPool, NULL);
+    if (cube_ctx->cubeVertexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cube_ctx->cubeVertexBufferMemory, NULL);
+    if (cube_ctx->cubeVertexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cube_ctx->cubeVertexBuffer, NULL);
+    if (cube_ctx->cubeIndexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cube_ctx->cubeIndexBufferMemory, NULL);
+    if (cube_ctx->cubeIndexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cube_ctx->cubeIndexBuffer, NULL);
+    if (cube_ctx->cubeUniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cube_ctx->cubeUniformBufferMemory, NULL);
+    if (cube_ctx->cubeUniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cube_ctx->cubeUniformBuffer, NULL);
 
     ecs_print(1, "Cube3D cleanup completed");
 }
 
-void flecs_cube3d_module_init(ecs_world_t *world, WorldContext *ctx) {
+void cube3d_register_components(ecs_world_t *world) {
+    ECS_COMPONENT_DEFINE(world, Cube3DContext);
+}
+
+void flecs_cube3d_module_init(ecs_world_t *world) {
     ecs_print(1, "Initializing cube3d module...");
+
+    cube3d_register_components(world);
+
+    ecs_singleton_set(world, Cube3DContext, {0});
 
     ecs_system_init(world, &(ecs_system_desc_t){
         .entity = ecs_entity(world, { .name = "Cube3DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),

@@ -8,9 +8,9 @@
 #include "flecs_imgui.h"
 // #include "flecs_text.h"
 #include "flecs_sdl.h"
-//#include "flecs_texture2d.h"
+#include "flecs_texture2d.h"
 #include "flecs_triangle2d.h"
-// #include "flecs_cube3d.h"
+#include "flecs_cube3d.h"
 // #include "flecs_cubetexture3d.h"
 
 int main(int argc, char *argv[]) {
@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_triangle2d_module_init...");
   flecs_triangle2d_module_init(world);
 
-  // ecs_print(1, "Calling flecs_texture2d_module_init...");
-  // flecs_texture2d_module_init(world, ctx);
+  ecs_print(1, "Calling flecs_texture2d_module_init...");
+  flecs_texture2d_module_init(world);
 
   ecs_print(1, "Calling flecs_imgui_module_init...");
   flecs_imgui_module_init(world);
@@ -54,8 +54,8 @@ int main(int argc, char *argv[]) {
   // ecs_print(1, "Calling flecs_text_module_init...");
   // flecs_text_module_init(world, ctx);
 
-  // ecs_print(1, "Calling flecs_cube3d_module_init...");
-  // flecs_cube3d_module_init(world, ctx);
+  ecs_print(1, "Calling flecs_cube3d_module_init...");
+  flecs_cube3d_module_init(world);
 
   // ecs_print(1, "Running setup phases...");
   // ecs_progress(world, 0);
@@ -93,8 +93,8 @@ int main(int argc, char *argv[]) {
   // flecs_cubetexture3d_cleanup(ctx);
   // flecs_text_cleanup(ctx);
   flecs_triangle2d_cleanup(world);
-  // flecs_texture2d_cleanup(ctx);
-  // flecs_cube3d_cleanup(ctx);
+  flecs_texture2d_cleanup(world);
+  flecs_cube3d_cleanup(world);
   flecs_vulkan_cleanup(world);
   
   flecs_sdl_cleanup(ctx);
