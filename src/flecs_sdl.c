@@ -38,6 +38,8 @@ void SDLInputSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
   //ECS_SDL_INPUT_T *input = ecs_field(it, ECS_SDL_INPUT_T, 0);
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
 
   ECS_SDL_INPUT_T *input = ecs_singleton_ensure(it->world, ECS_SDL_INPUT_T);
   if (!input) return; // Safety check
@@ -53,14 +55,14 @@ void SDLInputSystem(ecs_iter_t *it) {
       // }
       if (event.type == SDL_EVENT_QUIT) {
         ecs_print(1, "Quit event received");
-        ctx->shouldQuit = true;
+        sdl_ctx->shouldQuit = true;
       } else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
         int newWidth = event.window.data1;
         int newHeight = event.window.data2;
         ecs_print(1, "Window resized to %dx%d", newWidth, newHeight);
-        ctx->width = newWidth;
-        ctx->height = newHeight;
-        ctx->needsSwapchainRecreation = true; // Add this flag to WorldContext
+        sdl_ctx->width = newWidth;
+        sdl_ctx->height = newHeight;
+        sdl_ctx->needsSwapchainRecreation = true; // Add this flag to WorldContext
       }else if (event.type == SDL_EVENT_KEY_DOWN){
         if (event.key.key < SDL_KEYS_MAX) { // Ensure index is within bounds
           input->keys[event.key.key].pressed = true;

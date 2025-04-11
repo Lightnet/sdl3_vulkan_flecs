@@ -39,6 +39,7 @@ typedef struct {
   bool hasError;                               // Error flag
   const char *errorMessage;                    // Error message
   bool needsSwapchainRecreation;               // Flag to indicate swapchain needs recreation
+  bool skipRender; // Add this
 } VulkanContext;
 
 ECS_COMPONENT_DECLARE(VulkanContext);
@@ -61,7 +62,7 @@ void flecs_vulkan_module_init(ecs_world_t *world, WorldContext *ctx);
 // void RenderSystem(ecs_iter_t *it);
 // void EndRenderSystem(ecs_iter_t *it);
 
-void flecs_vulkan_cleanup(ecs_world_t *world, WorldContext *ctx);
+void flecs_vulkan_cleanup(ecs_world_t *world);
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
   VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

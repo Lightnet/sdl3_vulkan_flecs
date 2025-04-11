@@ -67,7 +67,13 @@ int main(int argc, char *argv[]) {
   Uint64 previousTime = SDL_GetTicks(); // Time at the start
   //ecs_abort(ECS_INTERNAL_ERROR, "TEST"); // Test error
 
-  while (!ctx->shouldQuit) {
+  bool shouldQuit = false;
+
+
+  //while (!ctx->shouldQuit) {
+  while (!shouldQuit) {
+    SDLContext *sdl_ctx = ecs_singleton_ensure(world, SDLContext);
+
     // Get current time and calculate delta time
     Uint64 currentTime = SDL_GetTicks();
     float deltaTime = (currentTime - previousTime) / 1000.0f; // Convert ms to seconds
@@ -76,6 +82,8 @@ int main(int argc, char *argv[]) {
     //printf("Delta Time: %f seconds\n", deltaTime);
 
     ecs_progress(world, deltaTime);  // All event handling is now in ImGuiInputSystem
+
+    shouldQuit = sdl_ctx->shouldQuit;
   }
 
   ecs_print(1, "Cleaning up...");
@@ -88,9 +96,11 @@ int main(int argc, char *argv[]) {
   // flecs_triangle2d_cleanup(ctx);
   // flecs_texture2d_cleanup(ctx);
   // flecs_cube3d_cleanup(ctx);
-  // flecs_vulkan_cleanup(world, ctx);
-  ecs_fini(world);
+  flecs_vulkan_cleanup(world);
+  
   flecs_sdl_cleanup(ctx);
+
+  ecs_fini(world);
   free(ctx);
   ecs_print(1, "Program exiting");
   return 0;
