@@ -13,6 +13,13 @@ typedef struct {
 } IMGUIContext;
 ECS_COMPONENT_DECLARE(IMGUIContext);
 
+// Create entity
+ecs_entity_t widget;
+// Create a custom event
+ecs_entity_t Clicked;
+
+
+
 void flecs_imgui_module_init(ecs_world_t *world);
 void flecs_imgui_cleanup(ecs_world_t *world);
 

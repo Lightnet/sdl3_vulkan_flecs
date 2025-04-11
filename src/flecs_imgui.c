@@ -156,6 +156,11 @@ void ImGuiCMDBufferSystem(ecs_iter_t *it){
     igBegin("Test Window", NULL, 0);
     if (igButton("Click Me", (ImVec2){0, 0})) {
       ecs_print(1, "Button clicked!");
+      // Emit entity event. Note how no component ids are provided.
+      ecs_emit(it->world, &(ecs_event_desc_t) {
+        .event = Clicked,
+        .entity = widget
+      });
     }
     igText("TEST Vulkan and ImGui! ");
     
@@ -216,6 +221,11 @@ void ImGuiEndSystem(ecs_iter_t *it) {
   // ecs_print(1, "ImGuiEndSystem completed");
 }
 
+void OnClick(ecs_iter_t *it){
+  ecs_print(1,"Click Event System...");
+}
+
+
 void flecs_imgui_cleanup(ecs_world_t *world) {
 
   VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
@@ -263,6 +273,18 @@ void flecs_imgui_module_init(ecs_world_t *world) {
     imgui_register_components(world);
 
     ecs_singleton_set(world, IMGUIContext, {0});
+
+    // Create entity
+    Clicked = ecs_new(world);
+    widget = ecs_entity(world, { .name = "widget" });
+
+    // Create an entity observer
+    ecs_observer(world, {
+      // Not interested in any specific component
+      .query.terms = {{ EcsAny, .src.id = widget }},
+      .events = { Clicked },
+      .callback = OnClick
+    });
 
     // ecs_print(1, "ImGuiSetupSystem");
     ecs_system_init(world, &(ecs_system_desc_t){
