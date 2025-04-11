@@ -52,5 +52,3 @@ const uint32_t cube3d_vert_spv[] = {
 	0x00000028,0x0004003d,0x0000001f,0x0000002e,0x0000002d,0x0003003e,0x0000002c,0x0000002e,
 	0x000100fd,0x00010038
 };
-
-//const size_t cube3d_vert_spv_size = sizeof(cube3d_vert_spv);

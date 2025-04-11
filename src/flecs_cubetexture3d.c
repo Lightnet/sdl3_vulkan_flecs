@@ -20,17 +20,17 @@ typedef struct {
     float proj[16];
 } UniformBufferObject;
 
-static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
-    VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    createInfo.codeSize = codeSize;
-    createInfo.pCode = code;
-    VkShaderModule module;
-    if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-        ecs_err("Failed to create shader module");
-        return VK_NULL_HANDLE;
-    }
-    return module;
-}
+// static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
+//     VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+//     createInfo.codeSize = codeSize;
+//     createInfo.pCode = code;
+//     VkShaderModule module;
+//     if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+//         ecs_err("Failed to create shader module");
+//         return VK_NULL_HANDLE;
+//     }
+//     return module;
+// }
 
 static void createBuffer(VulkanContext *v_ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory) {
   VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
@@ -380,8 +380,10 @@ void CubeTexture3DSetupSystem(ecs_iter_t *it) {
 
   vkUpdateDescriptorSets(v_ctx->device, 2, descriptorWrites, 0, NULL);
 
-  VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cubetexture3d_vert_spv, sizeof(cubetexture3d_vert_spv));
-  VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cubetexture3d_frag_spv, sizeof(cubetexture3d_frag_spv));
+  // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cubetexture3d_vert_spv, sizeof(cubetexture3d_vert_spv));
+  // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cubetexture3d_frag_spv, sizeof(cubetexture3d_frag_spv));
+  VkShaderModule vertShaderModule = createShaderModuleH(v_ctx->device, cubetexture3d_vert_spv, sizeof(cubetexture3d_vert_spv));
+  VkShaderModule fragShaderModule = createShaderModuleH(v_ctx->device, cubetexture3d_frag_spv, sizeof(cubetexture3d_frag_spv));
   
   if (!vertShaderModule || !fragShaderModule) {
       ecs_err("Failed to create shader modules");

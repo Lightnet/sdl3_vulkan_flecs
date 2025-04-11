@@ -3,21 +3,21 @@
 #include "flecs_triangle2d.h"
 #include "shaders/shader2d_vert.spv.h"
 #include "shaders/shader2d_frag.spv.h"
-//#include "flecs_utils.h" // createShaderModule(v_ctx->device, text_vert_spv)
+#include "flecs_utils.h" // createShaderModuleH
 #include "flecs_sdl.h"
 #include "flecs_vulkan.h"
 
-static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
-  VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-  createInfo.codeSize = codeSize;
-  createInfo.pCode = code;
-  VkShaderModule module;
-  if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-      ecs_err("Failed to create shader module");
-      return VK_NULL_HANDLE;
-  }
-  return module;
-}
+// static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
+//   VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+//   createInfo.codeSize = codeSize;
+//   createInfo.pCode = code;
+//   VkShaderModule module;
+//   if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+//       ecs_err("Failed to create shader module");
+//       return VK_NULL_HANDLE;
+//   }
+//   return module;
+// }
 
 void TriangleModuleSetupSystem(ecs_iter_t *it) {
     ecs_print(1, "TrianglePipelineSetupSystem");
@@ -143,8 +143,10 @@ void TriangleModuleSetupSystem(ecs_iter_t *it) {
 
     ecs_log(1, "Triangle buffer setup completed");
 
-    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, shader2d_vert_spv, sizeof(shader2d_vert_spv));
-    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, shader2d_frag_spv, sizeof(shader2d_frag_spv));
+    // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, shader2d_vert_spv, sizeof(shader2d_vert_spv));
+    // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, shader2d_frag_spv, sizeof(shader2d_frag_spv));
+    VkShaderModule vertShaderModule = createShaderModuleH(v_ctx->device, shader2d_vert_spv, sizeof(shader2d_vert_spv));
+    VkShaderModule fragShaderModule = createShaderModuleH(v_ctx->device, shader2d_frag_spv, sizeof(shader2d_frag_spv));
 
     if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
         ecs_err("Failed to create shader modules");

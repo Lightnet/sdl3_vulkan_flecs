@@ -4,7 +4,7 @@
 #include <string.h>
 #include "shaders/cube3d_vert.spv.h"
 #include "shaders/cube3d_frag.spv.h"
-// #include "flecs_utils.h" // createShaderModuleLen(v_ctx->device, text_vert_spv)
+#include "flecs_utils.h" // createShaderModuleH
 #include "flecs_vulkan.h"
 #include "flecs_sdl.h"
 
@@ -19,17 +19,17 @@ typedef struct {
     float proj[16];
 } UniformBufferObject;
 
-static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
-    VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    createInfo.codeSize = codeSize;
-    createInfo.pCode = code;
-    VkShaderModule module;
-    if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-        ecs_err("Failed to create shader module");
-        return VK_NULL_HANDLE;
-    }
-    return module;
-}
+// static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
+//     VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+//     createInfo.codeSize = codeSize;
+//     createInfo.pCode = code;
+//     VkShaderModule module;
+//     if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+//         ecs_err("Failed to create shader module");
+//         return VK_NULL_HANDLE;
+//     }
+//     return module;
+// }
 
 static void createBuffer(VulkanContext *v_ctx, SDLContext *sdl_ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory) {
     VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
@@ -175,8 +175,10 @@ void Cube3DSetupSystem(ecs_iter_t *it) {
 
     vkUpdateDescriptorSets(v_ctx->device, 1, &descriptorWrite, 0, NULL);
 
-    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cube3d_vert_spv, sizeof(cube3d_vert_spv));
-    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cube3d_frag_spv, sizeof(cube3d_frag_spv));
+    // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, cube3d_vert_spv, sizeof(cube3d_vert_spv));
+    // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, cube3d_frag_spv, sizeof(cube3d_frag_spv));
+    VkShaderModule vertShaderModule = createShaderModuleH(v_ctx->device, cube3d_vert_spv, sizeof(cube3d_vert_spv));
+    VkShaderModule fragShaderModule = createShaderModuleH(v_ctx->device, cube3d_frag_spv, sizeof(cube3d_frag_spv));
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT, vertShaderModule, "main", NULL},

@@ -3,7 +3,7 @@
 #include <string.h>
 #include "shaders/text_vert.spv.h"
 #include "shaders/text_frag.spv.h"
-//#include "flecs_utils.h" // createShaderModuleLen(v_ctx->device, text_vert_spv)
+#include "flecs_utils.h" // createShaderModuleLen(v_ctx->device, text_vert_spv)
 #include "flecs_sdl.h"
 #include "flecs_vulkan.h"
 
@@ -19,17 +19,17 @@ typedef struct {
     int bearingX, bearingY; // Offset from baseline
 } GlyphInfo;
 
-static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
-  VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-  createInfo.codeSize = codeSize;
-  createInfo.pCode = code;
-  VkShaderModule module;
-  if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-      ecs_err("Failed to create shader module");
-      return VK_NULL_HANDLE;
-  }
-  return module;
-}
+// static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
+//   VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+//   createInfo.codeSize = codeSize;
+//   createInfo.pCode = code;
+//   VkShaderModule module;
+//   if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+//       ecs_err("Failed to create shader module");
+//       return VK_NULL_HANDLE;
+//   }
+//   return module;
+// }
 
 // Unchanged: transitionImageLayout, createShaderModule
 static void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -398,14 +398,11 @@ void TextSetupSystem(ecs_iter_t *it) {
     }
 
     // Shader and pipeline setup
-    // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, (const unsigned char *)text_vert_spv, sizeof(text_vert_spv));
-    // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, (const unsigned char *)text_frag_spv, sizeof(text_frag_spv));
+    // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, text_vert_spv, sizeof(text_vert_spv));
+    // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, text_frag_spv, sizeof(text_frag_spv));
+    VkShaderModule vertShaderModule = createShaderModuleH(v_ctx->device, text_vert_spv, sizeof(text_vert_spv));
+    VkShaderModule fragShaderModule = createShaderModuleH(v_ctx->device, text_frag_spv, sizeof(text_frag_spv));
 
-    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, text_vert_spv, sizeof(text_vert_spv));
-    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, text_frag_spv, sizeof(text_frag_spv));
-
-    // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, text_vert_spv);
-    // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, text_frag_spv);
 
     if (vertShaderModule == VK_NULL_HANDLE || fragShaderModule == VK_NULL_HANDLE) {
         ecs_err("Failed to create text shader modules");

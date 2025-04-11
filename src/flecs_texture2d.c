@@ -4,7 +4,7 @@
 #include <string.h>
 #include "shaders/texture2d_vert.spv.h"
 #include "shaders/texture2d_frag.spv.h"
-// #include "flecs_utils.h" // createShaderModule(v_ctx->device, text_vert_spv)
+#include "flecs_utils.h" // createShaderModule(v_ctx->device, text_vert_spv)
 #include "flecs_vulkan.h"
 #include "flecs_sdl.h"
 
@@ -16,17 +16,17 @@ typedef struct {
     float uv[2];     // Texture coordinates
 } Texture2DVertex;
 
-static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
-    VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-    createInfo.codeSize = codeSize;
-    createInfo.pCode = code;
-    VkShaderModule module;
-    if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
-        ecs_err("Failed to create shader module");
-        return VK_NULL_HANDLE;
-    }
-    return module;
-}
+// static VkShaderModule createShaderModule(VkDevice device, const uint32_t *code, size_t codeSize) {
+//     VkShaderModuleCreateInfo createInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+//     createInfo.codeSize = codeSize;
+//     createInfo.pCode = code;
+//     VkShaderModule module;
+//     if (vkCreateShaderModule(device, &createInfo, NULL, &module) != VK_SUCCESS) {
+//         ecs_err("Failed to create shader module");
+//         return VK_NULL_HANDLE;
+//     }
+//     return module;
+// }
 
 static void createBuffer(VulkanContext *v_ctx, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *memory) {
     VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
@@ -276,8 +276,10 @@ void Texture2DSetupSystem(ecs_iter_t *it) {
     updateBuffer(v_ctx, text2d_ctx->texture2dVertexBufferMemory, sizeof(vertices), vertices);
     updateBuffer(v_ctx, text2d_ctx->texture2dIndexBufferMemory, sizeof(indices), indices);
 
-    VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, texture2d_vert_spv, sizeof(texture2d_vert_spv));
-    VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, texture2d_frag_spv, sizeof(texture2d_frag_spv));
+    // VkShaderModule vertShaderModule = createShaderModule(v_ctx->device, texture2d_vert_spv, sizeof(texture2d_vert_spv));
+    // VkShaderModule fragShaderModule = createShaderModule(v_ctx->device, texture2d_frag_spv, sizeof(texture2d_frag_spv));
+    VkShaderModule vertShaderModule = createShaderModuleH(v_ctx->device, texture2d_vert_spv, sizeof(texture2d_vert_spv));
+    VkShaderModule fragShaderModule = createShaderModuleH(v_ctx->device, texture2d_frag_spv, sizeof(texture2d_frag_spv));
 
     VkPipelineShaderStageCreateInfo vertStageInfo = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
     vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
