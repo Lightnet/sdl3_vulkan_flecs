@@ -14,6 +14,18 @@
 #define SDL_KEYS_MAX 278
 
 typedef struct {
+  SDL_Window *window;
+  VkSurfaceKHR surface;
+  uint32_t width;                              // Window width (from swapchain)
+  uint32_t height;                             // Window height (from swapchain)
+  bool shouldQuit;                             // SDL quit flag
+  bool hasError;                               // Error flag
+  const char *errorMessage;
+  bool needsSwapchainRecreation;               // Flag to indicate swapchain needs recreation
+} SDLContext;
+ECS_COMPONENT_DECLARE(SDLContext);
+
+typedef struct {
   bool pressed;
   bool state;
   bool current;

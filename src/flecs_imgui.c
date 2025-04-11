@@ -1,5 +1,6 @@
 #include "flecs_imgui.h"
 #include <stdio.h>
+#include "flecs_sdl.h"
 
 // Helper function to create ImGui descriptor pool
 static VkDescriptorPool createImGuiDescriptorPool(VkDevice device) {
@@ -43,12 +44,14 @@ static void check_vk_result(VkResult err) {
 void ImGuiSetupSystem(ecs_iter_t *it) {
   WorldContext *ctx = ecs_get_ctx(it->world);
   if (!ctx || ctx->hasError) return;
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world,SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError) return;
 
   ecs_print(1, "Initialize ImGui context");
   ctx->imguiContext = igCreateContext(NULL);
   ImGuiIO* io = igGetIO();
-  io->DisplaySize.x = (float)WIDTH;
-  io->DisplaySize.y = (float)HEIGHT;
+  io->DisplaySize.x = (float)sdl_ctx->width;
+  io->DisplaySize.y = (float)sdl_ctx->height;
 
   // ecs_print(1, "ImGui_ImplSDL3_InitForVulkan");
   if (!ImGui_ImplSDL3_InitForVulkan(ctx->window)) {

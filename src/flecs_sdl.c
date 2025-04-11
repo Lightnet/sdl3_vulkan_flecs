@@ -7,28 +7,30 @@
 
 // set up SDL window.
 void SDLSetUpSystem(ecs_iter_t *it){
-  WorldContext *ctx = ecs_get_ctx(it->world);
-  if (!ctx || ctx->hasError) return;
+  //WorldContext *ctx = ecs_get_ctx(it->world);
+
+  SDLContext *sdlctx = ecs_singleton_ensure(it->world,SDLContext);
+  if (!sdlctx || sdlctx->hasError) return;
   ecs_print(1, "SDL_Init");
 
-  ecs_print(1, "WINDOW SIZE - WIDTH: %d, HEIGHT: %d", ctx->width, ctx->height);
+  ecs_print(1, "WINDOW SIZE - WIDTH: %d, HEIGHT: %d", sdlctx->width, sdlctx->height);
 
   if(!SDL_Init(SDL_INIT_VIDEO)){
     ecs_err( "SDL could not initialize! SDL error: %s\n", SDL_GetError() );
   }
 
   ecs_print(1, "SDL_CreateWindow");
-  ctx->window = SDL_CreateWindow("Vulkan Triangle with ImGui",
-    ctx->width, 
-    ctx->height, 
+  sdlctx->window = SDL_CreateWindow("Vulkan Triangle with ImGui",
+    sdlctx->width, 
+    sdlctx->height, 
     SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
   );
 
-  if (!ctx->window){
+  if (!sdlctx->window){
     ecs_err( "Window could not be created! SDL error: %s\n", SDL_GetError());
     ecs_abort(ECS_INTERNAL_ERROR, "Window could not be created! SDL error!");
   }
-  ctx->needsSwapchainRecreation = false;
+  sdlctx->needsSwapchainRecreation = false;
 
 }
 
@@ -37,7 +39,7 @@ void SDLInputSystem(ecs_iter_t *it) {
   if (!ctx || ctx->hasError) return;
   //ECS_SDL_INPUT_T *input = ecs_field(it, ECS_SDL_INPUT_T, 0);
 
-  ECS_SDL_INPUT_T *input = ecs_singleton_get(it->world, ECS_SDL_INPUT_T);
+  ECS_SDL_INPUT_T *input = ecs_singleton_ensure(it->world, ECS_SDL_INPUT_T);
   if (!input) return; // Safety check
 
   bool isMotion = false;
@@ -46,9 +48,9 @@ void SDLInputSystem(ecs_iter_t *it) {
   SDL_Event event;
   //for (int i = 0; i < it->count; i ++) {
     while (SDL_PollEvent(&event)) {
-      if (ctx->isImGuiInitialized) {
-        ImGui_ImplSDL3_ProcessEvent(&event);
-      }
+      // if (ctx->isImGuiInitialized) {
+      //   ImGui_ImplSDL3_ProcessEvent(&event);
+      // }
       if (event.type == SDL_EVENT_QUIT) {
         ecs_print(1, "Quit event received");
         ctx->shouldQuit = true;
@@ -204,7 +206,9 @@ void flecs_sdl_cleanup(WorldContext *ctx){
   SDL_Quit();
 }
 
-void register_componets(ecs_world_t *world){
+void sdl_register_components(ecs_world_t *world){
+
+  ECS_COMPONENT_DEFINE(world, SDLContext);
 
   ECS_COMPONENT_DEFINE(world, ECS_SDL_KEY_STATE_T);
   ECS_COMPONENT_DEFINE(world, ECS_SDL_MOUSE_T);
@@ -215,7 +219,16 @@ void register_componets(ecs_world_t *world){
 void flecs_sdl_module_init(ecs_world_t *world, WorldContext *ctx) {
   ecs_print(1, "Initializing SDL module...");
 
-  register_componets(world);
+  sdl_register_components(world);
+
+  ecs_singleton_set(world, SDLContext, {
+    .width=800,
+    .height=600,
+    .shouldQuit=false,
+    .hasError=false
+  });
+
+
 
   // ecs_entity_t sdl_input_entity = ecs_entity(world, { .name = "SDL_INPUT" });
   // printf("Entity name: %s\n", ecs_get_name(world, sdl_input_entity));

@@ -10,8 +10,8 @@
 #include <ft2build.h>           // freetype
 #include FT_FREETYPE_H          // freetype
 
-#define WIDTH 800
-#define HEIGHT 600
+// #define WIDTH 800
+// #define HEIGHT 600
 
 // typedef struct {
 //   float width, height;  // Glyph size in pixels
