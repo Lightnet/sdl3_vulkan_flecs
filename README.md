@@ -173,9 +173,14 @@ The aim to expand into a flexible module-based design for 3D world-building expe
 
 ```text
 sdl3_vulkan_flecs/
-├── fonts/                              # (Planned) Font assets
-├── include/                            # Header files
+├── assets/                             # (Planned) Font assets
+│   ├── fonts                           # test flecs
+│   └── textures                        # test
+├── docs/                               # docs
 ├── examples/                           # Example files
+│   ├── flecs_test.c                    # test flecs
+│   └── test.c                          # test
+├── include/                            # Header files
 ├──── shaders/                          # Shader source files
 │       ├── cube3d_frag.spv.h           # Fragment shader
 │       ├── cube3d_vert.spv.h           # Vertex shader
@@ -190,9 +195,13 @@ sdl3_vulkan_flecs/
 │   ├── flecs_cube3d.h                  # cube 3d mesh
 │   ├── flecs_cubetexture3d.h           # cube 3d mesh
 │   ├── flecs_imgui.h                   # graphic user interface
-│   ├── flecs_sdl.h                     # SDL Input
+│   ├── flecs_sdl.h                     # SDL Input module
+│   ├── flecs_text.h                    # freetype text font module
+│   ├── flecs_texture2d.h               # texture 2d module
+│   ├── flecs_triangle2d.h              # triangle 2d module
 │   ├── flecs_text.h                    # freetype text font module
 │   ├── flecs_types.h                   # Global context for Flecs
+│   ├── flecs_utils.h                   # helper for vulkan and sdl
 │   └── flecs_vulkan.h                  # Vulkan setup and rendering
 ├── shaders/                            # Shader source files
 │       ├── cube3d.frag                 # Fragment shader
@@ -206,10 +215,14 @@ sdl3_vulkan_flecs/
 │       ├── texture2d.frag              # Fragment shader
 │       └── texture2d.vert              # Vertex shader
 ├── src/                                # Source files
+│   ├── flecs_cube3d.c                  # cube 3d module
+│   ├── flecs_cubetexture3d.c           # cube 3d texture module
 │   ├── flces_imgui.c                   # graphic user interface module
 │   ├── flces_sdl.c                     # SDL input module and other add later
 │   ├── flces_text.c                    # Freetype font text module
-│   ├── flecs_types.c                   # Flecs context implementation
+│   ├── flecs_texture2d.c               # texture 2d module
+│   ├── flecs_triangle2d.c              # triangle 2d module
+│   ├── flecs_types.c                   # Flecs world context implementation
 │   ├── flecs_vulkan.c                  # Vulkan module logic
 │   └── main.c                          # Entry point
 ├── CMakeLists.txt                      # CMake build configuration
