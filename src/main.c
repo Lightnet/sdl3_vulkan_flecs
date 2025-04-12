@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_cube3d_module_init...");
   flecs_cube3d_module_init(world);
 
-  ecs_print(1, "Calling flecs_luajit_module_init...");
+  // ecs_print(1, "Calling flecs_luajit_module_init...");
   flecs_luajit_module_init(world);
 
   ecs_print(1, "Entering main loop...");
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
   flecs_sdl_cleanup(world);
   // flecs cleanup world
   ecs_fini(world);
-  // free(ctx);
+  
   ecs_print(1, "Program exiting");
   return 0;
 }

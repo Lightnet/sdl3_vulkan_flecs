@@ -150,6 +150,8 @@ typedef struct {
   ecs_entity_t BeginRenderPhase;
   ecs_entity_t BeginCMDBufferPhase;
   ecs_entity_t CMDBufferPhase;
+  ecs_entity_t CMDBuffer1Phase;
+  ecs_entity_t CMDBuffer2Phase;
   ecs_entity_t EndCMDBufferPhase;
   ecs_entity_t EndRenderPhase;
   // setup once

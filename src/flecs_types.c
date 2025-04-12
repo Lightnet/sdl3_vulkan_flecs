@@ -17,8 +17,14 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   phases->CMDBufferPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->CMDBufferPhase, EcsDependsOn, phases->BeginCMDBufferPhase);
 
+  phases->CMDBuffer1Phase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->CMDBuffer1Phase, EcsDependsOn, phases->CMDBufferPhase);
+
+  phases->CMDBuffer2Phase = ecs_new_w_id(world, EcsPhase);
+  ecs_add_pair(world, phases->CMDBuffer2Phase, EcsDependsOn, phases->CMDBuffer1Phase);
+
   phases->EndCMDBufferPhase = ecs_new_w_id(world, EcsPhase);
-  ecs_add_pair(world, phases->EndCMDBufferPhase, EcsDependsOn, phases->CMDBufferPhase);
+  ecs_add_pair(world, phases->EndCMDBufferPhase, EcsDependsOn, phases->CMDBuffer2Phase);
 
   phases->EndRenderPhase = ecs_new_w_id(world, EcsPhase);
   ecs_add_pair(world, phases->EndRenderPhase, EcsDependsOn, phases->EndCMDBufferPhase);
@@ -62,4 +68,3 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   ecs_add_pair(world, phases->SetupModulePhase, EcsDependsOn, phases->SyncSetupPhase);
   
 }
-

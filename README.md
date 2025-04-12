@@ -92,7 +92,7 @@ The aim to expand into a flexible module-based design for 3D world-building expe
     - run time render: (added)
       - BeginRenderSystem
       - BeginCMDBufferSystem
-      - 'Place Holder Name System' > dependon > CMDBufferPhase
+      - 'Place Holder Name System' > dependon > [CMDBufferPhase > CMDBuffer2Phase]
       - EndCMDBufferSystem
       - EndRenderSystem
 
@@ -387,6 +387,11 @@ int main(){
 - ImGui elements work in progress for debug 
 - C++ Usage: Minimal, primarily for wrapping libraries like VulkanMemoryAllocator to reduce Vulkan boilerplate.
 - Logging: Flecs-based logging is a work in progress and may be incomplete.
+
+# cimgui Notes:
+- custom phase order render not possible. ex. Imgui1Phase > Imgui2Phase > Imgui3Phase. Reason vulkan layer error and render over lap phases.
+- need to add more vulkan phases to handle imgui render setup. With CMDBufferPhase to CMDBuffer2Phase.
+- not test full detail yet.
 
 # Planned Improvements:
 - Replace hardcoded elements with dynamic systems.

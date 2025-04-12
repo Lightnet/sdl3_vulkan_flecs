@@ -153,7 +153,6 @@ void SDLInputSystem(ecs_iter_t *it) {
 
   //}
 
-
   // for (int i = 0; i < 128; i++) {
   //   input->keys[i].current = false;
   // }

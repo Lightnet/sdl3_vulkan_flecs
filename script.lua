@@ -4,7 +4,7 @@ function add(a, b)
 end
 
 print("hello lua ==============")
-
+-- nope it lock out until finish
 -- local count = 0
 -- local isLoop = true;
 -- while isLoop do 
@@ -16,8 +16,8 @@ print("hello lua ==============")
 --   print("test loop")
 -- end
 
-
-function update(dt)
-  -- Game logic here, e.g., move entities, check collisions
-  print("Lua update called with dt: " .. dt)
-end
+-- -- call from c side to update.
+-- function update(dt)
+--   -- Game logic here, e.g., move entities, check collisions
+--   print("Lua update called with dt: " .. dt)
+-- end
