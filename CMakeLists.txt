@@ -169,6 +169,59 @@ if(WIN32)
   endif()
 endif()
 
+if(WIN32)
+  CPMAddPackage(
+    NAME luajit
+    GITHUB_REPOSITORY openresty/luajit2
+    GIT_TAG v2.1-agentzh
+    DOWNLOAD_ONLY TRUE
+  )
+  set(LUAJIT_DLL "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/lua51.dll")
+  set(LUAJIT_LIB "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/lua51.lib")
+  set(LUAJIT_SRC_DIR "${CMAKE_BINARY_DIR}/_deps/luajit-src")
+  set(LUAJIT_BUILD_DIR "${LUAJIT_SRC_DIR}/src")
+
+  if(EXISTS "${LUAJIT_DLL}")
+    add_library(luajit_lib SHARED IMPORTED)
+    set_target_properties(luajit_lib PROPERTIES
+        IMPORTED_LOCATION "${LUAJIT_DLL}"
+        IMPORTED_IMPLIB "${LUAJIT_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_SRC_DIR}/src"
+    )
+  endif()
+
+  if(NOT EXISTS "${LUAJIT_DLL}")
+    set(VS_VCVARSALL "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat")
+    add_custom_command(
+        OUTPUT "${LUAJIT_DLL}" "${LUAJIT_LIB}"
+        # COMMAND ${CMAKE_COMMAND} -E chdir "${LUAJIT_BUILD_DIR}" msvcbuild.bat
+        
+        COMMAND cmd /c "call \"${VS_VCVARSALL}\" x64 && cd /d ${LUAJIT_SRC_DIR}/src && call ${LUAJIT_SRC_DIR}/src/msvcbuild.bat dll"
+        DEPENDS ${LUAJIT_SRC_DIR}/src/luajit.c
+        COMMAND ${CMAKE_COMMAND} -E copy "${LUAJIT_BUILD_DIR}/lua51.dll" "${LUAJIT_DLL}"
+        COMMAND ${CMAKE_COMMAND} -E copy "${LUAJIT_BUILD_DIR}/lua51.lib" "${LUAJIT_LIB}"
+        # COMMENT "Building LuaJIT"
+        WORKING_DIRECTORY "${LUAJIT_BUILD_DIR}"
+        COMMENT "Building LuaJIT shared library with MSVC"
+    )
+    add_custom_target(BuildLuaJIT DEPENDS "${LUAJIT_DLL}" "${LUAJIT_LIB}")
+
+    add_library(luajit_lib SHARED IMPORTED)
+
+    set_target_properties(luajit_lib 
+      PROPERTIES 
+      IMPORTED_LOCATION "${LUAJIT_DLL}"
+      IMPORTED_IMPLIB "${LUAJIT_LIB}"
+      INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_BUILD_DIR}"
+    )
+
+    add_dependencies(luajit_lib BuildLuaJIT)
+
+  endif()
+
+endif()
+
+
 CPMAddPackage(
     NAME cimgui
     GITHUB_REPOSITORY cimgui/cimgui
@@ -246,6 +299,7 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_cube3d.c
   ${SOURCE_DIR}/flecs_triangle2d.c
   ${SOURCE_DIR}/flecs_cubetexture3d.c
+  ${SOURCE_DIR}/flecs_luajit.c
 )
 
 # Define the executable with all source files
@@ -254,6 +308,7 @@ add_executable(${PROJECT_NAME}
   ${SRC_FILES}
   # ${CMAKE_SOURCE_DIR}/examples/test.c
   # ${CMAKE_SOURCE_DIR}/examples/flecs_test.c
+  # ${CMAKE_SOURCE_DIR}/examples/lua_test.c
 )
 # raylib config
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -271,6 +326,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     cimgui_lib
     cglm
     mimalloc
+    luajit_lib
 )
 
 # Include directories with proper path validation

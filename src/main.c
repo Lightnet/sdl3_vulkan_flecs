@@ -12,6 +12,7 @@
 #include "flecs_triangle2d.h"
 #include "flecs_cube3d.h"
 #include "flecs_cubetexture3d.h"
+#include "flecs_luajit.h"
 
 int main(int argc, char *argv[]) {
 
@@ -46,6 +47,9 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "Calling flecs_cube3d_module_init...");
   flecs_cube3d_module_init(world);
 
+  ecs_print(1, "Calling flecs_luajit_module_init...");
+  flecs_luajit_module_init(world);
+
   ecs_print(1, "Entering main loop...");
 
   Uint64 previousTime = SDL_GetTicks(); // Time at the start
@@ -76,6 +80,8 @@ int main(int argc, char *argv[]) {
   flecs_texture2d_cleanup(world);
   flecs_cube3d_cleanup(world);
   flecs_vulkan_cleanup(world);
+
+  flecs_luajit_cleanup(world);
   // window cleanup
   flecs_sdl_cleanup(world);
   // flecs cleanup world

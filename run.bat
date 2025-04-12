@@ -4,6 +4,12 @@ set APPNAME=VulkanTriangle
 set APPPATH=build\Debug\%APPNAME%.exe
 set EXECUTABLE=%APPNAME%.exe
 
+set SCRIPT_SRC=script.lua
+set SCRIPT_DEST=build\Debug\script.lua
+
+echo copying %SCRIPT_SRC%
+copy %SCRIPT_SRC% %SCRIPT_DEST%
+
 if not exist %APPPATH% (
     echo Executable not found! Please build the project first.
     exit /b 1
