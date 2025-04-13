@@ -88,7 +88,7 @@ void Cube3DSetupSystem(ecs_iter_t *it) {
     Cube3DContext *cube_ctx = ecs_singleton_ensure(it->world, Cube3DContext);
     if (!cube_ctx) return;
 
-    ecs_print(1, "Cube3DSetupSystem starting...");
+    ecs_log(1, "Cube3DSetupSystem starting...");
 
     // Descriptor Pool
     VkDescriptorPoolSize poolSize = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1};
@@ -264,7 +264,7 @@ void Cube3DSetupSystem(ecs_iter_t *it) {
     vkDestroyShaderModule(v_ctx->device, fragShaderModule, NULL);
     vkDestroyShaderModule(v_ctx->device, vertShaderModule, NULL);
 
-    ecs_print(1, "Cube3DSetupSystem completed");
+    ecs_log(1, "Cube3DSetupSystem completed");
 }
 
 void Cube3DRenderSystem(ecs_iter_t *it) {
@@ -324,7 +324,7 @@ void flecs_cube3d_cleanup(ecs_world_t *world) {
     Cube3DContext *cube_ctx = ecs_singleton_ensure(world, Cube3DContext);
     if (!cube_ctx) return;
 
-    ecs_print(1, "Cube3D cleanup starting...");
+    ecs_log(1, "Cube3D cleanup starting...");
     vkDeviceWaitIdle(v_ctx->device);
 
     if (cube_ctx->cubePipeline != VK_NULL_HANDLE) vkDestroyPipeline(v_ctx->device, cube_ctx->cubePipeline, NULL);
@@ -338,29 +338,45 @@ void flecs_cube3d_cleanup(ecs_world_t *world) {
     if (cube_ctx->cubeUniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cube_ctx->cubeUniformBufferMemory, NULL);
     if (cube_ctx->cubeUniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cube_ctx->cubeUniformBuffer, NULL);
 
-    ecs_print(1, "Cube3D cleanup completed");
+    ecs_log(1, "Cube3D cleanup completed");
+}
+
+void flecs_cube3d_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] flecs_cube3d_cleanup_event_system");
 }
 
 void cube3d_register_components(ecs_world_t *world) {
     ECS_COMPONENT_DEFINE(world, Cube3DContext);
 }
 
+void cube3d_register_systems(ecs_world_t *world){
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = flecs_cube3d_cleanup_event_system
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "Cube3DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
+    .callback = Cube3DSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "Cube3DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+      .callback = Cube3DRenderSystem
+  });
+}
+
 void flecs_cube3d_module_init(ecs_world_t *world) {
-    ecs_print(1, "Initializing cube3d module...");
+  ecs_log(1, "Initializing cube3d module...");
 
-    cube3d_register_components(world);
+  cube3d_register_components(world);
 
-    ecs_singleton_set(world, Cube3DContext, {0});
+  ecs_singleton_set(world, Cube3DContext, {0});
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "Cube3DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
-        .callback = Cube3DSetupSystem
-    });
+  cube3d_register_systems(world);
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "Cube3DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-        .callback = Cube3DRenderSystem
-    });
-
-    ecs_print(1, "Cube3d module initialized");
+  ecs_log(1, "Cube3d module initialized");
 }

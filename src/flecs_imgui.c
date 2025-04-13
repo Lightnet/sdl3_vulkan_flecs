@@ -52,7 +52,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
   if (!imgui_ctx) return;
 
-  ecs_print(1, "Initialize ImGui context");
+  ecs_log(1, "Initialize ImGui context");
   imgui_ctx->imguiContext = igCreateContext(NULL);
   ImGuiIO* io = igGetIO();
   io->DisplaySize.x = (float)sdl_ctx->width;
@@ -217,6 +217,13 @@ void ImGuiUpdateSystem(ecs_iter_t *it) {
       .entity = widget
     });
   }
+
+  if (igButton("Clean Up", (ImVec2){0, 0})) {
+    ecs_emit(it->world, &(ecs_event_desc_t) {
+      .event = CleanUpEvent,
+      .entity = CleanUpModule
+    });
+  }
   igEnd();
 
   // ecs_print(1, "ImGuiUpdateSystem completed");
@@ -245,6 +252,9 @@ void OnClick(ecs_iter_t *it){
   ecs_print(1,"Click Event System...");
 }
 
+void imgui_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] imgui_cleanup_event_system");
+}
 
 void flecs_imgui_cleanup(ecs_world_t *world) {
 
@@ -254,32 +264,32 @@ void flecs_imgui_cleanup(ecs_world_t *world) {
   if (!ctx) return;
 
   if (v_ctx->device) {
-      ecs_print(1, "Waiting for device idle...");
+      ecs_log(1, "Waiting for device idle...");
       vkDeviceWaitIdle(v_ctx->device);
 
       if (ctx->isImGuiInitialized) {
-          ecs_print(1, "Destroying ImGui fonts texture...");
+          ecs_log(1, "Destroying ImGui fonts texture...");
           ImGui_ImplVulkan_DestroyFontsTexture(); // Explicitly destroy fonts
-          ecs_print(1, "Shutting down ImGui Vulkan backend...");
+          ecs_log(1, "Shutting down ImGui Vulkan backend...");
           ImGui_ImplVulkan_Shutdown();
-          ecs_print(1, "Shutting down ImGui SDL3 backend...");
+          ecs_log(1, "Shutting down ImGui SDL3 backend...");
           ImGui_ImplSDL3_Shutdown();
           ctx->isImGuiInitialized = false;
       }
 
       if (ctx->imguiContext) {
-          ecs_print(1, "Destroying ImGui context...");
+        ecs_log(1, "Destroying ImGui context...");
           igDestroyContext(ctx->imguiContext);
           ctx->imguiContext = NULL;
       }
 
       if (ctx->imguiDescriptorPool != VK_NULL_HANDLE) {
-          ecs_print(1, "Destroying ImGui descriptor pool...");
+        ecs_log(1, "Destroying ImGui descriptor pool...");
           vkDestroyDescriptorPool(v_ctx->device, ctx->imguiDescriptorPool, NULL);
           ctx->imguiDescriptorPool = VK_NULL_HANDLE;
       }
 
-      ecs_print(1, "ImGui cleanup completed");
+      ecs_log(1, "ImGui cleanup completed");
   }
 }
 
@@ -287,72 +297,76 @@ void imgui_register_components(ecs_world_t *world){
   ECS_COMPONENT_DEFINE(world, IMGUIContext);
 }
 
+void imgui_register_systems(ecs_world_t *world){
+  // Create an entity observer
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = widget }},
+    .events = { Clicked },
+    .callback = imgui_cleanup_event_system
+  });
+
+  // ecs_print(1, "ImGuiSetupSystem");
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { 
+          .name = "ImGui_SetupSystem", 
+          .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) 
+      }),
+      .callback = ImGuiSetupSystem
+  });
+
+  // ecs_print(1, "ImGuiCMDBufferSystem");
+  // ecs_system_init(world, &(ecs_system_desc_t){
+  //     .entity = ecs_entity(world, { .name = "ImGuiCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+  //     .callback = ImGuiCMDBufferSystem
+  // });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "ImguiInputSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) }),
+      // .entity = ecs_entity(world, { .name = "ImguiInputSystem", .add = ecs_ids(ecs_dependson(Imgui1Phase)) }),
+      .callback = ImguiInputSystem
+  });
+
+  // ecs_print(1, "ImGuiBeginSystem");
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+      // .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(Imgui1Phase)) }),
+      .callback = ImGuiBeginSystem
+  });
+  // ecs_print(1, "ImGuiUpdateSystem");
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBuffer1Phase)) }),
+      // .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(Imgui2Phase)) }),
+      .callback = ImGuiUpdateSystem
+  });
+  // ecs_print(1, "ImGuiEndSystem");
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBuffer2Phase)) }),
+      // .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(Imgui3Phase)) }),
+      .callback = ImGuiEndSystem
+  });
+}
+
 void flecs_imgui_module_init(ecs_world_t *world) {
-    ecs_print(1, "Initializing ImGui module...");
+  ecs_log(1, "Initializing ImGui module...");
 
-    imgui_register_components(world);
+  imgui_register_components(world);
 
-    ecs_singleton_set(world, IMGUIContext, {0});
+  ecs_singleton_set(world, IMGUIContext, {0});
 
-    ecs_entity_t Imgui1Phase = ecs_new_w_id(world, EcsPhase);
-    ecs_entity_t Imgui2Phase = ecs_new_w_id(world, EcsPhase);
-    ecs_entity_t Imgui3Phase = ecs_new_w_id(world, EcsPhase);
+  ecs_entity_t Imgui1Phase = ecs_new_w_id(world, EcsPhase);
+  ecs_entity_t Imgui2Phase = ecs_new_w_id(world, EcsPhase);
+  ecs_entity_t Imgui3Phase = ecs_new_w_id(world, EcsPhase);
 
-    ecs_add_pair(world, Imgui1Phase, EcsDependsOn, GlobalPhases.CMDBufferPhase);
-    ecs_add_pair(world, Imgui2Phase, EcsDependsOn, Imgui1Phase);
-    ecs_add_pair(world, Imgui3Phase, EcsDependsOn, Imgui2Phase);
+  ecs_add_pair(world, Imgui1Phase, EcsDependsOn, GlobalPhases.CMDBufferPhase);
+  ecs_add_pair(world, Imgui2Phase, EcsDependsOn, Imgui1Phase);
+  ecs_add_pair(world, Imgui3Phase, EcsDependsOn, Imgui2Phase);
 
-    // Create entity
-    Clicked = ecs_new(world);
-    widget = ecs_entity(world, { .name = "widget" });
+  // Create entity
+  Clicked = ecs_new(world);
+  widget = ecs_entity(world, { .name = "widget" });
 
-    // Create an entity observer
-    ecs_observer(world, {
-      // Not interested in any specific component
-      .query.terms = {{ EcsAny, .src.id = widget }},
-      .events = { Clicked },
-      .callback = OnClick
-    });
+  imgui_register_systems(world);
 
-    // ecs_print(1, "ImGuiSetupSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { 
-            .name = "ImGui_SetupSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) 
-        }),
-        .callback = ImGuiSetupSystem
-    });
-
-    // ecs_print(1, "ImGuiCMDBufferSystem");
-    // ecs_system_init(world, &(ecs_system_desc_t){
-    //     .entity = ecs_entity(world, { .name = "ImGuiCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-    //     .callback = ImGuiCMDBufferSystem
-    // });
-
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImguiInputSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) }),
-        // .entity = ecs_entity(world, { .name = "ImguiInputSystem", .add = ecs_ids(ecs_dependson(Imgui1Phase)) }),
-        .callback = ImguiInputSystem
-    });
-
-    // ecs_print(1, "ImGuiBeginSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-        // .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(Imgui1Phase)) }),
-        .callback = ImGuiBeginSystem
-    });
-    // ecs_print(1, "ImGuiUpdateSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBuffer1Phase)) }),
-        // .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(Imgui2Phase)) }),
-        .callback = ImGuiUpdateSystem
-    });
-    // ecs_print(1, "ImGuiEndSystem");
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBuffer2Phase)) }),
-        // .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(Imgui3Phase)) }),
-        .callback = ImGuiEndSystem
-    });
-
-    // ecs_print(1, "ImGui module initialized");
+  ecs_log(1, "ImGui module initialized");
 }

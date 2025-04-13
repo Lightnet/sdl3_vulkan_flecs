@@ -169,8 +169,14 @@ typedef struct {
   ecs_entity_t SetupModulePhase;
 } FlecsPhases;
 
+ecs_entity_t CleanUpEvent;
+ecs_entity_t CleanUpModule;
+ecs_entity_t ShutDownModule;
+
 extern FlecsPhases GlobalPhases;
 
 void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases);
+
+void flecs_init_module(ecs_world_t *world);
 
 #endif

@@ -11,15 +11,15 @@ void SDLSetUpSystem(ecs_iter_t *it){
 
   SDLContext *sdlctx = ecs_singleton_ensure(it->world,SDLContext);
   if (!sdlctx || sdlctx->hasError) return;
-  ecs_print(1, "SDL_Init");
+  ecs_log(1, "SDL_Init");
 
-  ecs_print(1, "WINDOW SIZE - WIDTH: %d, HEIGHT: %d", sdlctx->width, sdlctx->height);
+  ecs_log(1, "WINDOW SIZE - WIDTH: %d, HEIGHT: %d", sdlctx->width, sdlctx->height);
 
   if(!SDL_Init(SDL_INIT_VIDEO)){
     ecs_err( "SDL could not initialize! SDL error: %s\n", SDL_GetError() );
   }
 
-  ecs_print(1, "SDL_CreateWindow");
+  ecs_log(1, "SDL_CreateWindow");
   sdlctx->window = SDL_CreateWindow("Vulkan Triangle with ImGui",
     sdlctx->width, 
     sdlctx->height, 
@@ -222,7 +222,7 @@ void sdl_register_components(ecs_world_t *world){
 }
 
 void flecs_sdl_module_init(ecs_world_t *world) {
-  ecs_print(1, "Initializing SDL module...");
+  ecs_log(1, "Initializing SDL module...");
 
   sdl_register_components(world);
 
@@ -269,5 +269,5 @@ void flecs_sdl_module_init(ecs_world_t *world) {
   //     .callback = DebugInputSystem
   // });
 
-  ecs_print(1, "SDL module initialized");
+  ecs_log(1, "SDL module initialized");
 }

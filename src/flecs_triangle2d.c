@@ -20,7 +20,7 @@
 // }
 
 void TriangleModuleSetupSystem(ecs_iter_t *it) {
-    ecs_print(1, "TrianglePipelineSetupSystem");
+    ecs_log(1, "TrianglePipelineSetupSystem");
 
     SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
     if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -268,6 +268,10 @@ void TriangleRenderBufferSystem(ecs_iter_t *it) {
     vkCmdDrawIndexed(v_ctx->commandBuffer, 3, 1, 0, 0, 0); // 3 indices, 1 instance
 }
 
+void triangle2d_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] triangle2d_cleanup_event_system");
+}
+
 void flecs_triangle2d_cleanup(ecs_world_t *world) {
     // if (!ctx || !ctx->device) return;
     VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
@@ -275,7 +279,7 @@ void flecs_triangle2d_cleanup(ecs_world_t *world) {
     TriangleContext *ctx = ecs_singleton_ensure(world, TriangleContext);
     if (!ctx) return;
     
-    ecs_print(1, "Triangle2D cleanup starting...");
+    ecs_log(1, "Triangle2D cleanup starting...");
     vkDeviceWaitIdle(v_ctx->device);
 
     if (ctx->triVertexBuffer != VK_NULL_HANDLE) {
@@ -303,30 +307,41 @@ void flecs_triangle2d_cleanup(ecs_world_t *world) {
         ctx->triPipelineLayout = VK_NULL_HANDLE;
     }
 
-    ecs_print(1, "Triangle2D cleanup completed");
+    ecs_log(1, "Triangle2D cleanup completed");
 }
 
-void triangle_register_components(ecs_world_t *world){
+void triangle2d_register_components(ecs_world_t *world){
   ECS_COMPONENT_DEFINE(world, TriangleContext);
 }
 
-void flecs_triangle2d_module_init(ecs_world_t *world) {
-    ecs_print(1, "Initializing triangle2d module...");
+void triangle2d_register_systems(ecs_world_t *world){
 
-    triangle_register_components(world);
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = triangle2d_cleanup_event_system
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "TrianglePipelineSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
+    .callback = TriangleModuleSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "TriangleRenderBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+      .callback = TriangleRenderBufferSystem
+  });
+}
+
+void flecs_triangle2d_module_init(ecs_world_t *world) {
+    ecs_log(1, "Initializing triangle2d module...");
+
+    triangle2d_register_components(world);
 
     ecs_singleton_set(world, TriangleContext, {0});
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        //.entity = ecs_entity(world, { .name = "TrianglePipelineSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.PipelineSetupPhase)) }),
-        .entity = ecs_entity(world, { .name = "TrianglePipelineSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
-        .callback = TriangleModuleSetupSystem
-    });
+    triangle2d_register_systems(world);
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "TriangleRenderBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-        .callback = TriangleRenderBufferSystem
-    });
-
-    ecs_print(1, "Triangle2d module initialized");
+    ecs_log(1, "Triangle2d module initialized");
 }

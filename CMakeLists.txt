@@ -281,6 +281,22 @@ else(WIN32)
     target_compile_definitions(cimgui_lib PUBLIC "-DIMGUI_IMPL_API=extern \"C\" ")
 endif(WIN32)
 
+# Add stb_image using CPM
+CPMAddPackage(
+    NAME cjson
+    GITHUB_REPOSITORY DaveGamble/cJSON
+    GIT_TAG v1.7.18
+    OPTIONS
+      "ENABLE_CJSON_TEST OFF"
+)
+
+CPMAddPackage(
+    NAME physfs
+    GITHUB_REPOSITORY icculus/physfs
+    GIT_TAG stable-3.2
+)
+
+
 # Define source and include directories
 set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
@@ -309,6 +325,8 @@ add_executable(${PROJECT_NAME}
   # ${CMAKE_SOURCE_DIR}/examples/test.c
   # ${CMAKE_SOURCE_DIR}/examples/flecs_test.c
   # ${CMAKE_SOURCE_DIR}/examples/lua_test.c
+  # ${CMAKE_SOURCE_DIR}/examples/json_data.c
+  # ${CMAKE_SOURCE_DIR}/examples/physfs_test.c
 )
 # raylib config
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -327,8 +345,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     cglm
     mimalloc
     luajit_lib
+    cjson
+    physfs
 )
-
+message(STATUS "cjson_SOURCE_DIR >>> ${cjson_SOURCE_DIR}")
 # Include directories with proper path validation
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${INCLUDE_DIR}
@@ -340,6 +360,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VulkanHeaders_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
     ${stb_image_SOURCE_DIR}
+    ${cjson_SOURCE_DIR}
+    ${physfs_SOURCE_DIR}/src
 
     ${cglm_SOURCE_DIR}/include
     ${mimalloc_SOURCE_DIR}/include

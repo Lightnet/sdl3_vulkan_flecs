@@ -68,3 +68,28 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases) {
   ecs_add_pair(world, phases->SetupModulePhase, EcsDependsOn, phases->SyncSetupPhase);
   
 }
+
+void CleanUpSystem(ecs_iter_t *it){
+  ecs_print(1,"[module] clean up event test...");
+}
+
+void flecs_register_systems(ecs_world_t *world){
+  // Create an entity observer
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = CleanUpSystem
+  });
+}
+
+void flecs_init_module(ecs_world_t *world){
+
+  flecs_phases_init(world, &GlobalPhases);
+
+  CleanUpEvent = ecs_new(world);
+  CleanUpModule = ecs_entity(world, { .name = "CleanUpModule" });
+
+  flecs_register_systems(world);
+
+}

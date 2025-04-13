@@ -319,7 +319,7 @@ void TextSetupSystem(ecs_iter_t *it) {
     Text2DContext *text_ctx = ecs_singleton_ensure(it->world, Text2DContext);
     if (!text_ctx) return;
 
-    ecs_print(1, "TextSetupSystem starting...");
+    ecs_log(1, "TextSetupSystem starting...");
 
     // Create text-specific descriptor pool
     VkDescriptorPoolSize poolSizes[] = {
@@ -515,7 +515,7 @@ void TextSetupSystem(ecs_iter_t *it) {
     vkDestroyShaderModule(v_ctx->device, fragShaderModule, NULL);
     vkDestroyShaderModule(v_ctx->device, vertShaderModule, NULL);
 
-    ecs_print(1, "TextSetupSystem completed");
+    ecs_log(1, "TextSetupSystem completed");
 }
 
 void TextRenderSystem(ecs_iter_t *it) {
@@ -585,6 +585,9 @@ void TextRenderSystem(ecs_iter_t *it) {
     vkCmdDrawIndexed(v_ctx->commandBuffer, indexCount, 1, 0, 0, 0);
 }
 
+void text_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] text_cleanup_event_system");
+}
 
 void flecs_text_cleanup(ecs_world_t *world) {
   VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
@@ -592,7 +595,7 @@ void flecs_text_cleanup(ecs_world_t *world) {
   Text2DContext *text_ctx = ecs_singleton_ensure(world, Text2DContext);
   if (!text_ctx) return;
 
-  ecs_print(1, "Text cleanup starting...");
+  ecs_log(1, "Text cleanup starting...");
   vkDeviceWaitIdle(v_ctx->device);
 
   if (text_ctx->textPipeline != VK_NULL_HANDLE) {
@@ -648,35 +651,47 @@ void flecs_text_cleanup(ecs_world_t *world) {
       text_ctx->textGlyphs = NULL;
   }
 
-  ecs_print(1, "Text cleanup completed");
+  ecs_log(1, "Text cleanup completed");
 }
 
 void text2d_register_components(ecs_world_t *world){
   ECS_COMPONENT_DEFINE(world, Text2DContext);
 }
 
+void text2d_register_systems(ecs_world_t *world){
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = text_cleanup_event_system
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { 
+        .name = "TextSetupSystem", 
+        .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) 
+    }),
+    .callback = TextSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { 
+          .name = "TextRenderSystem", 
+          .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) 
+      }),
+      .callback = TextRenderSystem
+  });
+}
+
 void flecs_text_module_init(ecs_world_t *world) {
-    ecs_print(1, "Initializing text module...");
+  ecs_log(1, "Initializing text module...");
 
-    text2d_register_components(world);
+  text2d_register_components(world);
 
-    ecs_singleton_set(world, Text2DContext, {0});
+  ecs_singleton_set(world, Text2DContext, {0});
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { 
-            .name = "TextSetupSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) 
-        }),
-        .callback = TextSetupSystem
-    });
+  text2d_register_systems(world);
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { 
-            .name = "TextRenderSystem", 
-            .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) 
-        }),
-        .callback = TextRenderSystem
-    });
-
-    ecs_print(1, "Text module initialized");
+  ecs_log(1, "Text module initialized");
 }

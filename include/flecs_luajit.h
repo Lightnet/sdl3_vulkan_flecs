@@ -1,6 +1,7 @@
 #ifndef FLECS_LUAJIT_H
 #define FLECS_LUAJIT_H
 
+#include "flecs_types.h"
 #include "flecs.h"
 #include <lua.h>
 #include <lualib.h>

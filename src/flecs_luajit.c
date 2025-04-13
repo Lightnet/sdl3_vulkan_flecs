@@ -45,6 +45,10 @@ static void LuaUpdateSystem(ecs_iter_t *it) {
 }
 
 
+void luajit_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] luajit_cleanup_event_system");
+}
+
 void flecs_luajit_cleanup(ecs_world_t *world) {
     LuaContext *lua_ctx = ecs_singleton_ensure(world, LuaContext);
     if (lua_ctx && lua_ctx->L) {
@@ -64,6 +68,13 @@ void flecs_luajit_register_systems(ecs_world_t *world){
   //ECS_SYSTEM(world, LuaUpdateSystem, EcsOnUpdate, [in] LuaContext);
   //ecs_enable(world, ecs_id(LuaUpdateSystem), false);
 
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = luajit_cleanup_event_system
+  });
+
   // Register system, disabled by default
   ecs_lua_update_sys = ecs_system_init(world, &(ecs_system_desc_t){
     .entity = ecs_entity(world, { 
@@ -81,46 +92,46 @@ void flecs_luajit_register_systems(ecs_world_t *world){
 }
 
 void flecs_luajit_module_init(ecs_world_t *world) {
+  ecs_log(1, "luajit_module_init");
+  
+  luajit_register_components(world);
 
-    luajit_register_components(world);
-
-    LuaContext lua_ctx = {0};
-    lua_ctx.L = luaL_newstate();
-    if (!lua_ctx.L) {
-        fprintf(stderr, "Failed to create Lua state\n");
-        return;
-    }
-
-    luaL_openlibs(lua_ctx.L);
-    lua_ctx.script_loaded = false; // Default to false
-    //ecs_singleton_set(world, LuaContext, lua_ctx);
-    //ecs_set(world, ecs_id(LuaContext), LuaContext, lua_ctx);
-    ecs_set_id(world, ecs_id(LuaContext), ecs_id(LuaContext), sizeof(LuaContext), &lua_ctx);
-
-    // Register systems (disabled by default)
-    flecs_luajit_register_systems(world);
-
-    // Try loading script.lua
-    if (luaL_loadfile(lua_ctx.L, "script.lua")) {
-      error(lua_ctx.L, "Error loading script.lua: %s\n", lua_tostring(lua_ctx.L, -1));
+  LuaContext lua_ctx = {0};
+  lua_ctx.L = luaL_newstate();
+  if (!lua_ctx.L) {
+      fprintf(stderr, "Failed to create Lua state\n");
       return;
-    }
+  }
 
-    // Execute the script
-    if (lua_pcall(lua_ctx.L, 0, 0, 0)) {
-        error(lua_ctx.L, "Error running script.lua: %s\n", lua_tostring(lua_ctx.L, -1));
-        return;
-    }
+  luaL_openlibs(lua_ctx.L);
+  lua_ctx.script_loaded = false; // Default to false
+  //ecs_singleton_set(world, LuaContext, lua_ctx);
+  //ecs_set(world, ecs_id(LuaContext), LuaContext, lua_ctx);
+  ecs_set_id(world, ecs_id(LuaContext), ecs_id(LuaContext), sizeof(LuaContext), &lua_ctx);
 
-    // Script loaded successfully, enable system
-    lua_ctx.script_loaded = true;
-    // ecs_singleton_set(world, LuaContext, {lua_ctx});
-    //ecs_set(world, ecs_id(LuaContext), LuaContext, lua_ctx);
-    ecs_set_id(world, ecs_id(LuaContext), ecs_id(LuaContext), sizeof(LuaContext), &lua_ctx);
-    // ecs_enable(world, LuaUpdateSystem, true);
-    //ecs_enable(world, ecs_lua_update_sys, true);
-    ecs_enable(world, ecs_lookup(world, "LuaUpdateSystem"), true);
+  // Register systems (disabled by default)
+  flecs_luajit_register_systems(world);
+
+  // Try loading script.lua
+  if (luaL_loadfile(lua_ctx.L, "script.lua")) {
+    error(lua_ctx.L, "Error loading script.lua: %s\n", lua_tostring(lua_ctx.L, -1));
+    return;
+  }
+
+  // Execute the script
+  if (lua_pcall(lua_ctx.L, 0, 0, 0)) {
+      error(lua_ctx.L, "Error running script.lua: %s\n", lua_tostring(lua_ctx.L, -1));
+      return;
+  }
+
+  // Script loaded successfully, enable system
+  lua_ctx.script_loaded = true;
+  // ecs_singleton_set(world, LuaContext, {lua_ctx});
+  //ecs_set(world, ecs_id(LuaContext), LuaContext, lua_ctx);
+  ecs_set_id(world, ecs_id(LuaContext), ecs_id(LuaContext), sizeof(LuaContext), &lua_ctx);
+  // ecs_enable(world, LuaUpdateSystem, true);
+  //ecs_enable(world, ecs_lua_update_sys, true);
+  ecs_enable(world, ecs_lookup(world, "LuaUpdateSystem"), true);
 
 }
-
 

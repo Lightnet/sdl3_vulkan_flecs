@@ -31,6 +31,7 @@ This project is licensed under the MIT License. See LICENSE for details.
 # Status:
  - Work in progress
  - Added feautures to get vulkan working for simple things to set up and render.
+ - Need clean up test for shutdown application.
  - No entity added yet need to check set up and render.
 
 # Overview:

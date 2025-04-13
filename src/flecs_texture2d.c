@@ -206,7 +206,7 @@ void Texture2DSetupSystem(ecs_iter_t *it) {
     Texture2DContext *text2d_ctx = ecs_singleton_ensure(it->world, Texture2DContext);
     if (!text2d_ctx) return;
 
-    ecs_print(1, "Texture2DSetupSystem starting...");
+    ecs_log(1, "Texture2DSetupSystem starting...");
 
     VkDescriptorPoolSize poolSizes[] = {
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
@@ -381,7 +381,7 @@ void Texture2DSetupSystem(ecs_iter_t *it) {
     vkDestroyShaderModule(v_ctx->device, fragShaderModule, NULL);
     vkDestroyShaderModule(v_ctx->device, vertShaderModule, NULL);
 
-    ecs_print(1, "Texture2DSetupSystem completed");
+    ecs_log(1, "Texture2DSetupSystem completed");
 }
 
 void Texture2DRenderSystem(ecs_iter_t *it) {
@@ -406,7 +406,7 @@ void flecs_texture2d_cleanup(ecs_world_t *world) {
     Texture2DContext *text2d_ctx = ecs_singleton_ensure(world, Texture2DContext);
     if (!text2d_ctx) return;
 
-    ecs_print(1, "Texture2D cleanup starting...");
+    ecs_log(1, "Texture2D cleanup starting...");
     vkDeviceWaitIdle(v_ctx->device);
 
     if (text2d_ctx->texture2dPipeline != VK_NULL_HANDLE) vkDestroyPipeline(v_ctx->device, text2d_ctx->texture2dPipeline, NULL);
@@ -422,29 +422,45 @@ void flecs_texture2d_cleanup(ecs_world_t *world) {
     if (text2d_ctx->texture2dIndexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, text2d_ctx->texture2dIndexBufferMemory, NULL);
     if (text2d_ctx->texture2dIndexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, text2d_ctx->texture2dIndexBuffer, NULL);
 
-    ecs_print(1, "Texture2D cleanup completed");
+    ecs_log(1, "Texture2D cleanup completed");
+}
+
+void texture2d_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] texture2d_cleanup_event_system");
 }
 
 void texture2d_register_components(ecs_world_t *world) {
-    ECS_COMPONENT_DEFINE(world, Texture2DContext);
+  ECS_COMPONENT_DEFINE(world, Texture2DContext);
+}
+
+void texture2d_register_systems(ecs_world_t *world){
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = texture2d_cleanup_event_system
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "Texture2DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
+    .callback = Texture2DSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "Texture2DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+      .callback = Texture2DRenderSystem
+  });
 }
 
 void flecs_texture2d_module_init(ecs_world_t *world) {
-    ecs_print(1, "Initializing texture2d module...");
+  ecs_log(1, "Initializing texture2d module...");
 
-    texture2d_register_components(world);
+  texture2d_register_components(world);
 
-    ecs_singleton_set(world, Texture2DContext, {0});
+  ecs_singleton_set(world, Texture2DContext, {0});
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "Texture2DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
-        .callback = Texture2DSetupSystem
-    });
+  texture2d_register_systems(world);
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "Texture2DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-        .callback = Texture2DRenderSystem
-    });
-
-    ecs_print(1, "Texture2d module initialized");
+  ecs_log(1, "Texture2d module initialized");
 }

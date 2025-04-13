@@ -20,7 +20,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 //=====================================
 
 void InstanceSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"InstanceSetupSystem started");
+  ecs_log(1,"InstanceSetupSystem started");
   
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -93,7 +93,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
       ecs_err("Warning: Failed to create debug messenger (VkResult: %d)", result);
       v_ctx->debugMessenger = VK_NULL_HANDLE;
     } else {
-      ecs_print(1,"Debug messenger created");
+      ecs_log(1,"Debug messenger created");
     }
   } else {
     ecs_err("Warning: vkCreateDebugUtilsMessengerEXT not found");
@@ -104,7 +104,7 @@ void InstanceSetupSystem(ecs_iter_t *it) {
 }
 
 void SurfaceSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"SurfaceSetupSystem started");
+  ecs_log(1,"SurfaceSetupSystem started");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -155,7 +155,7 @@ void SurfaceSetupSystem(ecs_iter_t *it) {
 }
 
 void DeviceSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"DeviceSetupSystem started");
+  ecs_log(1,"DeviceSetupSystem started");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -173,7 +173,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(v_ctx->physicalDevice, &queueFamilyCount, NULL);
-  ecs_print(1,"Queue family count: %u", queueFamilyCount);
+  ecs_log(1,"Queue family count: %u", queueFamilyCount);
   if (queueFamilyCount == 0) {
     ecs_err("Error: No queue families found");
     report_sdl_error(sdl_ctx, "[DeviceSetupSystem] No queue families available");
@@ -195,7 +195,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
       if (presentSupport) v_ctx->presentFamily = i;
       if (v_ctx->graphicsFamily != UINT32_MAX && v_ctx->presentFamily != UINT32_MAX) break;
   }
-  ecs_print(1,"Graphics family: %u, Present family: %u", v_ctx->graphicsFamily, v_ctx->presentFamily);
+  ecs_log(1,"Graphics family: %u, Present family: %u", v_ctx->graphicsFamily, v_ctx->presentFamily);
   free(queueFamilies);
 
   if (v_ctx->graphicsFamily == UINT32_MAX || v_ctx->presentFamily == UINT32_MAX) {
@@ -235,7 +235,7 @@ void DeviceSetupSystem(ecs_iter_t *it) {
 }
 
 void SwapchainSetupSystem(ecs_iter_t *it) {
-  ecs_print(1, "SwapchainSetupSystem ");
+  ecs_log(1, "SwapchainSetupSystem ");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -248,12 +248,12 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
     report_sdl_error(sdl_ctx, "[SwapchainSetupSystem] Failed to query surface capabilities");
   }
 
-  ecs_print(1, "Set swapchain extent ");
+  ecs_log(1, "Set swapchain extent ");
   // Set swapchain extent
   v_ctx->swapchainExtent = capabilities.currentExtent;
   sdl_ctx->width = v_ctx->swapchainExtent.width;  // Store width
   sdl_ctx->height = v_ctx->swapchainExtent.height; // Store height
-  ecs_print(1, "Swapchain extent set - WIDTH: %d, HEIGHT: %d", sdl_ctx->width, sdl_ctx->height);
+  ecs_log(1, "Swapchain extent set - WIDTH: %d, HEIGHT: %d", sdl_ctx->width, sdl_ctx->height);
 
   // Ensure valid dimensions (from my suggestion)
   if (sdl_ctx->width == 0 || sdl_ctx->height == 0) {
@@ -284,7 +284,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
       }
   }
   free(formats);
-  ecs_print(1, "Query supported present modes");
+  ecs_log(1, "Query supported present modes");
   // Query supported present modes
   uint32_t presentModeCount;
   vkGetPhysicalDeviceSurfacePresentModesKHR(v_ctx->physicalDevice, sdl_ctx->surface, &presentModeCount, NULL);
@@ -314,7 +314,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
   swapchainCreateInfo.presentMode = selectedPresentMode;
   swapchainCreateInfo.clipped = VK_TRUE;
 
-  ecs_print(1, "vkCreateSwapchainKHR");
+  ecs_log(1, "vkCreateSwapchainKHR");
   VkResult result = vkCreateSwapchainKHR(v_ctx->device, &swapchainCreateInfo, NULL, &v_ctx->swapchain);
   if (result != VK_SUCCESS) {
       char errorMsg[64];
@@ -346,7 +346,7 @@ void SwapchainSetupSystem(ecs_iter_t *it) {
 }
 
 void RenderPassSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"RenderPassSetupSystem");
+  ecs_log(1,"RenderPassSetupSystem");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -392,7 +392,7 @@ void RenderPassSetupSystem(ecs_iter_t *it) {
 }
 
 void FramebufferSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"FramebufferSetupSystem");
+  ecs_log(1,"FramebufferSetupSystem");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -419,7 +419,7 @@ void FramebufferSetupSystem(ecs_iter_t *it) {
 }
 
 void CommandPoolSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"CommandPoolSetupSystem");
+  ecs_log(1,"CommandPoolSetupSystem");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -439,7 +439,7 @@ void CommandPoolSetupSystem(ecs_iter_t *it) {
 }
 
 void CommandBufferSetupSystem(ecs_iter_t *it) {
-  ecs_print(1,"CommandBufferSetupSystem");
+  ecs_log(1,"CommandBufferSetupSystem");
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -459,7 +459,7 @@ void CommandBufferSetupSystem(ecs_iter_t *it) {
 }
 
 void SyncSetupSystem(ecs_iter_t *it) {
-  ecs_print(1, "SyncSetupSystem starting...");
+  ecs_log(1, "SyncSetupSystem starting...");
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
@@ -539,7 +539,7 @@ void BeginCMDBufferSystem(ecs_iter_t *it) {
   if (!v_ctx) return;
 
   if (v_ctx->skipRender) {
-    ecs_print(1, "Skipping BeginCMDBufferSystem due to render skip");
+    ecs_log(1, "Skipping BeginCMDBufferSystem due to render skip");
     return;
   }
 
@@ -578,7 +578,7 @@ void EndCMDBufferSystem(ecs_iter_t *it) {
   if (!v_ctx) return;
 
   if (v_ctx->skipRender) {
-    ecs_print(1, "Skipping EndCMDBufferSystem due to render skip");
+    ecs_log(1, "Skipping EndCMDBufferSystem due to render skip");
     return;
   }
 
@@ -598,7 +598,7 @@ void EndRenderSystem(ecs_iter_t *it) {
   if (!v_ctx) return;
 
   if (v_ctx->skipRender) {
-    ecs_print(1, "Skipping EndRenderSystem due to render skip");
+    ecs_log(1, "Skipping EndRenderSystem due to render skip");
     return;
   }
 
@@ -630,7 +630,7 @@ void EndRenderSystem(ecs_iter_t *it) {
 
   VkResult presentResult = vkQueuePresentKHR(v_ctx->presentQueue, &presentInfo);
   if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-    ecs_print(1, "Swapchain out of date or suboptimal, triggering recreation");
+    ecs_log(1, "Swapchain out of date or suboptimal, triggering recreation");
     sdl_ctx->needsSwapchainRecreation = true;
     v_ctx->skipRender = true;
   } else if (presentResult != VK_SUCCESS) {
@@ -646,7 +646,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world) {
   VulkanContext *ctx = ecs_singleton_ensure(world, VulkanContext);
   if (!ctx) return;
 
-  ecs_print(1, "Vulkan cleanup starting...");
+  ecs_log(1, "Vulkan cleanup starting...");
 
   if (ctx->device) {
       vkDeviceWaitIdle(ctx->device);
@@ -720,7 +720,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world) {
       ctx->instance = VK_NULL_HANDLE;
   }
 
-  ecs_print(1, "Vulkan cleanup completed");
+  ecs_log(1, "Vulkan cleanup completed");
 }
 
 // resize window and vulkan destory image

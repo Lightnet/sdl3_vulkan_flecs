@@ -240,7 +240,7 @@ void CubeTexture3DSetupSystem(ecs_iter_t *it) {
       return;
   }
 
-  ecs_print(1, "CubeTexture3DSetupSystem starting...");
+  ecs_log(1, "CubeTexture3DSetupSystem starting...");
 
   // Descriptor Pool
   VkDescriptorPoolSize poolSizes[] = {
@@ -473,7 +473,7 @@ void CubeTexture3DSetupSystem(ecs_iter_t *it) {
   vkDestroyShaderModule(v_ctx->device, fragShaderModule, NULL);
   vkDestroyShaderModule(v_ctx->device, vertShaderModule, NULL);
 
-  ecs_print(1, "CubeTexture3DSetupSystem completed");
+  ecs_log(1, "CubeTexture3DSetupSystem completed");
 }
 
 void CubeTexture3DRenderSystem(ecs_iter_t *it) {
@@ -561,6 +561,10 @@ void CubeTexture3DRenderSystem(ecs_iter_t *it) {
   vkCmdDrawIndexed(v_ctx->commandBuffer, 36, 1, 0, 0, 0);
 }
 
+void cubetexture3d_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"[cleanup] cubetexture3d_cleanup_event_system");
+}
+
 void flecs_cubetexture3d_cleanup(ecs_world_t *world) {
     VulkanContext *v_ctx = ecs_singleton_ensure(world, VulkanContext);
     if (!v_ctx || !v_ctx->device) {
@@ -574,7 +578,7 @@ void flecs_cubetexture3d_cleanup(ecs_world_t *world) {
         return;
     }
 
-    ecs_print(1, "CubeTexture3D cleanup starting...");
+    ecs_log(1, "CubeTexture3D cleanup starting...");
     vkDeviceWaitIdle(v_ctx->device);
 
     if (cubetext3d_ctx->cubetexture3dPipeline != VK_NULL_HANDLE) vkDestroyPipeline(v_ctx->device, cubetext3d_ctx->cubetexture3dPipeline, NULL);
@@ -592,7 +596,7 @@ void flecs_cubetexture3d_cleanup(ecs_world_t *world) {
     if (cubetext3d_ctx->cubetexture3dUniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(v_ctx->device, cubetext3d_ctx->cubetexture3dUniformBufferMemory, NULL);
     if (cubetext3d_ctx->cubetexture3dUniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(v_ctx->device, cubetext3d_ctx->cubetexture3dUniformBuffer, NULL);
 
-    ecs_print(1, "CubeTexture3D cleanup completed");
+    ecs_log(1, "CubeTexture3D cleanup completed");
 }
 
 // CubeText3DContext
@@ -600,23 +604,35 @@ void cubetext3d_register_components(ecs_world_t *world){
   ECS_COMPONENT_DEFINE(world, CubeText3DContext);
 }
 
+void cubetext3d_register_systems(ecs_world_t *world){
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = cubetexture3d_cleanup_event_system
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "CubeTexture3DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
+    .callback = CubeTexture3DSetupSystem
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+      .entity = ecs_entity(world, { .name = "CubeTexture3DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
+      .callback = CubeTexture3DRenderSystem
+  });
+}
+
 void flecs_cubetexture3d_module_init(ecs_world_t *world) {
-    ecs_print(1, "Initializing cubetexture3d module...");
+    ecs_log(1, "Initializing cubetexture3d module...");
 
     cubetext3d_register_components(world);
 
     ecs_singleton_set(world, CubeText3DContext, {0});
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "CubeTexture3DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
-        .callback = CubeTexture3DSetupSystem
-    });
+    cubetext3d_register_systems(world);
 
-    ecs_system_init(world, &(ecs_system_desc_t){
-        .entity = ecs_entity(world, { .name = "CubeTexture3DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-        .callback = CubeTexture3DRenderSystem
-    });
-
-    ecs_print(1, "CubeTexture3d module initialized");
+    ecs_log(1, "CubeTexture3d module initialized");
 }
 
