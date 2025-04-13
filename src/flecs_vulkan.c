@@ -494,7 +494,8 @@ void SyncSetupSystem(ecs_iter_t *it) {
 //=====================================
 void BeginRenderSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if(sdl_ctx->isShutDown)return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -534,7 +535,8 @@ void BeginRenderSystem(ecs_iter_t *it) {
 
 void BeginCMDBufferSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if(sdl_ctx->isShutDown)return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -573,7 +575,8 @@ void BeginCMDBufferSystem(ecs_iter_t *it) {
 
 void EndCMDBufferSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if(sdl_ctx->isShutDown)return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -593,7 +596,8 @@ void EndCMDBufferSystem(ecs_iter_t *it) {
 
 void EndRenderSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if(sdl_ctx->isShutDown)return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -638,6 +642,11 @@ void EndRenderSystem(ecs_iter_t *it) {
     sdl_ctx->hasError = true;
     sdl_ctx->errorMessage = "Failed to present queue";
   }
+}
+
+void vulkan_cleanup_event_system(ecs_iter_t *it){
+  ecs_print(1,"vulkan clean up event system.");
+  flecs_vulkan_cleanup(it->world);
 }
 
 void flecs_vulkan_cleanup(ecs_world_t *world) {
@@ -726,7 +735,7 @@ void flecs_vulkan_cleanup(ecs_world_t *world) {
 // resize window and vulkan destory image
 static void cleanupSwapchain(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -759,7 +768,7 @@ static void cleanupSwapchain(ecs_iter_t *it) {
 static void recreateSwapchain(ecs_iter_t *it) {
 
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -895,7 +904,7 @@ static void recreateSwapchain(ecs_iter_t *it) {
 // resize window when SDL input handle
 void SwapchainRecreationSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
 
@@ -915,12 +924,14 @@ void vulkan_register_components(ecs_world_t *world){
 
 }
 
-void flecs_vulkan_module_init(ecs_world_t *world) {
-  ecs_print(1, "init vulkan module");
+void vulkan_register_system(ecs_world_t *world){
 
-  vulkan_register_components(world);
-
-  ecs_singleton_set(world, VulkanContext, {0});
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpGraphic }},
+    .events = { CleanUpGraphicEvent },
+    .callback = vulkan_cleanup_event_system
+  });
 
   //=====================================
   // VULKAN SETUP
@@ -928,8 +939,8 @@ void flecs_vulkan_module_init(ecs_world_t *world) {
 
   // Setup systems (once start up)
   ecs_system_init(world, &(ecs_system_desc_t){
-      .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) }),
-      .callback = InstanceSetupSystem
+    .entity = ecs_entity(world, { .name = "InstanceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.InstanceSetupPhase)) }),
+    .callback = InstanceSetupSystem
   });
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "SurfaceSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SurfaceSetupPhase)) }),
@@ -986,7 +997,7 @@ void flecs_vulkan_module_init(ecs_world_t *world) {
       .entity = ecs_entity(world, { .name = "BeginCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.BeginCMDBufferPhase)) }),
       .callback = BeginCMDBufferSystem
   });
-  
+
   // //end cmd buffer
   ecs_system_init(world, &(ecs_system_desc_t){
     .entity = ecs_entity(world, { .name = "EndCMDBufferSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndCMDBufferPhase)) }),
@@ -997,5 +1008,15 @@ void flecs_vulkan_module_init(ecs_world_t *world) {
       .entity = ecs_entity(world, { .name = "EndRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.EndRenderPhase)) }),
       .callback = EndRenderSystem
   });
+}
+
+void flecs_vulkan_module_init(ecs_world_t *world) {
+  ecs_print(1, "init vulkan module");
+
+  vulkan_register_components(world);
+
+  ecs_singleton_set(world, VulkanContext, {0});
+
+  vulkan_register_system(world);
 }
 

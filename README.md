@@ -53,6 +53,9 @@ The aim to expand into a flexible module-based design for 3D world-building expe
     - Vulkan module for rendering and setup.
     - ImGui module for UI.
     - Easy addition/removal of modules for debugging and configuration.
+    - Set Up init module
+    - Clean up module event (not added)
+    - 
 
 - SDL 3.x (added)
     - resize window (event from update resize window)

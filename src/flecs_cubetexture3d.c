@@ -478,10 +478,7 @@ void CubeTexture3DSetupSystem(ecs_iter_t *it) {
 
 void CubeTexture3DRenderSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) {
-      ecs_err("SDLContext not available or has error");
-      return;
-  }
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
 
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx || !v_ctx->device) {

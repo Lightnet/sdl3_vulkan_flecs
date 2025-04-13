@@ -114,7 +114,7 @@ void ImGuiSetupSystem(ecs_iter_t *it) {
 
 void ImguiInputSystem(ecs_iter_t *it){
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world,SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   const ECS_SDL_INPUT_T *input = ecs_singleton_get(it->world, ECS_SDL_INPUT_T);
   if(!input)return;
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
@@ -149,7 +149,7 @@ void ImGuiCMDBufferSystem(ecs_iter_t *it){
   VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
   if (!v_ctx) return;
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world,SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
   if (!imgui_ctx) return;
 
@@ -178,7 +178,7 @@ void ImGuiCMDBufferSystem(ecs_iter_t *it){
 
 void ImGuiBeginSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
   if (!imgui_ctx) return;
   if (!imgui_ctx->isImGuiInitialized)return;
@@ -198,7 +198,7 @@ void ImGuiUpdateSystem(ecs_iter_t *it) {
   // WorldContext *ctx = ecs_get_ctx(it->world);
   // if (!ctx || ctx->hasError) return;
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
   if (!imgui_ctx) return;
   if (!imgui_ctx->isImGuiInitialized)return;
@@ -231,7 +231,7 @@ void ImGuiUpdateSystem(ecs_iter_t *it) {
 
 void ImGuiEndSystem(ecs_iter_t *it) {
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   IMGUIContext *imgui_ctx = ecs_singleton_ensure(it->world,IMGUIContext);
   if (!imgui_ctx) return;
   if (!imgui_ctx->isImGuiInitialized)return;
@@ -254,6 +254,7 @@ void OnClick(ecs_iter_t *it){
 
 void imgui_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] imgui_cleanup_event_system");
+  flecs_imgui_cleanup(it->world);
 }
 
 void flecs_imgui_cleanup(ecs_world_t *world) {
@@ -306,6 +307,13 @@ void imgui_register_systems(ecs_world_t *world){
     .callback = imgui_cleanup_event_system
   });
 
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpGraphic }},
+    .events = { CleanUpGraphicEvent },
+    .callback = imgui_cleanup_event_system
+  });
+
   // ecs_print(1, "ImGuiSetupSystem");
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { 
@@ -323,26 +331,21 @@ void imgui_register_systems(ecs_world_t *world){
 
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "ImguiInputSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.LogicUpdatePhase)) }),
-      // .entity = ecs_entity(world, { .name = "ImguiInputSystem", .add = ecs_ids(ecs_dependson(Imgui1Phase)) }),
       .callback = ImguiInputSystem
   });
-
   // ecs_print(1, "ImGuiBeginSystem");
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
-      // .entity = ecs_entity(world, { .name = "ImGuiBeginSystem", .add = ecs_ids(ecs_dependson(Imgui1Phase)) }),
       .callback = ImGuiBeginSystem
   });
   // ecs_print(1, "ImGuiUpdateSystem");
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBuffer1Phase)) }),
-      // .entity = ecs_entity(world, { .name = "ImGuiUpdateSystem", .add = ecs_ids(ecs_dependson(Imgui2Phase)) }),
       .callback = ImGuiUpdateSystem
   });
   // ecs_print(1, "ImGuiEndSystem");
   ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBuffer2Phase)) }),
-      // .entity = ecs_entity(world, { .name = "ImGuiEndSystem", .add = ecs_ids(ecs_dependson(Imgui3Phase)) }),
       .callback = ImGuiEndSystem
   });
 }
@@ -354,17 +357,13 @@ void flecs_imgui_module_init(ecs_world_t *world) {
 
   ecs_singleton_set(world, IMGUIContext, {0});
 
-  ecs_entity_t Imgui1Phase = ecs_new_w_id(world, EcsPhase);
-  ecs_entity_t Imgui2Phase = ecs_new_w_id(world, EcsPhase);
-  ecs_entity_t Imgui3Phase = ecs_new_w_id(world, EcsPhase);
-
-  ecs_add_pair(world, Imgui1Phase, EcsDependsOn, GlobalPhases.CMDBufferPhase);
-  ecs_add_pair(world, Imgui2Phase, EcsDependsOn, Imgui1Phase);
-  ecs_add_pair(world, Imgui3Phase, EcsDependsOn, Imgui2Phase);
-
   // Create entity
   Clicked = ecs_new(world);
   widget = ecs_entity(world, { .name = "widget" });
+
+  // add_module_name(world,"imgui_module");
+  ecs_entity_t e = ecs_new(world);
+  ecs_set(world, e, PluginModule, { .name = "imgui_module", .isCleanUp = false });
 
   imgui_register_systems(world);
 

@@ -19,6 +19,7 @@ typedef struct {
   uint32_t width;                              // Window width (from swapchain)
   uint32_t height;                             // Window height (from swapchain)
   bool shouldQuit;                             // SDL quit flag
+  bool isShutDown;                             // shutdown order
   bool hasError;                               // Error flag
   const char *errorMessage;
   bool needsSwapchainRecreation;               // Flag to indicate swapchain needs recreation

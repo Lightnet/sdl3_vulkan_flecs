@@ -169,14 +169,37 @@ typedef struct {
   ecs_entity_t SetupModulePhase;
 } FlecsPhases;
 
+// TEST
+// typedef struct {
+//   bool isCleanUpModule;
+//   int moduleCount;
+// } ModuleContext;
+// ECS_COMPONENT_DECLARE(ModuleContext);
+
+typedef struct {
+  char name[32]; // Fixed-size string for simplicity
+  bool isCleanUp;
+} PluginModule;
+ECS_COMPONENT_DECLARE(PluginModule);
+
+ecs_entity_t ShutDownEvent;
+ecs_entity_t ShutDownModule;
+
 ecs_entity_t CleanUpEvent;
 ecs_entity_t CleanUpModule;
-ecs_entity_t ShutDownModule;
+
+ecs_entity_t CleanUpGraphicEvent;
+ecs_entity_t CleanUpGraphic;
+
+ecs_entity_t CloseEvent;
+ecs_entity_t CloseModule;
 
 extern FlecsPhases GlobalPhases;
 
 void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases);
 
 void flecs_init_module(ecs_world_t *world);
+
+// ecs_entity_t add_module_name(ecs_world_t *world, const char *name);
 
 #endif

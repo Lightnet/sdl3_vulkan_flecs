@@ -388,7 +388,7 @@ void Texture2DRenderSystem(ecs_iter_t *it) {
     VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
     if (!v_ctx) return;
     SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-    if (!sdl_ctx || sdl_ctx->hasError) return;
+    if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
     Texture2DContext *text2d_ctx = ecs_singleton_ensure(it->world, Texture2DContext);
     if (!text2d_ctx) return;
 
@@ -427,6 +427,7 @@ void flecs_texture2d_cleanup(ecs_world_t *world) {
 
 void texture2d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] texture2d_cleanup_event_system");
+  flecs_texture2d_cleanup(it->world);
 }
 
 void texture2d_register_components(ecs_world_t *world) {

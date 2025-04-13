@@ -255,7 +255,7 @@ void TriangleRenderBufferSystem(ecs_iter_t *it) {
     // WorldContext *ctx = ecs_get_ctx(it->world);
     // if (!ctx || ctx->hasError) return;
     SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-    if (!sdl_ctx || sdl_ctx->hasError) return;
+    if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
     VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
     if (!v_ctx) return;
     TriangleContext *tri_ctx = ecs_singleton_ensure(it->world, TriangleContext);
@@ -270,6 +270,7 @@ void TriangleRenderBufferSystem(ecs_iter_t *it) {
 
 void triangle2d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] triangle2d_cleanup_event_system");
+  flecs_triangle2d_cleanup(it->world);
 }
 
 void flecs_triangle2d_cleanup(ecs_world_t *world) {
@@ -335,13 +336,16 @@ void triangle2d_register_systems(ecs_world_t *world){
 }
 
 void flecs_triangle2d_module_init(ecs_world_t *world) {
-    ecs_log(1, "Initializing triangle2d module...");
+  ecs_log(1, "Initializing triangle2d module...");
 
-    triangle2d_register_components(world);
+  triangle2d_register_components(world);
 
-    ecs_singleton_set(world, TriangleContext, {0});
+  ecs_singleton_set(world, TriangleContext, {0});
 
-    triangle2d_register_systems(world);
+  ecs_entity_t e = ecs_new(world);
+  ecs_set(world, e, PluginModule, { .name = "triangle_module", .isCleanUp = false });
 
-    ecs_log(1, "Triangle2d module initialized");
+  triangle2d_register_systems(world);
+
+  ecs_log(1, "Triangle2d module initialized");
 }

@@ -271,7 +271,8 @@ void Cube3DRenderSystem(ecs_iter_t *it) {
     VulkanContext *v_ctx = ecs_singleton_ensure(it->world, VulkanContext);
     if (!v_ctx) return;
     SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-    if (!sdl_ctx || sdl_ctx->hasError) return;
+    // if(sdl_ctx->isShutDown)return;
+    if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
     Cube3DContext *cube_ctx = ecs_singleton_ensure(it->world, Cube3DContext);
     if (!cube_ctx) return;
 
@@ -341,8 +342,43 @@ void flecs_cube3d_cleanup(ecs_world_t *world) {
     ecs_log(1, "Cube3D cleanup completed");
 }
 
+ecs_entity_t ecs_cube3d_render_sys;
+
+void flecs_cube3d_shutdown_event_system(ecs_iter_t *it){
+  ecs_print(1,"[shutdown] flecs_cube3d_shutdown_event_system");
+  ecs_enable(it->world, ecs_cube3d_render_sys, false);
+
+  ecs_query_t *q = ecs_query(it->world, {
+    .terms = {
+      { .id = ecs_id(PluginModule) },
+    }
+  });
+
+  ecs_iter_t s_it = ecs_query_iter(it->world, q);
+
+  while (ecs_query_next(&s_it)) {
+    PluginModule *p = ecs_field(&s_it, PluginModule, 0);
+    for (int i = 0; i < s_it.count; i ++) {
+      ecs_print(1,"Module Name : %s", 
+        p[i].name
+        //ecs_get_name(s_it.world, s_it.entities[i])
+      
+      );
+    }
+  }
+  ecs_print(1,"LIST....");
+}
+
 void flecs_cube3d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] flecs_cube3d_cleanup_event_system");
+  //disable runtime for cleanup
+  //ecs_enable(it->world,  ecs_id(Cube3DRenderSystem), false);
+  //ecs_enable(it->world, ecs_lookup(it->world, "Cube3DRenderSystem"), false);
+  //ecs_enable(it->world, ecs_cube3d_render_sys, false);
+  //clean up
+  flecs_cube3d_cleanup(it->world);
+  // after some testing it need loop check since it will not disable next loop.
+
 }
 
 void cube3d_register_components(ecs_world_t *world) {
@@ -351,21 +387,30 @@ void cube3d_register_components(ecs_world_t *world) {
 
 void cube3d_register_systems(ecs_world_t *world){
 
-  ecs_observer(world, {
-    // Not interested in any specific component
-    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
-    .events = { CleanUpEvent },
-    .callback = flecs_cube3d_cleanup_event_system
-  });
-
   ecs_system_init(world, &(ecs_system_desc_t){
     .entity = ecs_entity(world, { .name = "Cube3DSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
     .callback = Cube3DSetupSystem
   });
 
-  ecs_system_init(world, &(ecs_system_desc_t){
+  ecs_cube3d_render_sys = ecs_system_init(world, &(ecs_system_desc_t){
       .entity = ecs_entity(world, { .name = "Cube3DRenderSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.CMDBufferPhase)) }),
       .callback = Cube3DRenderSystem
+  });
+  ecs_enable(world, ecs_cube3d_render_sys, true); // Store and disable
+
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = ShutDownModule }},
+    .events = { ShutDownEvent },
+    .callback = flecs_cube3d_shutdown_event_system
+  });
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = flecs_cube3d_cleanup_event_system
   });
 }
 
@@ -375,6 +420,10 @@ void flecs_cube3d_module_init(ecs_world_t *world) {
   cube3d_register_components(world);
 
   ecs_singleton_set(world, Cube3DContext, {0});
+
+  // add_module_name(world,"cube3d_module");
+  ecs_entity_t e = ecs_new(world);
+  ecs_set(world, e, PluginModule, { .name = "cube3d_module", .isCleanUp = false });
 
   cube3d_register_systems(world);
 

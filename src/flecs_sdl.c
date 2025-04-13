@@ -39,7 +39,10 @@ void SDLInputSystem(ecs_iter_t *it) {
   // if (!ctx) return;
   //ECS_SDL_INPUT_T *input = ecs_field(it, ECS_SDL_INPUT_T, 0);
   SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
-  if (!sdl_ctx || sdl_ctx->hasError) return;
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
+
+  // prevent loop input when in shutdown state
+  if(sdl_ctx->isShutDown) return;
 
   ECS_SDL_INPUT_T *input = ecs_singleton_ensure(it->world, ECS_SDL_INPUT_T);
   if (!input) return; // Safety check
@@ -56,7 +59,15 @@ void SDLInputSystem(ecs_iter_t *it) {
       // }
       if (event.type == SDL_EVENT_QUIT) {
         ecs_print(1, "Quit event received");
-        sdl_ctx->shouldQuit = true;
+        // sdl_ctx->shouldQuit = true;
+        
+        ecs_emit(it->world, &(ecs_event_desc_t) {
+          .event = ShutDownEvent,
+          .entity = ShutDownModule
+        });
+        sdl_ctx->isShutDown = true;
+
+
       } else if (event.type == SDL_EVENT_WINDOW_RESIZED) {
         int newWidth = event.window.data1;
         int newHeight = event.window.data2;
@@ -203,6 +214,16 @@ void DebugInputSystem(ecs_iter_t *it) {
   // }
 }
 
+void sdl_close_event_system(ecs_iter_t *it){
+  SDLContext *sdlctx = ecs_singleton_ensure(it->world,SDLContext);
+  if (!sdlctx || sdlctx->hasError) return;
+  ecs_print(1,"CLOSE EVENT!");
+  flecs_sdl_cleanup(it->world);
+
+  // Close SDL window
+  sdlctx->shouldQuit=true;
+}
+
 void flecs_sdl_cleanup(ecs_world_t *world){
   SDLContext *sdl_ctx = ecs_singleton_ensure(world, SDLContext);
   if (!sdl_ctx || sdl_ctx->hasError) return;
@@ -214,30 +235,20 @@ void flecs_sdl_cleanup(ecs_world_t *world){
 void sdl_register_components(ecs_world_t *world){
 
   ECS_COMPONENT_DEFINE(world, SDLContext);
-
   ECS_COMPONENT_DEFINE(world, ECS_SDL_KEY_STATE_T);
   ECS_COMPONENT_DEFINE(world, ECS_SDL_MOUSE_T);
   ECS_COMPONENT_DEFINE(world, ECS_SDL_INPUT_T);
 
 }
 
-void flecs_sdl_module_init(ecs_world_t *world) {
-  ecs_log(1, "Initializing SDL module...");
+void sdl_register_systems(ecs_world_t *world){
 
-  sdl_register_components(world);
-
-  ecs_singleton_set(world, SDLContext, {
-    .width=800,
-    .height=600,
-    .shouldQuit=false,
-    .hasError=false
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CloseModule }},
+    .events = { CloseEvent },
+    .callback = sdl_close_event_system
   });
-
-  // ecs_entity_t sdl_input_entity = ecs_entity(world, { .name = "SDL_INPUT" });
-  // printf("Entity name: %s\n", ecs_get_name(world, sdl_input_entity));
-  // ecs_add(world, sdl_input_entity, ECS_SDL_INPUT_T);
-  // ecs_set(world, sdl_input_entity, ECS_SDL_INPUT_T, {0}); // Initialize with zeros
-  ecs_singleton_set(world, ECS_SDL_INPUT_T, {0});
 
   ecs_system_init(world, &(ecs_system_desc_t){
     .entity = ecs_entity(world, { 
@@ -268,6 +279,28 @@ void flecs_sdl_module_init(ecs_world_t *world) {
   //     // },
   //     .callback = DebugInputSystem
   // });
+}
+
+void flecs_sdl_module_init(ecs_world_t *world) {
+  ecs_log(1, "Initializing SDL module...");
+
+  sdl_register_components(world);
+
+  ecs_singleton_set(world, SDLContext, {
+    .width=800,
+    .height=600,
+    .shouldQuit=false,
+    .hasError=false,
+    .isShutDown=false
+  });
+
+  // ecs_entity_t sdl_input_entity = ecs_entity(world, { .name = "SDL_INPUT" });
+  // printf("Entity name: %s\n", ecs_get_name(world, sdl_input_entity));
+  // ecs_add(world, sdl_input_entity, ECS_SDL_INPUT_T);
+  // ecs_set(world, sdl_input_entity, ECS_SDL_INPUT_T, {0}); // Initialize with zeros
+  ecs_singleton_set(world, ECS_SDL_INPUT_T, {0});
+
+  sdl_register_systems(world);
 
   ecs_log(1, "SDL module initialized");
 }
