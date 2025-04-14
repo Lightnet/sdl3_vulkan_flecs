@@ -31,9 +31,8 @@ This project is licensed under the MIT License. See LICENSE for details.
 
 # Status:
  - Work in progress
- - Added feautures to get vulkan working for simple things to set up and render.
- - Need clean up test for shutdown application.
  - No entity added yet need to check set up and render.
+ - model testing.
 
 # Overview:
 
@@ -51,104 +50,115 @@ The aim to expand into a flexible module-based design for 3D world-building expe
 # Features:
 
 - Modular Design (WIP):
-    - Vulkan module for rendering and setup.
-    - ImGui module for UI.
-    - Easy addition/removal of modules for debugging and configuration.
-    - Set Up init module
-    - Clean up module event (not added)
-    - 
+    - [x] Vulkan module for rendering and setup.
+    - [x] ImGui module for UI.
+    - [x] Set Up init module
+    - [x] Clean up module event
+    - [ ] unload and load module
+    - [ ] Easy addition/removal of modules for debugging and configuration.
 
-- SDL 3.x (added)
-    - resize window (event from update resize window)
-    - clean up call for SDL
-    - component context variable access
-    - input system (work in progress)
-      - close event for window
-      - keyboard (work in progress)
+- SDL 3.2.10 (added)
+    - [x] resize window (event from update resize window)
+    - [x] clean up call for SDL
+    - [x] component context variable access
+    - [x] clean up and shut down
+    - [x] input system (work in progress)
+      - [x] close event for window
+      - [x] keyboard (work in progress)
         - 278 keys code range max.
-      - mouse
-        - button right (added)
-        - button left (added)
-        - motion state (added)
-          - check if mouse is move state bool (added)
-          - motion postion (added)
-        - wheel state (added)
-          - check if the wheel is move state bool (added)
-          - x (added)
-          - y (added)
+      - [x] mouse
+        - [x] button right 
+        - [x] button left 
+        - [x] motion state
+          - [x] check if mouse is move state bool 
+          - [x] motion postion
+        - [x] wheel state 
+          - [x] check if the wheel is move state bool 
+          - [x] x 
+          - [x] y 
 
-- Vulkan Module (added)
-    - resize window swap (added)
-    - phase setup required for on start setup and run time order phase. (added)
-    - clean up (added)
-    - debugCallback (added)
-    - VK_LAYER_KHRONOS_validation (added)
-    - component context variable access
-    - set up: (added)
-      - InstanceSetupSystem
-      - SurfaceSetupSystem
-      - DeviceSetupSystem
-      - SwapchainSetupSystem
-      - RenderPassSetupSystem
-      - FramebufferSetupSystem
-      - CommandPoolSetupSystem
-      - CommandBufferSetupSystem
-      - SyncSetupSystem
-    - run time render: (added)
-      - BeginRenderSystem
-      - BeginCMDBufferSystem
+- Vulkan Module
+    - [ ] resize window swap
+    - [x] phase setup required for on start setup and run time order phase.
+    - [x] clean up
+    - [x] debugCallback
+    - [x] VK_LAYER_KHRONOS_validation
+    - [x] component context variable access
+    - [x] set up:
+      - [x] InstanceSetupSystem
+      - [x] SurfaceSetupSystem
+      - [x] DeviceSetupSystem
+      - [x] SwapchainSetupSystem
+      - [x] RenderPassSetupSystem
+      - [x] FramebufferSetupSystem
+      - [x] CommandPoolSetupSystem
+      - [x] CommandBufferSetupSystem
+      - [x] SyncSetupSystem
+    - [x] run time render:
+      - [x] BeginRenderSystem
+      - [x] BeginCMDBufferSystem
       - 'Place Holder Name System' > dependon > [CMDBufferPhase > CMDBuffer2Phase]
-      - EndCMDBufferSystem
-      - EndRenderSystem
+      - [x] EndCMDBufferSystem
+      - [x] EndRenderSystem
 
-- Simple Triangle: (added)
-    - module design
-    - component context variable access
-    - Setup system
-      - Vertex Buffer 
-      - VkPipelineShader setup
-      - VkPipeline setup
-    - buffer system
-      - commandBuffer render for triangle 2d
-    - resize not added
+- [x] Simple Triangle:
+    - [x] module design
+    - [x] component context variable access
+    - [x] Setup system
+      - [x] Vertex Buffer 
+      - [x] VkPipelineShader setup
+      - [x] VkPipeline setup
+    - [x] buffer system
+      - [x] commandBuffer render for triangle 2d
+    - [x] clean up
+    - [ ] resize not added
         
-- ImGui Integration: (added)
+- [x] ImGui Integration
     - This wrapper from imgui to cimgui for c++ wrapper to c.
-    - command buffer imgui system to handle render vulkan. (added)
-    - input handler system. (added)
-    - component context variable access (added)
-    - resize added around ways (not added)
+    - [x] command buffer imgui system to handle render vulkan.
+    - [x] input handler system.
+    - [x] component context variable access
+    - [x] imgui will auto resize.
+    - [x] clean up
 
-- Freetype Render Text font "Hello World" (added)
-  - module for set up and render. (added)
-  - component context variable access (added)
-  - resize added ?
+- [x] Freetype Render Text font "Hello World".
+  - [x] module for set up and render.
+  - [x] component context variable access
+  - [x] clean up
+  - [ ] resize added
 
-- Cube 3D Mesh (added)
-  - module (added)
-  - component context variable access (added)
-  - resize (not added)
+
+- [x] Cube 3D Mesh 
+  - [x] module
+  - [x] component context variable access
+  - [x] clean up
+  - [ ] resize
   
-- Texture 2D (added)
-  - module (added)
-  - component context variable access (added)
-  - resize (not added)
+- [x] Texture 2D
+  - [x] module
+  - [x] component context variable access
+  - [x] clean up
+  - [ ] resize
 
-- Cube Texture 3D Mesh (added)
-  - module (added)
-  - component context variable access (added)
-  - resize (not added)
+- [x] Cube Texture 3D Mesh
+  - [x] module
+  - [x] component context variable access
+  - [x] clean up
+  - [ ] resize
         
-- Flecs:
-    - Custom logging system using Flecs, still under development.
-    - add and remove entity not added for vulkan mesh or vertex buffer
-    - module setup and render are added for SDL and Vulkan as those main build area.
-    - world context variables
-        
+- [ ] Flecs:
+    - [ ] Custom logging system using Flecs, still under development.
+    - [ ] add and remove entity not added for vulkan mesh or vertex buffer
+    - [ ] module setup and render are added for SDL and Vulkan as those main build area.
+    - [ ] world context variables
+- [ ] luajit 
+    - [x] module
+    - [x] clean up
+    - [ ] for entity handle script for off load?        
 - Planned Features:
-    - network libs researching
-    - luajit for entity handle script for off load?
-    - physics 3d
+    - [ ] network libs researching
+
+    - [ ] physics 3d
         
 # Shutdown and Cleanup Process
 
@@ -214,10 +224,10 @@ Implementation Notes
     - [stb](https://github.com/nothings/stb): stb_image.h
     - [mimalloc](https://github.com/microsoft/mimalloc): Memory allocator.
     - [cglm](https://github.com/recp/cglm): Math library.
+    - [Assimp](https://github.com/assimp/assimp): Asset importing.
         
 - Planned/Not Yet Added:
     - [VulkanMemoryAllocator 3.2.1](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator): Memory management.
-    - [Assimp](https://github.com/assimp/assimp): Asset importing.
     
 - Removed:
     - [Volk 1.4.304](https://github.com/zeux/volk): Replaced with direct Vulkan headers.
@@ -358,8 +368,8 @@ The project uses a modular approach to simplify development:
   The plan phase using component gobal access as long there no same varaible name. Althought it required some setup for flecs to assign the ID system to handle struct c.
 
   I would say global variable. So in flecs logic it should be attach to world. Reason is simple world is entity so is module entity component system.
-```c
 
+```c
 typedef struct {
   float x, y;
 } Gravity;
@@ -433,7 +443,7 @@ int main(){
 ```
 # Module Setup Example:
 
-
+This should in header.
 ```c
 typedef struct {
   VkBuffer meshBuffer;
@@ -441,6 +451,8 @@ typedef struct {
 NameContext;
 ECS_COMPONENT_DECLARE(NameContext);
 ```
+Flecs need to assign component to handle ID.
+
 ```c
 void NameSetupSystem(ecs_iter_t *it) {
 }
@@ -491,6 +503,7 @@ void flecs_name_module_init(ecs_world_t *world){
   name_register_systems(world);
 }
 ```
+  Work in progress test.
 
 
 # Notes:
