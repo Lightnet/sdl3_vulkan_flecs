@@ -255,6 +255,24 @@ void OnClick(ecs_iter_t *it){
 void imgui_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] imgui_cleanup_event_system");
   flecs_imgui_cleanup(it->world);
+
+  ecs_query_t *q = ecs_query(it->world, {
+    .terms = {
+      { .id = ecs_id(PluginModule) },
+    }
+  });
+
+  ecs_iter_t s_it = ecs_query_iter(it->world, q);
+
+  while (ecs_query_next(&s_it)) {
+    PluginModule *p = ecs_field(&s_it, PluginModule, 0);
+    for (int i = 0; i < s_it.count; i ++) {
+      if(strcmp(p[i].name, "imgui_module") == 0){
+        p[i].isCleanUp = true;
+        break;
+      }
+    }
+  }
 }
 
 void flecs_imgui_cleanup(ecs_world_t *world) {
@@ -309,8 +327,8 @@ void imgui_register_systems(ecs_world_t *world){
 
   ecs_observer(world, {
     // Not interested in any specific component
-    .query.terms = {{ EcsAny, .src.id = CleanUpGraphic }},
-    .events = { CleanUpGraphicEvent },
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
     .callback = imgui_cleanup_event_system
   });
 

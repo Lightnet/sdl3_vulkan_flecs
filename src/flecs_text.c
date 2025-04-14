@@ -587,6 +587,30 @@ void TextRenderSystem(ecs_iter_t *it) {
 
 void text_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] text_cleanup_event_system");
+  flecs_text_cleanup(it->world);
+
+  module_break_name(it, "text_module");
+
+  // ecs_query_t *q = ecs_query(it->world, {
+  //   .terms = {
+  //     { .id = ecs_id(PluginModule) },
+  //   }
+  // });
+
+  // ecs_iter_t s_it = ecs_query_iter(it->world, q);
+
+  // while (ecs_query_next(&s_it)) {
+  //   PluginModule *p = ecs_field(&s_it, PluginModule, 0);
+  //   for (int i = 0; i < s_it.count; i ++) {
+  //     ecs_print(1,"TEXT CHECK... Module Name : %s", p[i].name);
+  //     if(strcmp(p[i].name, "text_module") == 0){
+  //       p[i].isCleanUp = true;
+  //       ecs_print(1,"text_module XXXXXXXXXX");
+  //       break;
+  //     }
+  //   }
+  // }
+
 }
 
 void flecs_text_cleanup(ecs_world_t *world) {
@@ -690,6 +714,9 @@ void flecs_text_module_init(ecs_world_t *world) {
   text2d_register_components(world);
 
   ecs_singleton_set(world, Text2DContext, {0});
+
+  ecs_entity_t e = ecs_new(world);
+  ecs_set(world, e, PluginModule, { .name = "text_module", .isCleanUp = false });
 
   text2d_register_systems(world);
 

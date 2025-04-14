@@ -294,6 +294,10 @@ void flecs_sdl_module_init(ecs_world_t *world) {
     .isShutDown=false
   });
 
+  // not use since shut down event
+  // ecs_entity_t e = ecs_new(world);
+  // ecs_set(world, e, PluginModule, { .name = "sdl_module", .isCleanUp = false });
+
   // ecs_entity_t sdl_input_entity = ecs_entity(world, { .name = "SDL_INPUT" });
   // printf("Entity name: %s\n", ecs_get_name(world, sdl_input_entity));
   // ecs_add(world, sdl_input_entity, ECS_SDL_INPUT_T);

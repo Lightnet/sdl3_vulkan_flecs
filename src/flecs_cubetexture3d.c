@@ -560,6 +560,29 @@ void CubeTexture3DRenderSystem(ecs_iter_t *it) {
 
 void cubetexture3d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] cubetexture3d_cleanup_event_system");
+  flecs_cubetexture3d_cleanup(it->world);
+
+  ecs_query_t *q = ecs_query(it->world, {
+    .terms = {
+      { .id = ecs_id(PluginModule) },
+    }
+  });
+
+  ecs_iter_t s_it = ecs_query_iter(it->world, q);
+
+  while (ecs_query_next(&s_it)) {
+    PluginModule *p = ecs_field(&s_it, PluginModule, 0);
+    for (int i = 0; i < s_it.count; i ++) {
+      //ecs_print(1,"TEXT CHECK... Module Name : %s", p[i].name);
+      if(strcmp(p[i].name, "cubetexture3d_module") == 0){
+        p[i].isCleanUp = true;
+        //ecs_print(1,"text_module XXXXXXXXXX");
+        break;
+      }
+    }
+  }
+
+
 }
 
 void flecs_cubetexture3d_cleanup(ecs_world_t *world) {
@@ -622,14 +645,17 @@ void cubetext3d_register_systems(ecs_world_t *world){
 }
 
 void flecs_cubetexture3d_module_init(ecs_world_t *world) {
-    ecs_log(1, "Initializing cubetexture3d module...");
+  ecs_log(1, "Initializing cubetexture3d module...");
 
-    cubetext3d_register_components(world);
+  cubetext3d_register_components(world);
 
-    ecs_singleton_set(world, CubeText3DContext, {0});
+  ecs_singleton_set(world, CubeText3DContext, {0});
 
-    cubetext3d_register_systems(world);
+  ecs_entity_t e = ecs_new(world);
+  ecs_set(world, e, PluginModule, { .name = "cubetexture3d_module", .isCleanUp = false });
 
-    ecs_log(1, "CubeTexture3d module initialized");
+  cubetext3d_register_systems(world);
+
+  ecs_log(1, "CubeTexture3d module initialized");
 }
 

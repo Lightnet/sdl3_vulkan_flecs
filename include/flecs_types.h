@@ -170,11 +170,11 @@ typedef struct {
 } FlecsPhases;
 
 // TEST
-// typedef struct {
-//   bool isCleanUpModule;
-//   int moduleCount;
-// } ModuleContext;
-// ECS_COMPONENT_DECLARE(ModuleContext);
+typedef struct {
+  bool isCleanUpModule;
+  int moduleCount;
+} ModuleContext;
+ECS_COMPONENT_DECLARE(ModuleContext);
 
 typedef struct {
   char name[32]; // Fixed-size string for simplicity
@@ -201,5 +201,9 @@ void flecs_phases_init(ecs_world_t *world, FlecsPhases *phases);
 void flecs_init_module(ecs_world_t *world);
 
 // ecs_entity_t add_module_name(ecs_world_t *world, const char *name);
+
+void module_break_name(ecs_iter_t *it, const char *module_name);
+
+ecs_entity_t add_module_name(ecs_world_t *world, const char *name);
 
 #endif

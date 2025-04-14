@@ -428,6 +428,8 @@ void flecs_texture2d_cleanup(ecs_world_t *world) {
 void texture2d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] texture2d_cleanup_event_system");
   flecs_texture2d_cleanup(it->world);
+
+  module_break_name(it, "texture2d_module");
 }
 
 void texture2d_register_components(ecs_world_t *world) {
@@ -460,6 +462,9 @@ void flecs_texture2d_module_init(ecs_world_t *world) {
   texture2d_register_components(world);
 
   ecs_singleton_set(world, Texture2DContext, {0});
+
+  ecs_entity_t e = ecs_new(world);
+  ecs_set(world, e, PluginModule, { .name = "texture2d_module", .isCleanUp = false });
 
   texture2d_register_systems(world);
 

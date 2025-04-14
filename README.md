@@ -8,6 +8,7 @@
  * [Overview](#overview)
  * [Goals](#goals)
  * [Features](#features)
+ * [Clean Up and Shut Down Order](#clean-up-and-shut-down-order)
  * [Requirements](#requirements)
  * [Libraries](#libraries)
  * [Project Structure](#project-structure)
@@ -149,6 +150,20 @@ The aim to expand into a flexible module-based design for 3D world-building expe
     - luajit for entity handle script for off load?
     - physics 3d
         
+# Clean Up and Shut Down Order:
+  Work in progress. To handle close event which required couple of things. One handle render skip to ignore error or say skip while it close. Two need to be in order for vulkan safely close in case layer error.
+
+  Not sure of the correct ways. As there are couple of ways. Still there features like Observers, Event and system play part of the roles but requires input from users setup and close as well to handle event close application.
+
+## Order List:
+- Input Event Hander / (Crashed clean up?)
+- Shutdown Event ( call clean up after this...)
+- Clean Up Module Event (Vulkan Variables and other modules)
+- Clean Up Graphic Event (Vulkan Close)
+- Close Event ( SDL )
+
+  Have not try to crash clean up test. Since it ECS loop which required skip and clean up checks.
+
 # Requirements:
 - CMake: For building the project.
 - Visual Studio 2022: C/C++ development environment.

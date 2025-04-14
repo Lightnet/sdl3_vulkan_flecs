@@ -1017,6 +1017,10 @@ void flecs_vulkan_module_init(ecs_world_t *world) {
 
   ecs_singleton_set(world, VulkanContext, {0});
 
+  // not use this that for clean up graphic
+  // ecs_entity_t e = ecs_new(world);
+  // ecs_set(world, e, PluginModule, { .name = "vulkan_module", .isCleanUp = false });
+
   vulkan_register_system(world);
 }
 

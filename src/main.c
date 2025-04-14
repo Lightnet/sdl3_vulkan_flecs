@@ -21,35 +21,35 @@ int main(int argc, char *argv[]) {
   ecs_print(1, "init main, flecs ...");
 
   //this need to be load first for phase for setup and runtime render
-  // ecs_print(1, "Initializing GlobalPhases...");
-  //flecs_phases_init(world, &GlobalPhases);
-  //flecs_phases_init(world);
   ecs_log(1, "Initializing main flecs_init_module...");
   flecs_init_module(world);
+  // 
   ecs_log(1, "Calling flecs_sdl_module_init...");
   // setup SDL 3.x window and Input event 
   flecs_sdl_module_init(world);
   // setup Vulkan graphic
   ecs_log(1, "Calling flecs_vulkan_module_init...");
   flecs_vulkan_module_init(world);
+
   // example test module
-  // ecs_log(1, "Calling flecs_cubetexture3d_module_init...");
-  // flecs_cubetexture3d_module_init(world);
+  ecs_log(1, "Calling flecs_cubetexture3d_module_init...");
+  flecs_cubetexture3d_module_init(world);
+
   // example test module
   ecs_log(1, "Calling flecs_triangle2d_module_init...");
   flecs_triangle2d_module_init(world);
+
   // example test module
-  // ecs_log(1, "Calling flecs_texture2d_module_init...");
-  // flecs_texture2d_module_init(world);
+  ecs_log(1, "Calling flecs_texture2d_module_init...");
+  flecs_texture2d_module_init(world);
   
-  
-  // ecs_log(1, "Calling flecs_text_module_init...");
-  // flecs_text_module_init(world);
-  
+  // example test module
+  ecs_log(1, "Calling flecs_text_module_init...");
+  flecs_text_module_init(world);
   
   // luajit module
-  // ecs_log(1, "Calling flecs_luajit_module_init...");
-  // flecs_luajit_module_init(world);
+  ecs_log(1, "Calling flecs_luajit_module_init...");
+  flecs_luajit_module_init(world);
 
   ecs_log(1, "Calling flecs_cube3d_module_init...");
   flecs_cube3d_module_init(world);
@@ -58,9 +58,7 @@ int main(int argc, char *argv[]) {
   ecs_log(1, "Calling flecs_imgui_module_init...");
   flecs_imgui_module_init(world);
   
-
   ecs_print(1, "Entering main loop...");
-
   Uint64 previousTime = SDL_GetTicks(); // Time at the start
   //ecs_abort(ECS_INTERNAL_ERROR, "TEST"); // Test error
 

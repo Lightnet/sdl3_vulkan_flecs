@@ -1,4 +1,5 @@
 #include "flecs_luajit.h"
+#include "flecs_sdl.h"
 
 typedef struct { float x, y; } Position;
 
@@ -24,6 +25,8 @@ void error(lua_State *L, const char *fmt, ...) {
 
 // Lua system to call update function
 static void LuaUpdateSystem(ecs_iter_t *it) {
+  SDLContext *sdl_ctx = ecs_singleton_ensure(it->world, SDLContext);
+  if (!sdl_ctx || sdl_ctx->hasError || sdl_ctx->isShutDown) return;
   LuaContext *lua_ctx = ecs_singleton_ensure(it->world, LuaContext);
   if (!lua_ctx || !lua_ctx->L) return;
 
@@ -44,17 +47,19 @@ static void LuaUpdateSystem(ecs_iter_t *it) {
   }
 }
 
-
 void luajit_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] luajit_cleanup_event_system");
+  flecs_luajit_cleanup(it->world);
+
+  module_break_name(it, "luajit_module");
 }
 
 void flecs_luajit_cleanup(ecs_world_t *world) {
-    LuaContext *lua_ctx = ecs_singleton_ensure(world, LuaContext);
-    if (lua_ctx && lua_ctx->L) {
-        lua_close(lua_ctx->L);
-        lua_ctx->L = NULL;
-    }
+  LuaContext *lua_ctx = ecs_singleton_ensure(world, LuaContext);
+  if (lua_ctx && lua_ctx->L) {
+    lua_close(lua_ctx->L);
+    lua_ctx->L = NULL;
+  }
 }
 
 void luajit_register_components(ecs_world_t *world) {
@@ -95,6 +100,14 @@ void flecs_luajit_module_init(ecs_world_t *world) {
   ecs_log(1, "luajit_module_init");
   
   luajit_register_components(world);
+
+  // ecs_entity_t e = ecs_new(world);
+  // ecs_set(world, e, PluginModule, { .name = "luajit_module", .isCleanUp = false });
+
+  add_module_name(world, "luajit_module");
+
+
+  
 
   LuaContext lua_ctx = {0};
   lua_ctx.L = luaL_newstate();

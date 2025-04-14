@@ -271,6 +271,8 @@ void TriangleRenderBufferSystem(ecs_iter_t *it) {
 void triangle2d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] triangle2d_cleanup_event_system");
   flecs_triangle2d_cleanup(it->world);
+
+  module_break_name(it, "triangle2d_module");
 }
 
 void flecs_triangle2d_cleanup(ecs_world_t *world) {
@@ -343,7 +345,7 @@ void flecs_triangle2d_module_init(ecs_world_t *world) {
   ecs_singleton_set(world, TriangleContext, {0});
 
   ecs_entity_t e = ecs_new(world);
-  ecs_set(world, e, PluginModule, { .name = "triangle_module", .isCleanUp = false });
+  ecs_set(world, e, PluginModule, { .name = "triangle2d_module", .isCleanUp = false });
 
   triangle2d_register_systems(world);
 

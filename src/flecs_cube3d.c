@@ -359,11 +359,12 @@ void flecs_cube3d_shutdown_event_system(ecs_iter_t *it){
   while (ecs_query_next(&s_it)) {
     PluginModule *p = ecs_field(&s_it, PluginModule, 0);
     for (int i = 0; i < s_it.count; i ++) {
-      ecs_print(1,"Module Name : %s", 
-        p[i].name
-        //ecs_get_name(s_it.world, s_it.entities[i])
-      
-      );
+      // ecs_print(1,"TEXT CHECK... Module Name : %s", p[i].name);
+      if(strcmp(p[i].name, "cube3d_module") == 0){
+        p[i].isCleanUp = true;
+        // ecs_print(1,"cube3d_module XXXXXXXXXX");
+        break;
+      }
     }
   }
   ecs_print(1,"LIST....");
@@ -397,7 +398,6 @@ void cube3d_register_systems(ecs_world_t *world){
       .callback = Cube3DRenderSystem
   });
   ecs_enable(world, ecs_cube3d_render_sys, true); // Store and disable
-
 
   ecs_observer(world, {
     // Not interested in any specific component
