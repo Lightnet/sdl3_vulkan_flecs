@@ -106,9 +106,6 @@ void flecs_luajit_module_init(ecs_world_t *world) {
 
   add_module_name(world, "luajit_module");
 
-
-  
-
   LuaContext lua_ctx = {0};
   lua_ctx.L = luaL_newstate();
   if (!lua_ctx.L) {

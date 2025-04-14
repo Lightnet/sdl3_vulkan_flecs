@@ -344,31 +344,31 @@ void flecs_cube3d_cleanup(ecs_world_t *world) {
 
 ecs_entity_t ecs_cube3d_render_sys;
 
-void flecs_cube3d_shutdown_event_system(ecs_iter_t *it){
-  ecs_print(1,"[shutdown] flecs_cube3d_shutdown_event_system");
-  ecs_enable(it->world, ecs_cube3d_render_sys, false);
+// void flecs_cube3d_shutdown_event_system(ecs_iter_t *it){
+//   ecs_print(1,"[shutdown] flecs_cube3d_shutdown_event_system");
+//   ecs_enable(it->world, ecs_cube3d_render_sys, false);
 
-  ecs_query_t *q = ecs_query(it->world, {
-    .terms = {
-      { .id = ecs_id(PluginModule) },
-    }
-  });
+//   ecs_query_t *q = ecs_query(it->world, {
+//     .terms = {
+//       { .id = ecs_id(PluginModule) },
+//     }
+//   });
 
-  ecs_iter_t s_it = ecs_query_iter(it->world, q);
+//   ecs_iter_t s_it = ecs_query_iter(it->world, q);
 
-  while (ecs_query_next(&s_it)) {
-    PluginModule *p = ecs_field(&s_it, PluginModule, 0);
-    for (int i = 0; i < s_it.count; i ++) {
-      // ecs_print(1,"TEXT CHECK... Module Name : %s", p[i].name);
-      if(strcmp(p[i].name, "cube3d_module") == 0){
-        p[i].isCleanUp = true;
-        // ecs_print(1,"cube3d_module XXXXXXXXXX");
-        break;
-      }
-    }
-  }
-  ecs_print(1,"LIST....");
-}
+//   while (ecs_query_next(&s_it)) {
+//     PluginModule *p = ecs_field(&s_it, PluginModule, 0);
+//     for (int i = 0; i < s_it.count; i ++) {
+//       // ecs_print(1,"TEXT CHECK... Module Name : %s", p[i].name);
+//       if(strcmp(p[i].name, "cube3d_module") == 0){
+//         p[i].isCleanUp = true;
+//         // ecs_print(1,"cube3d_module XXXXXXXXXX");
+//         break;
+//       }
+//     }
+//   }
+//   ecs_print(1,"LIST....");
+// }
 
 void flecs_cube3d_cleanup_event_system(ecs_iter_t *it){
   ecs_print(1,"[cleanup] flecs_cube3d_cleanup_event_system");
@@ -379,6 +379,7 @@ void flecs_cube3d_cleanup_event_system(ecs_iter_t *it){
   //clean up
   flecs_cube3d_cleanup(it->world);
   // after some testing it need loop check since it will not disable next loop.
+  module_break_name(it, "cube3d_module");
 
 }
 
@@ -399,12 +400,12 @@ void cube3d_register_systems(ecs_world_t *world){
   });
   ecs_enable(world, ecs_cube3d_render_sys, true); // Store and disable
 
-  ecs_observer(world, {
-    // Not interested in any specific component
-    .query.terms = {{ EcsAny, .src.id = ShutDownModule }},
-    .events = { ShutDownEvent },
-    .callback = flecs_cube3d_shutdown_event_system
-  });
+  // ecs_observer(world, {
+  //   // Not interested in any specific component
+  //   .query.terms = {{ EcsAny, .src.id = ShutDownModule }},
+  //   .events = { ShutDownEvent },
+  //   .callback = flecs_cube3d_shutdown_event_system
+  // });
 
   ecs_observer(world, {
     // Not interested in any specific component

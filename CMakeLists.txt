@@ -221,7 +221,6 @@ if(WIN32)
 
 endif()
 
-
 CPMAddPackage(
     NAME cimgui
     GITHUB_REPOSITORY cimgui/cimgui
@@ -296,6 +295,11 @@ CPMAddPackage(
     GIT_TAG stable-3.2
 )
 
+CPMAddPackage(
+    NAME assimp
+    GITHUB_REPOSITORY assimp/assimp
+    GIT_TAG v5.4.3
+)
 
 # Define source and include directories
 set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
@@ -316,6 +320,7 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_triangle2d.c
   ${SOURCE_DIR}/flecs_cubetexture3d.c
   ${SOURCE_DIR}/flecs_luajit.c
+  ${SOURCE_DIR}/flecs_assimp.c
 )
 
 # Define the executable with all source files
@@ -347,6 +352,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     luajit_lib
     cjson
     physfs
+    assimp::assimp
 )
 message(STATUS "cjson_SOURCE_DIR >>> ${cjson_SOURCE_DIR}")
 # Include directories with proper path validation
@@ -358,6 +364,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${cimgui_SOURCE_DIR}/imgui
     ${cimgui_SOURCE_DIR}/imgui/backends
     ${VulkanHeaders_SOURCE_DIR}/include
+    ${assimp_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
     ${stb_image_SOURCE_DIR}
     ${cjson_SOURCE_DIR}
