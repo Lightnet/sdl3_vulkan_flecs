@@ -8,7 +8,7 @@
  * [Overview](#overview)
  * [Goals](#goals)
  * [Features](#features)
- * [Clean Up and Shut Down Order](#clean-up-and-shut-down-order)
+ * [Shutdown and Cleanup Procoess](#shutdown-and-cleanup-procoess)
  * [Requirements](#requirements)
  * [Libraries](#libraries)
  * [Project Structure](#project-structure)
@@ -150,19 +150,53 @@ The aim to expand into a flexible module-based design for 3D world-building expe
     - luajit for entity handle script for off load?
     - physics 3d
         
-# Clean Up and Shut Down Order:
-  Work in progress. To handle close event which required couple of things. One handle render skip to ignore error or say skip while it close. Two need to be in order for vulkan safely close in case layer error.
+# Shutdown and Cleanup Process
 
-  Not sure of the correct ways. As there are couple of ways. Still there features like Observers, Event and system play part of the roles but requires input from users setup and close as well to handle event close application.
+This outlines the shutdown and cleanup procedure for an SDL3/Vulkan/Flecs application, ensuring orderly resource release during user-initiated close events (e.g., window close) and crash scenarios. The process uses Flecs’ Entity Component System (ECS) with observers, events, and systems to manage plugin modules, Vulkan resources, and SDL, avoiding errors like Vulkan validation layer crashes.
 
-## Order List:
-- Input Event Hander / (Crashed clean up?)
-- Shutdown Event ( call clean up after this...)
-- Clean Up Module Event (Vulkan Variables and other modules)
-- Clean Up Graphic Event (Vulkan Close)
-- Close Event ( SDL )
+Objectives
+- Orderly Shutdown: Clean up resources in the correct sequence to prevent Vulkan errors.
+- Skip Rendering: Disable rendering during shutdown to avoid accessing freed resources.
+- Module Synchronization: Ensure all plugin modules complete cleanup before proceeding.
+- Crash Handling: (Future) Handle crashes by skipping invalid operations and forcing cleanup.
+- User Interaction: Process input events (e.g., SDL_QUIT) to trigger shutdown.
 
-  Have not try to crash clean up test. Since it ECS loop which required skip and clean up checks.
+Shutdown Phases
+1. Input Event Handler:
+    - Processes SDL events (e.g., SDL_QUIT from window close).
+    - Triggers a ShutdownEvent to initiate cleanup.
+    - (Future) Detects crash signals and skips unsafe operations.
+2. Shutdown Event:
+    - Broadcasts a Flecs event (ShutdownEvent) to flag all plugin modules for cleanup.
+    - Disables rendering systems to prevent errors.
+3. Clean Up Module Event:
+    - Each plugin module (e.g., rendering, input) processes its cleanup (e.g., frees Vulkan resources).
+    - Sets a flag (isCleanUp = true) when done.
+4. Check Module Completion:
+    - Monitors all modules to confirm cleanup completion.
+    - Triggers a Clean Up Graphic Event when all modules are done.
+5. Clean Up Graphics Event:
+    - Destroys Vulkan device and resources (e.g., vkDestroyDevice) after module cleanup.
+    - Ensures no Vulkan operations occur post-cleanup.
+6. Close Event:
+    - Shuts down SDL (e.g., SDL_DestroyWindow, SDL_Quit).
+    - Terminates the ECS world (ecs_fini).
+
+Implementation Notes
+
+- Flecs Features:
+    - Systems: Handle input, module cleanup, and checks in specific phases (e.g., EcsOnUpdate, EcsOnCleanup).
+    - Observers: React to events like ShutdownEvent and ModulesCleanedEvent.
+    - Events: Coordinate transitions (e.g., ShutdownEvent → ModulesCleanedEvent).
+- Vulkan Safety:
+    - Skip rendering during shutdown using a global flag or by disabling systems.
+    - Clean up Vulkan resources in order (e.g., pipelines before device).
+- Module Sync:
+    - Use a counter or singleton to track module cleanup progress, avoiding random order issues.
+- Crash Handling:
+    - (TBD) Implement crash detection (e.g., signal handlers) to force cleanup while skipping invalid ECS loops.
+- User Input:
+    - SDL event loop triggers shutdown via user actions (e.g., SDL_QUIT).
 
 # Requirements:
 - CMake: For building the project.
