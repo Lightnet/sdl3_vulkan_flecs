@@ -431,6 +431,67 @@ int main(){
   ecs_fini(world);
 }
 ```
+# Module Setup Example:
+
+
+```c
+typedef struct {
+  VkBuffer meshBuffer;
+}
+NameContext;
+ECS_COMPONENT_DECLARE(NameContext);
+```
+```c
+void NameSetupSystem(ecs_iter_t *it) {
+}
+```
+```c
+void flecs_name_cleanup(ecs_world_t *world) {
+}
+```
+```c
+void flecs_name_cleanup_event_system(ecs_iter_t *it){
+  flecs_name_cleanup(it->world);
+  module_break_name(it, "name_module");
+}
+```
+```c
+name_register_components(ecs_world_t *world){
+  ECS_COMPONENT_DEFINE(world, NameContext);
+}
+```
+```c
+name_register_systems(ecs_world_t *world){
+
+  ecs_observer(world, {
+    // Not interested in any specific component
+    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
+    .events = { CleanUpEvent },
+    .callback = flecs_name_cleanup_event_system
+  });
+
+  ecs_system_init(world, &(ecs_system_desc_t){
+    .entity = ecs_entity(world, { .name = "NameSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
+    .callback = NameSetupSystem
+  });
+}
+```
+```c
+void flecs_name_module_init(ecs_world_t *world){
+  ecs_log(1, "Initializing name module...");
+
+  name_register_components(world);
+
+  ecs_singleton_set(world, NameContext, {0});
+
+  // ecs_entity_t e = ecs_new(world);
+  // ecs_set(world, e, PluginModule, { .name = "name_module", .isCleanUp = false });
+  add_module_name(world, "luajit_module");
+
+  name_register_systems(world);
+}
+```
+
 
 # Notes:
 - Resize window will error on zero either height or width for vulkan layers.
