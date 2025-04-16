@@ -157,7 +157,6 @@ The aim to expand into a flexible module-based design for 3D world-building expe
     - [ ] for entity handle script for off load?        
 - Planned Features:
     - [ ] network libs researching
-
     - [ ] physics 3d
         
 # Shutdown and Cleanup Process
@@ -245,6 +244,8 @@ sdl3_vulkan_flecs/
 │   └── test.c                          # test
 ├── include/                            # Header files
 ├──── shaders/                          # Shader source files
+│       ├── assimp_shader3d_frag.spv.h  # Fragment shader
+│       ├── assimp_shader3d_vert.spv.h  # Vertex shader
 │       ├── cube3d_frag.spv.h           # Fragment shader
 │       ├── cube3d_vert.spv.h           # Vertex shader
 │       ├── cubetexture3d_frag.spv.h    # Fragment shader
@@ -255,6 +256,7 @@ sdl3_vulkan_flecs/
 │       ├── text_vert.spv.h             # Vertex shader
 │       ├── texture2d_frag.spv.h        # Fragment shader
 │       └── texture2d_vert.spv.h        # Vertex shader
+│   ├── flecs_assimp.h                  # assimp 3d mesh
 │   ├── flecs_cube3d.h                  # cube 3d mesh
 │   ├── flecs_cubetexture3d.h           # cube 3d mesh
 │   ├── flecs_imgui.h                   # graphic user interface
@@ -267,6 +269,8 @@ sdl3_vulkan_flecs/
 │   ├── flecs_utils.h                   # helper for vulkan and sdl
 │   └── flecs_vulkan.h                  # Vulkan setup and rendering
 ├── shaders/                            # Shader source files
+│       ├── assimp_shader3d_frag.frag   # Fragment shader
+│       ├── assimp_shader3d_vert.vert   # Vertex shader
 │       ├── cube3d.frag                 # Fragment shader
 │       ├── cube3d.vert                 # Vertex shader
 │       ├── cubetexture3d.frag          # Fragment shader
@@ -278,6 +282,7 @@ sdl3_vulkan_flecs/
 │       ├── texture2d.frag              # Fragment shader
 │       └── texture2d.vert              # Vertex shader
 ├── src/                                # Source files
+│   ├── flecs_assimp.c                  # assimp 3d module
 │   ├── flecs_cube3d.c                  # cube 3d module
 │   ├── flecs_cubetexture3d.c           # cube 3d texture module
 │   ├── flces_imgui.c                   # graphic user interface module
@@ -361,150 +366,6 @@ The project uses a modular approach to simplify development:
  - shader.bat
  - shaderh.bat
     - This is for shader header file load application instead load from current directory file.
-
-# Felcs API modules:
-  Currently world context variable are hard for those module setup. As to test out the vulkan varaible to make sure they are working.
-
-  The plan phase using component gobal access as long there no same varaible name. Althought it required some setup for flecs to assign the ID system to handle struct c.
-
-  I would say global variable. So in flecs logic it should be attach to world. Reason is simple world is entity so is module entity component system.
-
-```c
-typedef struct {
-  float x, y;
-} Gravity;
-ECS_COMPONENT_DECLARE(Gravity);
-//...
-ecs_world_t *world = ecs_init();
-ECS_COMPONENT_DEFINE(world, Gravity);
-ecs_singleton_set(world, Gravity, {.x=0.0f,.y=0.0f});
-//...
-```
-  This will attach to world as component.
-
-  To edit or update the varaible there are two ways. One is query and other is ecs_singleton_ensure(world, name id)
-
-```c
-void TestSystem(ecs_iter_t *it){
-Gravity *g = ecs_singleton_ensure(it->world, Gravity);
-```
-  This will update the variable
-
-  Another way is query. Required some more setup.
-```c
-void TestSystem(ecs_iter_t *it){
-Gravity *g = ecs_field(it, Gravity, 0); // zero index in .query.terms
-//...
-```
-```c
-ecs_system(world, {
-//...
-.query.terms = {
-  { ecs_id(Gravity), .src = ecs_id(Gravity) } // Singleton source
-},
-//...
-```
-Full example.
-```c
-#include "flecs.h"
-typedef struct {
-  float x, y;
-} Gravity;
-ECS_COMPONENT_DECLARE(Gravity);
-
-// singletons
-void TestSystem(ecs_iter_t *it){
-  Gravity *g = ecs_field(it, Gravity, 0);
-  if(!g)return;
-  ecs_print(1,"x: %f", g->x);
-  g->x += 1.0f;
-}
-
-int main(){
-  ecs_world_t *world = ecs_init();
-  ECS_COMPONENT_DEFINE(world, Gravity);
-  ecs_singleton_set(world, Gravity, {.x=0.0f,.y=0.0f});
-  ecs_system_init(world, &(ecs_system_desc_t){
-    .entity = ecs_entity(world, { 
-        .name = "TestSystem", 
-        .add = ecs_ids(ecs_dependson(EcsOnUpdate)) 
-    }),
-    .query.terms = {
-	    // singletons
-      { ecs_id(Gravity), .src = ecs_id(Gravity) } // match Gravity on itself
-    },
-    .callback = TestSystem
-  });
-  ecs_progress(world, 0);
-  ecs_progress(world, 0);
-  ecs_progress(world, 0);
-  ecs_fini(world);
-}
-```
-# Module Setup Example:
-
-This should in header.
-```c
-typedef struct {
-  VkBuffer meshBuffer;
-}
-NameContext;
-ECS_COMPONENT_DECLARE(NameContext);
-```
-Flecs need to assign component to handle ID.
-
-```c
-void NameSetupSystem(ecs_iter_t *it) {
-}
-```
-```c
-void flecs_name_cleanup(ecs_world_t *world) {
-}
-```
-```c
-void flecs_name_cleanup_event_system(ecs_iter_t *it){
-  flecs_name_cleanup(it->world);
-  module_break_name(it, "name_module");
-}
-```
-```c
-name_register_components(ecs_world_t *world){
-  ECS_COMPONENT_DEFINE(world, NameContext);
-}
-```
-```c
-name_register_systems(ecs_world_t *world){
-
-  ecs_observer(world, {
-    // Not interested in any specific component
-    .query.terms = {{ EcsAny, .src.id = CleanUpModule }},
-    .events = { CleanUpEvent },
-    .callback = flecs_name_cleanup_event_system
-  });
-
-  ecs_system_init(world, &(ecs_system_desc_t){
-    .entity = ecs_entity(world, { .name = "NameSetupSystem", .add = ecs_ids(ecs_dependson(GlobalPhases.SetupModulePhase)) }),
-    .callback = NameSetupSystem
-  });
-}
-```
-```c
-void flecs_name_module_init(ecs_world_t *world){
-  ecs_log(1, "Initializing name module...");
-
-  name_register_components(world);
-
-  ecs_singleton_set(world, NameContext, {0});
-
-  // ecs_entity_t e = ecs_new(world);
-  // ecs_set(world, e, PluginModule, { .name = "name_module", .isCleanUp = false });
-  add_module_name(world, "luajit_module");
-
-  name_register_systems(world);
-}
-```
-  Work in progress test.
-
 
 # Notes:
 - Resize window will error on zero either height or width for vulkan layers.
