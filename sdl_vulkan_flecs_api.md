@@ -27,23 +27,26 @@ ecs_singleton_set(world, Gravity, {.x=0.0f,.y=0.0f});
 
 ```c
 void TestSystem(ecs_iter_t *it){
-Gravity *g = ecs_singleton_ensure(it->world, Gravity);
+  Gravity *g = ecs_singleton_ensure(it->world, Gravity);
+}
 ```
   This will update the variable
 
   Another way is query. Required some more setup.
 ```c
 void TestSystem(ecs_iter_t *it){
-Gravity *g = ecs_field(it, Gravity, 0); // zero index in .query.terms
-//...
+  Gravity *g = ecs_field(it, Gravity, 0); // zero index in .query.terms
+  //...
+}
 ```
 ```c
 ecs_system(world, {
-//...
-.query.terms = {
-  { ecs_id(Gravity), .src = ecs_id(Gravity) } // Singleton source
-},
-//...
+  //...
+  .query.terms = {
+    { ecs_id(Gravity), .src = ecs_id(Gravity) } // Singleton source
+  },
+  //...
+}
 ```
 Full example.
 ```c

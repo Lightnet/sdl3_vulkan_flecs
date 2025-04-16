@@ -14,6 +14,7 @@
 // #include "flecs_cubetexture3d.h"
 // #include "flecs_luajit.h"
 #include "flecs_assimp.h"
+#include "flecs_assets3d.h"
 
 int main(int argc, char *argv[]) {
 
@@ -45,12 +46,17 @@ int main(int argc, char *argv[]) {
   // flecs_texture2d_module_init(world);
 
   // Add Assimp module
-  ecs_log(1, "Calling flecs_assimp_module_init...");
-  flecs_assimp_module_init(world);
-  
+  // ecs_log(1, "Calling flecs_assimp_module_init...");
+  // flecs_assimp_module_init(world);
+
   // example test module
-  ecs_log(1, "Calling flecs_text_module_init...");
-  flecs_text_module_init(world);
+  // ecs_log(1, "Calling flecs_text_module_init...");
+  // flecs_text_module_init(world);
+
+  // 
+  // ecs_log(1, "Calling flecs_assets3d_module_init...");
+  flecs_assets3d_module_init(world);
+  
   
   // luajit module
   // ecs_log(1, "Calling flecs_luajit_module_init...");

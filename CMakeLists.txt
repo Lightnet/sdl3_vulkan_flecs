@@ -321,6 +321,7 @@ set(SRC_FILES
   ${SOURCE_DIR}/flecs_cubetexture3d.c
   ${SOURCE_DIR}/flecs_luajit.c
   ${SOURCE_DIR}/flecs_assimp.c
+  ${SOURCE_DIR}/flecs_assets3d.c
 )
 
 # Define the executable with all source files

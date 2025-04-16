@@ -16,4 +16,7 @@ echo path "%VULKAN_Path%"
 
 %VULKAN_Path% -V --vn assimp_shader3d_vert_spv shaders/assimp_shader3d_vert.vert -o include/shaders/assimp_shader3d_vert.spv.h
 %VULKAN_Path% -V --vn assimp_shader3d_frag_spv shaders/assimp_shader3d_frag.frag -o include/shaders/assimp_shader3d_frag.spv.h
+
+%VULKAN_Path% -V --vn assets3d_shader3d_vert_spv shaders/assets3d_shader3d_vert.vert -o include/shaders/assets3d_shader3d_vert.spv.h
+%VULKAN_Path% -V --vn assets3d_shader3d_frag_spv shaders/assets3d_shader3d_frag.frag -o include/shaders/assets3d_shader3d_frag.spv.h
 endlocal

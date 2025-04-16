@@ -8,17 +8,17 @@
 #include <assimp/postprocess.h>
 
 // Vertex structure for 3D models (used with Assimp and other 3D rendering)
-typedef struct {
-  float pos[3];      // 3D position (x, y, z)
-  float color[3];    // RGB color (r, g, b)
-  float texCoord[2]; // UV texture coordinates (u, v)
-} Vertex3d;
+// typedef struct {
+//   float pos[3];      // 3D position (x, y, z)
+//   float color[3];    // RGB color (r, g, b)
+//   float texCoord[2]; // UV texture coordinates (u, v)
+// } Vertex3d;
 
 // Vertex structure for 2D rendering (used with triangle2d module)
-typedef struct {
-  float pos[2];      // 2D position (x, y)
-  float color[3];    // RGB color (r, g, b)
-} Vertex2d;
+// typedef struct {
+//   float pos[2];      // 2D position (x, y)
+//   float color[3];    // RGB color (r, g, b)
+// } Vertex2d;
 
 typedef struct {
   VkBuffer assimp_vertexBuffer;
